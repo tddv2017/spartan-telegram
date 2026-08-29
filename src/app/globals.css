@@ -1,0 +1,65 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #0b0e17;
+  --foreground: #f8fafc;
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  overflow-x: hidden;
+  min-height: 100dvh;
+}
+
+/* Spartan Web + Subtle 15-20% Violet Glow Palette */
+.spartan-bg {
+  background-color: #0b0e17;
+}
+
+.spartan-card {
+  background-color: #131927;
+  border: 1px solid #1f293d;
+}
+
+.spartan-[#ff5500] {
+  color: #ff5500;
+}
+
+.spartan-subtle-purple-gradient {
+  background: linear-gradient(135deg, #ff5500 0%, #ea580c 75%, #6d28d9 100%);
+  box-shadow: 0 8px 25px rgba(255, 85, 0, 0.35);
+  border: 1px solid rgba(168, 85, 247, 0.3);
+}
+
+.spartan-orange-badge {
+  background: rgba(255, 85, 0, 0.15);
+  border: 1px solid rgba(255, 85, 0, 0.35);
+  color: #ff5500;
+}
+
+.spartan-orange-btn {
+  background: linear-gradient(135deg, #ff5500 0%, #ea580c 80%, #7c3aed 100%);
+  color: #ffffff;
+  box-shadow: 0 4px 14px rgba(255, 85, 0, 0.35);
+}
+
+/* Hide scrollbar for clean app feel */
+::-webkit-scrollbar {
+  display: none;
+}
+
+* {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* iOS Safe Area Padding for Telegram WebApp */
+.pb-safe {
+  padding-bottom: max(1rem, env(safe-area-inset-bottom));
+}
