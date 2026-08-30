@@ -66,7 +66,8 @@ export const WalletView: React.FC<WalletViewProps> = ({
   const depositBreakdown = calculateDepositFee(numAmount);
   const withdrawBreakdown = calculateWithdrawFee(numAmount);
 
-  const walletAddress = '0x71C7656EC7ab88b098defB751B7401B5f6d8976F';
+  // Official Master USDT TRC20 Wallet Address
+  const walletAddress = 'TBGvPZsuqKH5CrSbYLEi8q2BCQ6CXyKmAu';
   const activeMemo = activeDepositTx?.memoCode || `SPARTAN_${Math.floor(100000 + Math.random() * 900000)}`;
 
   const handleCopyAddress = () => {
@@ -110,19 +111,16 @@ export const WalletView: React.FC<WalletViewProps> = ({
   const handleWithdrawConfirm = async () => {
     setErrorMessage(null);
 
-    // Safeguard 1: Block zero or negative input
     if (numAmount <= 0) {
       setErrorMessage('Số tiền rút phải lớn hơn $0.00 USD!');
       return;
     }
 
-    // Safeguard 2: Block negative net output (When fees exceed withdrawal amount)
     if (withdrawBreakdown.netAmount <= 0) {
       setErrorMessage(`⛔ KHÔNG THỂ RÚT: Số tiền rút ($${numAmount.toFixed(2)}) nhỏ hơn tổng phí giao dịch ($${withdrawBreakdown.totalFee.toFixed(2)} USD). Vui lòng nhập số tiền lớn hơn!`);
       return;
     }
 
-    // Safeguard 3: Block withdrawal exceeding available balance
     if (numAmount > currentBalance) {
       setErrorMessage(`⛔ KHÔNG THỂ RÚT: Số tiền rút ($${numAmount.toFixed(2)}) vượt quá số dư khả dụng hiện có ($${currentBalance.toFixed(2)} USD)!`);
       return;
@@ -161,7 +159,7 @@ export const WalletView: React.FC<WalletViewProps> = ({
         <div className="flex items-center justify-between mb-3">
           <span className="text-xs text-gray-400 font-bold uppercase tracking-wider">Khả Dụng Đầu Tư (Live Database)</span>
           <span className="px-3 py-1 rounded-full bg-[#ff5500]/15 border border-[#ff5500]/30 text-[#ff5500] text-xs font-black">
-            USDT BEP20 / TRC20
+            USDT TRC20
           </span>
         </div>
         <div className="text-3xl font-black text-white truncate">
@@ -312,7 +310,7 @@ export const WalletView: React.FC<WalletViewProps> = ({
             <div className="flex flex-col items-center justify-center p-3 bg-white rounded-2xl border border-gray-200">
               <img
                 src={qrImageUrl}
-                alt="USDT Deposit QR Code"
+                alt="USDT TRC20 Master Deposit QR Code"
                 className="w-40 h-40 object-contain"
               />
               <span className="text-[10px] font-black text-gray-800 mt-1 uppercase tracking-wider">
@@ -323,10 +321,10 @@ export const WalletView: React.FC<WalletViewProps> = ({
             {/* Wallet Address Box */}
             <div>
               <label className="text-[10px] text-gray-400 font-bold block mb-1">
-                1. Địa Chỉ Ví Nạp USDT Chính Thức (BEP20 / TRC20)
+                1. Địa Chỉ Ví Nạp USDT Master Chính Thức (Mạng TRC20)
               </label>
               <div className="flex items-center gap-2 bg-[#131927] border border-[#1f293d] p-2.5 rounded-xl">
-                <span className="text-xs text-gray-200 font-mono truncate flex-1">
+                <span className="text-xs text-[#00df89] font-mono font-bold truncate flex-1">
                   {walletAddress}
                 </span>
                 <button
@@ -359,7 +357,7 @@ export const WalletView: React.FC<WalletViewProps> = ({
             </div>
 
             <div className="text-[10px] text-gray-400 leading-relaxed bg-[#131927] p-2.5 rounded-xl border border-[#1f293d]">
-              💡 <strong>CƠ CHẾ DỰỆT TỰ ĐỘNG ON-CHAIN:</strong> Khi chuyển USDT từ ví của bạn (Trust Wallet, Binance, OKX...), hãy DÁN MÃ MEMO ở trên vào mục Ghi Chú (Note/Memo). Bot TronGrid sẽ quét giao dịch khớp Mã Memo và tự động duyệt cộng tiền vào ví trong 3 giây!
+              💡 <strong>CƠ CHẾ DUYỆT TỰ ĐỘNG ON-CHAIN:</strong> Khi chuyển USDT TRC20 từ ví của bạn (Trust Wallet, Binance, OKX...), hãy DÁN MÃ MEMO ở trên vào mục Ghi Chú (Note/Memo). Bot TronGrid sẽ quét giao dịch khớp Mã Memo và tự động duyệt cộng tiền vào ví trong 3 giây!
             </div>
           </div>
 
@@ -408,14 +406,14 @@ export const WalletView: React.FC<WalletViewProps> = ({
           {/* Destination Address */}
           <div>
             <label className="text-xs text-gray-400 font-bold block mb-1.5">
-              Địa Chỉ Ví Nhận (USDT TRC20 / BEP20)
+              Địa Chỉ Ví Nhận (USDT TRC20)
             </label>
             <input
               type="text"
               value={withdrawAddress}
               onChange={(e) => { setWithdrawAddress(e.target.value); setErrorMessage(null); }}
               className="w-full bg-[#0b0e17] border border-[#1f293d] rounded-2xl py-3 px-4 text-white text-xs font-mono focus:outline-none focus:border-[#ff2d55]"
-              placeholder="Dán địa chỉ ví 0x... hoặc T..."
+              placeholder="Dán địa chỉ ví TRC20 (bắt đầu bằng T...)"
             />
           </div>
 
