@@ -3,8 +3,8 @@
  * Responds to /start, /app, /wallet, /admin commands instantly with WebApp buttons.
  */
 
-const BOT_TOKEN = process.env.BOT_TOKEN || ''; // Pass your Bot Token here or via .env
-const WEBAPP_URL = process.env.WEBAPP_URL || 'https://stale-sloths-wait.loca.lt';
+const BOT_TOKEN = process.env.BOT_TOKEN || '8897704483:AAFRtOHaF4UdH25pgf_IffQUNpCAy0YFp_Q';
+const WEBAPP_URL = process.env.WEBAPP_URL || 'https://spartan-telegram.vercel.app';
 
 if (!BOT_TOKEN) {
   console.log('⚠️ Vui lòng nhập BOT_TOKEN từ @BotFather vào file .env hoặc chạy: BOT_TOKEN="your_token" node bot.js');
@@ -75,6 +75,6 @@ async function sendMessageWithWebApp(chatId, username) {
 
 // Start bot polling listener
 if (BOT_TOKEN) {
-  console.log('🚀 Spartan Telegram Bot Listener đang lắng nghe lệnh /start...');
+  console.log(`🚀 Spartan Telegram Bot Listener đang kết nối Vercel: ${WEBAPP_URL}`);
   pollUpdates();
 }
