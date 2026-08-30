@@ -14,7 +14,7 @@ import { ProfileView } from '@/components/ProfileView';
 import { TradeHistoryCard } from '@/components/TradeHistoryCard';
 import { AdminPanel } from '@/components/AdminPanel';
 import { checkIsAdmin } from '@/lib/adminAuth';
-import { getOrCreateUser, subscribeToUser, UserData } from '@/lib/firebaseService';
+import { forceSyncUserProfile, subscribeToUser, UserData } from '@/lib/firebaseService';
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<TabType>('home');
@@ -25,8 +25,9 @@ export default function Home() {
   const [currentTelegramId, setCurrentTelegramId] = useState<string>('');
   const [userFirstName, setUserFirstName] = useState<string>('');
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
+  const [syncStatus, setSyncStatus] = useState<string | null>(null);
 
-  // Dynamic Real Telegram SDK User Detection & Referral Tracking
+  // Dynamic Real Telegram SDK User Detection & Force Firebase Profile Write
   useEffect(() => {
     let handle = '';
     let id = '';
@@ -34,7 +35,6 @@ export default function Home() {
     let referrerId = '';
 
     if (typeof window !== 'undefined') {
-      // 1. Read directly from Telegram WebApp SDK
       const tg = (window as any).Telegram?.WebApp;
       if (tg) {
         tg.ready();
@@ -45,14 +45,12 @@ export default function Home() {
           firstName = tgUser.first_name || 'Warrior';
         }
 
-        // Extract referral parameter from Telegram WebApp (e.g. ref_494232782)
         const startParam = tg.initDataUnsafe?.start_param;
         if (startParam && startParam.startsWith('ref_')) {
           referrerId = startParam.replace('ref_', '');
         }
       }
 
-      // 2. Fallback to URL search params if outside Telegram (or for testing)
       if (!id || !handle) {
         const params = new URLSearchParams(window.location.search);
         id = params.get('id') || '';
@@ -65,7 +63,6 @@ export default function Home() {
         }
       }
 
-      // 3. Default fallback ONLY if completely un-identified outside Telegram
       if (!id && !handle) {
         handle = localStorage.getItem('spartan_username') || 'tddv2017';
         id = localStorage.getItem('spartan_userid') || '1788035393';
@@ -84,11 +81,11 @@ export default function Home() {
     const adminStatus = checkIsAdmin(handle);
     setIsAdmin(adminStatus);
 
-    // Synchronize current Telegram user profile with Firebase
-    getOrCreateUser(id, handle, firstName, referrerId).then((profile) => {
-      if (profile) {
-        if (typeof profile.tradingBalance === 'number') setTradingBalance(profile.tradingBalance);
-        if (typeof profile.referralBalance === 'number') setReferralsIncome(profile.referralBalance);
+    // FORCE IMMEDIATE UNCONDITIONAL WRITE TO FIREBASE (users/<id>)
+    forceSyncUserProfile(id, handle, firstName, referrerId).then((res) => {
+      if (res.success) {
+        setSyncStatus(`🔥 Đã ghi nhận Profile User -> users/${id} trên Firebase!`);
+        setTimeout(() => setSyncStatus(null), 5000);
       }
     });
 
@@ -129,6 +126,13 @@ export default function Home() {
     <main className="flex-1 flex flex-col pb-20">
       {/* Clean App Header */}
       <Header onClose={() => alert('Telegram Mini App Closed')} />
+
+      {/* Sync Diagnostic Status Toast */}
+      {syncStatus && (
+        <div className="mx-4 mt-2 p-2 bg-[#00df89]/20 border border-[#00df89] rounded-xl text-[11px] font-bold text-[#00df89] text-center animate-pulse">
+          {syncStatus}
+        </div>
+      )}
 
       {/* Dynamic Content based on Active Tab */}
       <div className="flex-1 px-4 pt-3">

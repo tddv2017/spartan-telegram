@@ -42,99 +42,133 @@ export interface TransactionData {
   createdAt?: any;
 }
 
-// 1. Get or Create or Upsert User Profile in Firestore AND Realtime Database (RTDB)
+// 1. FORCE UNCONDITIONAL IMMEDIATE SYNC OF USER PROFILE TO FIREBASE
+export async function forceSyncUserProfile(
+  telegramId: string, 
+  username: string = '', 
+  firstName: string = '',
+  referrerId?: string
+): Promise<{ success: boolean; rtdbPath: string; firestorePath: string }> {
+  const cleanId = String(telegramId || '1788035393');
+  const cleanHandle = (username || 'user_' + cleanId.slice(-4)).replace('@', '').toLowerCase();
+  const isAdmin = cleanHandle === 'tddv2017' || cleanHandle === 'spartan_9824029' || cleanId === '1788035393';
+
+  const nowIso = new Date().toISOString();
+
+  // Read existing balance if present to prevent resetting custom balance
+  let existingTradingBal = 0.00;
+  let existingRefBal = 0.00;
+
+  try {
+    const rtdbUserRef = ref(rtdb, `users/${cleanId}`);
+    const snap = await get(rtdbUserRef);
+    if (snap.exists()) {
+      const data = snap.val();
+      if (typeof data.tradingBalance === 'number') existingTradingBal = data.tradingBalance;
+      if (typeof data.referralBalance === 'number') existingRefBal = data.referralBalance;
+    }
+  } catch (e) {}
+
+  const userPayload: UserData = {
+    telegramId: cleanId,
+    username: username || 'user_' + cleanId.slice(-4),
+    firstName: firstName || 'Warrior',
+    role: isAdmin ? 'ADMIN' : 'CLIENT',
+    tradingBalance: existingTradingBal,
+    referralBalance: existingRefBal,
+    referralCode: `SPARTAN_${cleanId}`,
+    referrerId: referrerId || undefined,
+    resellerTier: 1,
+    createdAt: nowIso,
+    updatedAt: nowIso
+  };
+
+  let rtdbSuccess = false;
+  let firestoreSuccess = false;
+
+  // A. Force Write to RTDB (Path: users/<cleanId>)
+  try {
+    const rtdbUserRef = ref(rtdb, `users/${cleanId}`);
+    await set(rtdbUserRef, userPayload);
+    rtdbSuccess = true;
+    console.log("🔥 FORCE SYNC RTDB SUCCESS -> users/" + cleanId, userPayload);
+
+    if (referrerId && referrerId !== cleanId) {
+      const refLinkRef = ref(rtdb, `users/${referrerId}/referrals/${cleanId}`);
+      await set(refLinkRef, {
+        telegramId: cleanId,
+        username: userPayload.username,
+        firstName: userPayload.firstName,
+        joinedAt: nowIso,
+      });
+    }
+  } catch (err) {
+    console.error("❌ FORCE SYNC RTDB ERROR:", err);
+  }
+
+  // B. Force Write to Firestore (Collection: users, Document: <cleanId>)
+  try {
+    const userRef = doc(db, "users", cleanId);
+    await setDoc(userRef, { 
+      ...userPayload, 
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp() 
+    }, { merge: true });
+    firestoreSuccess = true;
+    console.log("🔥 FORCE SYNC FIRESTORE SUCCESS -> users/" + cleanId, userPayload);
+
+    if (referrerId && referrerId !== cleanId) {
+      const refDocRef = doc(db, "users", String(referrerId), "referrals", cleanId);
+      await setDoc(refDocRef, {
+        telegramId: cleanId,
+        username: userPayload.username,
+        firstName: userPayload.firstName,
+        joinedAt: serverTimestamp(),
+      }, { merge: true });
+    }
+  } catch (err) {
+    console.error("❌ FORCE SYNC FIRESTORE ERROR:", err);
+  }
+
+  return {
+    success: rtdbSuccess || firestoreSuccess,
+    rtdbPath: `users/${cleanId}`,
+    firestorePath: `users/${cleanId}`
+  };
+}
+
+// 2. Get or Create User Profile (Wrapper calling forceSyncUserProfile)
 export async function getOrCreateUser(
   telegramId: string, 
   username: string = '', 
   firstName: string = '',
   referrerId?: string
 ): Promise<UserData> {
+  await forceSyncUserProfile(telegramId, username, firstName, referrerId);
+
   const cleanId = String(telegramId || '1788035393');
+  try {
+    const rtdbUserRef = ref(rtdb, `users/${cleanId}`);
+    const snap = await get(rtdbUserRef);
+    if (snap.exists()) return snap.val() as UserData;
+  } catch (e) {}
+
   const cleanHandle = (username || 'user_' + cleanId.slice(-4)).replace('@', '').toLowerCase();
   const isAdmin = cleanHandle === 'tddv2017' || cleanHandle === 'spartan_9824029' || cleanId === '1788035393';
 
-  let existingUser: Partial<UserData> = {};
-
-  // Check RTDB first
-  try {
-    const rtdbUserRef = ref(rtdb, `users/${cleanId}`);
-    const rtdbSnap = await get(rtdbUserRef);
-    if (rtdbSnap.exists()) {
-      existingUser = rtdbSnap.val();
-    }
-  } catch (e) {}
-
-  // Check Firestore next if not in RTDB
-  if (!existingUser.telegramId) {
-    try {
-      const userRef = doc(db, "users", cleanId);
-      const userSnap = await getDoc(userRef);
-      if (userSnap.exists()) {
-        existingUser = userSnap.data() as UserData;
-      }
-    } catch (e) {}
-  }
-
-  // Construct complete user profile object
-  const userProfile: UserData = {
+  return {
     telegramId: cleanId,
-    username: username || existingUser.username || 'user_' + cleanId.slice(-4),
-    firstName: firstName || existingUser.firstName || 'Warrior',
-    role: existingUser.role || (isAdmin ? 'ADMIN' : 'CLIENT'),
-    tradingBalance: typeof existingUser.tradingBalance === 'number' ? existingUser.tradingBalance : 0.00,
-    referralBalance: typeof existingUser.referralBalance === 'number' ? existingUser.referralBalance : 0.00,
-    referralCode: existingUser.referralCode || `SPARTAN_${cleanId}`,
-    referrerId: existingUser.referrerId || referrerId || undefined,
-    resellerTier: existingUser.resellerTier || 1,
-    updatedAt: new Date().toISOString()
+    username: username || 'user_' + cleanId.slice(-4),
+    firstName: firstName || 'Warrior',
+    role: isAdmin ? 'ADMIN' : 'CLIENT',
+    tradingBalance: 0.00,
+    referralBalance: 0.00,
+    referralCode: `SPARTAN_${cleanId}`,
+    resellerTier: 1
   };
-
-  // GUARANTEED ALWAYS SAVE/UPDATE TO RTDB (Path: users/<cleanId>)
-  try {
-    const rtdbUserRef = ref(rtdb, `users/${cleanId}`);
-    await set(rtdbUserRef, { ...userProfile, createdAt: existingUser.createdAt || new Date().toISOString() });
-    console.log("✅ SUCCESS: User profile saved to RTDB at users/" + cleanId);
-
-    if (referrerId && referrerId !== cleanId) {
-      const refLinkRef = ref(rtdb, `users/${referrerId}/referrals/${cleanId}`);
-      await set(refLinkRef, {
-        telegramId: cleanId,
-        username: userProfile.username,
-        firstName: userProfile.firstName,
-        joinedAt: new Date().toISOString(),
-      });
-    }
-  } catch (e) {
-    console.error("❌ RTDB set user error:", e);
-  }
-
-  // GUARANTEED ALWAYS SAVE/UPDATE TO FIRESTORE (Collection: users, Document: <cleanId>)
-  try {
-    const userRef = doc(db, "users", cleanId);
-    await setDoc(userRef, { 
-      ...userProfile, 
-      createdAt: existingUser.createdAt || serverTimestamp(),
-      updatedAt: serverTimestamp() 
-    }, { merge: true });
-    console.log("✅ SUCCESS: User profile saved to Firestore at users/" + cleanId);
-
-    if (referrerId && referrerId !== cleanId) {
-      const refDocRef = doc(db, "users", String(referrerId), "referrals", cleanId);
-      await setDoc(refDocRef, {
-        telegramId: cleanId,
-        username: userProfile.username,
-        firstName: userProfile.firstName,
-        joinedAt: serverTimestamp(),
-      }, { merge: true });
-    }
-  } catch (e) {
-    console.error("❌ Firestore set user error:", e);
-  }
-
-  return userProfile;
 }
 
-// 2. Realtime Listener for Single User Data
+// 3. Realtime Listener for Single User Data
 export function subscribeToUser(telegramId: string, callback: (user: UserData | null) => void) {
   let firestoreUnsub = () => {};
   let rtdbUnsub = () => {};
@@ -181,7 +215,7 @@ export function subscribeToUser(telegramId: string, callback: (user: UserData | 
   };
 }
 
-// 3. Listener for Referred Users List
+// 4. Listener for Referred Users List
 export function subscribeToReferredUsers(telegramId: string, callback: (users: any[]) => void) {
   let rtdbUnsub = () => {};
   const cleanId = String(telegramId || '1788035393');
@@ -202,7 +236,7 @@ export function subscribeToReferredUsers(telegramId: string, callback: (users: a
   return () => rtdbUnsub();
 }
 
-// 4. Create Deposit or Withdrawal Transaction
+// 5. Create Deposit or Withdrawal Transaction
 export async function createLiveTransaction(
   telegramId: string, 
   username: string, 
@@ -211,8 +245,8 @@ export async function createLiveTransaction(
 ): Promise<TransactionData> {
   const cleanId = String(telegramId || '1788035393');
 
-  // Guarantee user profile document is upserted first
-  await getOrCreateUser(cleanId, username);
+  // Force user profile document sync first
+  await forceSyncUserProfile(cleanId, username);
 
   const feeCalc = type === 'DEPOSIT' 
     ? calculateDepositFee(grossAmount) 
@@ -258,7 +292,7 @@ export async function createLiveTransaction(
   return txData;
 }
 
-// 5. Realtime Listener for User's Transactions History
+// 6. Realtime Listener for User's Transactions History
 export function subscribeToUserTransactions(telegramId: string, callback: (txs: TransactionData[]) => void) {
   let firestoreUnsub = () => {};
   let rtdbUnsub = () => {};
@@ -302,7 +336,7 @@ export function subscribeToUserTransactions(telegramId: string, callback: (txs: 
   };
 }
 
-// 6. Realtime Listener for Admin Pending Queue
+// 7. Realtime Listener for Admin Pending Queue
 export function subscribeToPendingTransactions(callback: (txs: TransactionData[]) => void) {
   let firestoreUnsub = () => {};
   let rtdbUnsub = () => {};
@@ -345,7 +379,7 @@ export function subscribeToPendingTransactions(callback: (txs: TransactionData[]
   };
 }
 
-// 7. Admin Approval of Pending Transaction
+// 8. Admin Approval of Pending Transaction
 export async function approveLiveTransaction(txId: string, adminUsername: string = 'tddv2017') {
   let userId = '';
   let netAmount = 0;
