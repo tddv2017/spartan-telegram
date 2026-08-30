@@ -18,7 +18,7 @@ import { getOrCreateUser, subscribeToUser, UserData } from '@/lib/firebaseServic
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<TabType>('home');
-  const [tradingBalance, setTradingBalance] = useState<number>(500.00);
+  const [tradingBalance, setTradingBalance] = useState<number>(0.00);
   const [referralsIncome, setReferralsIncome] = useState<number>(0.00);
   const [isBotActive, setIsBotActive] = useState<boolean>(true);
   const [currentTelegramUser, setCurrentTelegramUser] = useState<string>('tddv2017');
@@ -152,7 +152,13 @@ export default function Home() {
         )}
 
         {/* ĐẠI LÝ (PROFILE) TAB */}
-        {activeTab === 'profile' && <ProfileView />}
+        {activeTab === 'profile' && (
+          <ProfileView 
+            telegramId={currentTelegramId}
+            username={currentTelegramUser}
+            referralBalance={referralsIncome}
+          />
+        )}
 
         {/* ADMIN CONTROL PANEL TAB (RESTRICTED FOR @tddv2017 ONLY) */}
         {activeTab === 'admin' && isAdmin && <AdminPanel />}
