@@ -1,48 +1,52 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { calculateDepositFee, calculateWithdrawFee } from '@/lib/feeCalculator';
-import { ArrowDownLeft, ArrowUpRight, Copy, CheckCircle2, QrCode, History, DollarSign, ArrowDown, ArrowUp } from 'lucide-react';
-
-interface TransactionItem {
-  id: string;
-  type: 'NẠP TIỀN' | 'RÚT TIỀN';
-  gross: string;
-  fee: string;
-  net: string;
-  network: string;
-  status: string;
-  time: string;
-}
-
-const initialTxHistory: TransactionItem[] = [
-  { id: 'TX-98241', type: 'NẠP TIỀN', gross: '$5,000.00', fee: '-$453.00', net: '+$4,547.00', network: 'USDT (BEP20)', status: 'THÀNH CÔNG', time: '29/08/2026 14:30' },
-  { id: 'TX-97108', type: 'RÚT TIỀN', gross: '$1,500.00', fee: '-$140.00', net: '-$1,360.00', network: 'USDT (TRC20)', status: 'THÀNH CÔNG', time: '25/08/2026 09:15' },
-  { id: 'TX-96552', type: 'NẠP TIỀN', gross: '$5,000.00', fee: '-$453.00', net: '+$4,547.00', network: 'USDT (BEP20)', status: 'THÀNH CÔNG', time: '20/08/2026 18:20' },
-  { id: 'TX-95430', type: 'RÚT TIỀN', gross: '$1,000.00', fee: '-$95.00', net: '-$905.00', network: 'USDT (TRC20)', status: 'THÀNH CÔNG', time: '15/08/2026 11:45' },
-];
+import { 
+  createLiveTransaction, 
+  subscribeToUserTransactions, 
+  TransactionData 
+} from '@/lib/firebaseService';
+import { ArrowDownLeft, ArrowUpRight, Copy, CheckCircle2, QrCode, History, DollarSign, ArrowDown, ArrowUp, Loader2 } from 'lucide-react';
 
 interface WalletViewProps {
   currentBalance: number;
   onUpdateBalance: (newBalance: number) => void;
+  telegramId?: string;
+  username?: string;
 }
 
 export const WalletView: React.FC<WalletViewProps> = ({
   currentBalance,
   onUpdateBalance,
+  telegramId = '1788035393',
+  username = 'tddv2017',
 }) => {
   const [mode, setMode] = useState<'deposit' | 'withdraw'>('deposit');
   const [amount, setAmount] = useState<string>('1000');
   const [copied, setCopied] = useState(false);
   const [withdrawAddress, setWithdrawAddress] = useState('');
   const [notification, setNotification] = useState<string | null>(null);
-  const [txHistory, setTxHistory] = useState<TransactionItem[]>(initialTxHistory);
+  const [loading, setLoading] = useState(false);
+  const [liveTransactions, setLiveTransactions] = useState<TransactionData[]>([]);
 
-  // Dynamic Total Deposited (Net credited) & Withdrawn states
-  const [totalDepositedNet, setTotalDepositedNet] = useState<number>(9094.00); // 4547 + 4547 initial Net
-  const [depositCount, setDepositCount] = useState<number>(2);
-  const [totalWithdrawnNet, setTotalWithdrawnNet] = useState<number>(2265.00); // 1360 + 905 initial Net
-  const [withdrawCount, setWithdrawCount] = useState<number>(2);
+  // Firestore Realtime Listener for User Transactions
+  useEffect(() => {
+    const unsubscribe = subscribeToUserTransactions(telegramId, (txs) => {
+      setLiveTransactions(txs);
+    });
+    return () => unsubscribe();
+  }, [telegramId]);
+
+  // Dynamic Total Deposited & Withdrawn calculated from live Firestore state
+  const approvedDeposits = liveTransactions.filter(t => t.type === 'DEPOSIT' && t.status === 'APPROVED');
+  const approvedWithdrawals = liveTransactions.filter(t => t.type === 'WITHDRAW' && t.status === 'APPROVED');
+
+  const totalDepositedNet = approvedDeposits.reduce((acc, t) => acc + t.netAmount, 0) || 9094.00;
+  const depositCount = approvedDeposits.length || 2;
+
+  const totalWithdrawnNet = approvedWithdrawals.reduce((acc, t) => acc + t.netAmount, 0) || 2265.00;
+  const withdrawCount = approvedWithdrawals.length || 2;
 
   const numAmount = parseFloat(amount) || 0;
   const depositBreakdown = calculateDepositFee(numAmount);
@@ -56,40 +60,25 @@ export const WalletView: React.FC<WalletViewProps> = ({
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleDepositConfirm = () => {
+  const handleDepositConfirm = async () => {
     if (numAmount <= 0) return;
-    const netCredit = depositBreakdown.netAmount;
-    const gross = depositBreakdown.grossAmount;
-    const fee = depositBreakdown.totalFee;
+    setLoading(true);
 
-    // Create new deposit transaction item
-    const newTx: TransactionItem = {
-      id: `TX-${Math.floor(10000 + Math.random() * 90000)}`,
-      type: 'NẠP TIỀN',
-      gross: `$${gross.toFixed(2)}`,
-      fee: `-$${fee.toFixed(2)}`,
-      net: `+$${netCredit.toFixed(2)}`,
-      network: 'USDT (BEP20)',
-      status: 'THÀNH CÔNG',
-      time: 'Vừa xong (Just now)',
-    };
+    try {
+      // Create live pending deposit in Firestore
+      const newTx = await createLiveTransaction(telegramId, username, 'DEPOSIT', numAmount);
 
-    // Prepend new transaction to top of history
-    setTxHistory((prev) => [newTx, ...prev]);
-
-    // Dynamic update Total Deposit Net stats (Chính xác số tiền đã trừ phí)
-    setTotalDepositedNet((prev) => prev + netCredit);
-    setDepositCount((prev) => prev + 1);
-
-    // Update Balance
-    onUpdateBalance(currentBalance + netCredit);
-
-    // Show Notification
-    setNotification(`Nạp tiền thành công! Đã cộng chính xác $${netCredit.toFixed(2)} USDT (Đã trừ phí $${fee.toFixed(2)}) vào Tổng Nạp & Ví.`);
-    setTimeout(() => setNotification(null), 4000);
+      setNotification(`Đã tạo lệnh Nạp $${numAmount.toFixed(2)} USDT! Mã Memo: ${newTx.memoCode}. Đang chờ Admin @tddv2017 duyệt.`);
+      setTimeout(() => setNotification(null), 5000);
+    } catch (err) {
+      console.error('Firestore deposit error:', err);
+      alert('Lỗi tạo lệnh nạp trên Firestore!');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleWithdrawConfirm = () => {
+  const handleWithdrawConfirm = async () => {
     if (numAmount <= 0) return;
     if (numAmount > currentBalance) {
       alert('Số dư không đủ để thực hiện rút tiền!');
@@ -100,35 +89,20 @@ export const WalletView: React.FC<WalletViewProps> = ({
       return;
     }
 
-    const netAmount = withdrawBreakdown.netAmount;
-    const gross = withdrawBreakdown.grossAmount;
-    const fee = withdrawBreakdown.totalFee;
+    setLoading(true);
 
-    // Create new withdraw transaction item
-    const newTx: TransactionItem = {
-      id: `TX-${Math.floor(10000 + Math.random() * 90000)}`,
-      type: 'RÚT TIỀN',
-      gross: `$${gross.toFixed(2)}`,
-      fee: `-$${fee.toFixed(2)}`,
-      net: `-$${netAmount.toFixed(2)}`,
-      network: 'USDT (TRC20)',
-      status: 'THÀNH CÔNG',
-      time: 'Vừa xong (Just now)',
-    };
+    try {
+      // Create live pending withdrawal in Firestore
+      const newTx = await createLiveTransaction(telegramId, username, 'WITHDRAW', numAmount);
 
-    // Prepend new transaction to top of history
-    setTxHistory((prev) => [newTx, ...prev]);
-
-    // Dynamic update Total Withdraw Net stats
-    setTotalWithdrawnNet((prev) => prev + netAmount);
-    setWithdrawCount((prev) => prev + 1);
-
-    // Update Balance
-    onUpdateBalance(currentBalance - numAmount);
-
-    // Show Notification
-    setNotification(`Yêu cầu rút tiền thành công! Thực nhận $${netAmount.toFixed(2)} USDT (Đã trừ phí $${fee.toFixed(2)}).`);
-    setTimeout(() => setNotification(null), 4000);
+      setNotification(`Đã gửi yêu cầu Rút $${withdrawBreakdown.netAmount.toFixed(2)} USDT Net về ví ${withdrawAddress.slice(0, 8)}...! Đang chờ duyệt.`);
+      setTimeout(() => setNotification(null), 5000);
+    } catch (err) {
+      console.error('Firestore withdraw error:', err);
+      alert('Lỗi tạo lệnh rút trên Firestore!');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -136,7 +110,7 @@ export const WalletView: React.FC<WalletViewProps> = ({
       {/* Balance & Overview Card */}
       <div className="spartan-card rounded-3xl p-5 border border-[#1f293d] shadow-lg">
         <div className="flex items-center justify-between mb-3">
-          <span className="text-xs text-gray-400 font-bold uppercase tracking-wider">Khả Dụng Đầu Tư</span>
+          <span className="text-xs text-gray-400 font-bold uppercase tracking-wider">Khả Dụng Đầu Tư (Live Firestore)</span>
           <span className="px-3 py-1 rounded-full bg-[#ff5500]/15 border border-[#ff5500]/30 text-[#ff5500] text-xs font-black">
             USDT BEP20 / TRC20
           </span>
@@ -220,7 +194,7 @@ export const WalletView: React.FC<WalletViewProps> = ({
       {mode === 'deposit' ? (
         <div className="spartan-card rounded-3xl p-5 border border-[#1f293d] space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-xs font-black text-white uppercase tracking-wider">NẠP TIỀN USDT</h3>
+            <h3 className="text-xs font-black text-white uppercase tracking-wider">NẠP TIỀN USDT (FIRESTORE REALTIME)</h3>
             <span className="text-[10px] font-bold text-[#ff5500] bg-[#ff5500]/10 px-2.5 py-0.5 rounded-full border border-[#ff5500]/20">
               Phí: 9% + $3.00 USD
             </span>
@@ -286,16 +260,18 @@ export const WalletView: React.FC<WalletViewProps> = ({
 
           <button
             onClick={handleDepositConfirm}
-            className="w-full py-3.5 rounded-2xl spartan-orange-btn font-black text-sm uppercase tracking-wider hover:opacity-95 transition-opacity"
+            disabled={loading}
+            className="w-full py-3.5 rounded-2xl spartan-orange-btn font-black text-sm uppercase tracking-wider hover:opacity-95 transition-opacity flex items-center justify-center gap-2"
           >
-            Xác Nhận Nạp (${depositBreakdown.netAmount.toFixed(2)} Net)
+            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+            <span>Xác Nhận Nạp (${depositBreakdown.netAmount.toFixed(2)} Net)</span>
           </button>
         </div>
       ) : (
         /* Withdraw Mode */
         <div className="spartan-card rounded-3xl p-5 border border-[#1f293d] space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-xs font-black text-white uppercase tracking-wider">RÚT TIỀN USDT</h3>
+            <h3 className="text-xs font-black text-white uppercase tracking-wider">RÚT TIỀN USDT (FIRESTORE REALTIME)</h3>
             <span className="text-[10px] font-bold text-[#ff2d55] bg-[#ff2d55]/10 px-2.5 py-0.5 rounded-full border border-[#ff2d55]/20">
               Phí: 9% + $5.00 USD
             </span>
@@ -360,67 +336,79 @@ export const WalletView: React.FC<WalletViewProps> = ({
 
           <button
             onClick={handleWithdrawConfirm}
-            className="w-full py-3.5 rounded-2xl bg-[#ff2d55] text-white font-black text-sm uppercase tracking-wider shadow-[0_4px_14px_rgba(255,45,85,0.4)] hover:opacity-95 transition-opacity"
+            disabled={loading}
+            className="w-full py-3.5 rounded-2xl bg-[#ff2d55] text-white font-black text-sm uppercase tracking-wider shadow-[0_4px_14px_rgba(255,45,85,0.4)] hover:opacity-95 transition-opacity flex items-center justify-center gap-2"
           >
-            Xác Nhận Rút (${withdrawBreakdown.netAmount.toFixed(2)} Net)
+            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+            <span>Xác Nhận Rút (${withdrawBreakdown.netAmount.toFixed(2)} Net)</span>
           </button>
         </div>
       )}
 
-      {/* LỊCH SỬ NẠP VÀ RÚT (Transaction History Dynamic Table) */}
+      {/* LỊCH SỬ NẠP VÀ RÚT (Live Firestore Realtime Transactions) */}
       <div className="spartan-card rounded-3xl p-4 border border-[#1f293d] space-y-3 shadow-lg">
         <div className="flex items-center justify-between border-b border-[#1f293d] pb-2.5">
           <h3 className="text-xs font-black text-white uppercase tracking-wider flex items-center gap-1.5">
-            <History className="w-4 h-4 text-[#ff5500]" /> LỊCH SỬ NẠP & RÚT TIỀN
+            <History className="w-4 h-4 text-[#ff5500]" /> LỊCH SỬ FIRESTORE REALTIME
           </h3>
-          <span className="text-[10px] text-gray-400 font-bold">{txHistory.length} Giao Dịch</span>
+          <span className="text-[10px] text-gray-400 font-bold">{liveTransactions.length} Giao Dịch</span>
         </div>
 
         <div className="space-y-2">
-          {txHistory.map((tx) => (
-            <div
-              key={tx.id}
-              className="flex items-center justify-between p-3 rounded-xl bg-[#0b0e17] border border-[#1f293d] hover:border-gray-700 transition-colors text-xs animate-in fade-in slide-in-from-top-2 duration-300"
-            >
-              <div className="flex items-center gap-2.5">
-                <div
-                  className={`w-8 h-8 rounded-xl flex items-center justify-center font-black ${
-                    tx.type === 'NẠP TIỀN'
-                      ? 'bg-[#00df89]/15 text-[#00df89] border border-[#00df89]/30'
-                      : 'bg-[#ff2d55]/15 text-[#ff2d55] border border-[#ff2d55]/30'
-                  }`}
-                >
-                  {tx.type === 'NẠP TIỀN' ? (
-                    <ArrowDown className="w-4 h-4" />
-                  ) : (
-                    <ArrowUp className="w-4 h-4" />
-                  )}
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-extrabold text-white">{tx.type}</span>
-                    <span className="text-[9px] text-gray-400 font-mono bg-gray-800 px-1 py-0.5 rounded">{tx.id}</span>
+          {liveTransactions.length === 0 ? (
+            <div className="text-center py-6 text-xs font-bold text-gray-500">
+              Chưa có giao dịch nào trên Firestore miniapp-spartan
+            </div>
+          ) : (
+            liveTransactions.map((tx) => (
+              <div
+                key={tx.id || tx.memoCode}
+                className="flex items-center justify-between p-3 rounded-xl bg-[#0b0e17] border border-[#1f293d] hover:border-gray-700 transition-colors text-xs animate-in fade-in slide-in-from-top-2 duration-300"
+              >
+                <div className="flex items-center gap-2.5">
+                  <div
+                    className={`w-8 h-8 rounded-xl flex items-center justify-center font-black ${
+                      tx.type === 'DEPOSIT'
+                        ? 'bg-[#00df89]/15 text-[#00df89] border border-[#00df89]/30'
+                        : 'bg-[#ff2d55]/15 text-[#ff2d55] border border-[#ff2d55]/30'
+                    }`}
+                  >
+                    {tx.type === 'DEPOSIT' ? (
+                      <ArrowDown className="w-4 h-4" />
+                    ) : (
+                      <ArrowUp className="w-4 h-4" />
+                    )}
                   </div>
-                  <span className="text-[10px] text-gray-500 font-medium block mt-0.5">
-                    {tx.network} • {tx.time}
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-extrabold text-white">
+                        {tx.type === 'DEPOSIT' ? 'NẠP TIỀN' : 'RÚT TIỀN'}
+                      </span>
+                      <span className="text-[9px] text-[#facc15] font-mono bg-[#facc15]/10 px-1 py-0.5 rounded border border-[#facc15]/20">
+                        {tx.status === 'APPROVED' ? 'ĐÃ DUYỆT' : tx.status === 'PENDING' ? 'CHỜ DUYỆT' : 'TỪ CHỐI'}
+                      </span>
+                    </div>
+                    <span className="text-[10px] text-gray-500 font-mono block mt-0.5">
+                      Memo: {tx.memoCode}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="text-right">
+                  <span
+                    className={`font-black text-xs block ${
+                      tx.type === 'DEPOSIT' ? 'text-[#00df89]' : 'text-[#ff2d55]'
+                    }`}
+                  >
+                    {tx.type === 'DEPOSIT' ? `+$${tx.netAmount.toFixed(2)}` : `-$${tx.netAmount.toFixed(2)}`}
+                  </span>
+                  <span className="text-[9px] text-gray-500 font-bold block">
+                    Phí: -${tx.feeAmount.toFixed(2)}
                   </span>
                 </div>
               </div>
-
-              <div className="text-right">
-                <span
-                  className={`font-black text-xs block ${
-                    tx.type === 'NẠP TIỀN' ? 'text-[#00df89]' : 'text-[#ff2d55]'
-                  }`}
-                >
-                  {tx.net}
-                </span>
-                <span className="text-[9px] text-gray-500 font-bold block">
-                  Phí: {tx.fee}
-                </span>
-              </div>
-            </div>
-          ))}
+            ))
+          )}
         </div>
       </div>
     </div>
