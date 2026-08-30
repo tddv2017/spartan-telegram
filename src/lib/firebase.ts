@@ -3,27 +3,25 @@ import { getFirestore, Firestore } from "firebase/firestore";
 import { getDatabase } from "firebase/database";
 import { getAnalytics, isSupported } from "firebase/analytics";
 
-// User's Live Firebase Configuration (Project: bot-trading-5f8c9)
+// User's New Live Firebase Configuration (Project: decisive-mapper-216306)
 const firebaseConfig = {
-  apiKey: "AIzaSyAUzL5c9CD_cCv9hP-FNrbTSRKOiIMxMOs",
-  authDomain: "bot-trading-5f8c9.firebaseapp.com",
-  databaseURL: "https://bot-trading-5f8c9-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "bot-trading-5f8c9",
-  storageBucket: "bot-trading-5f8c9.firebasestorage.app",
-  messagingSenderId: "725310671686",
-  appId: "1:725310671686:web:0a901bb870d9ce9f0ab347",
-  measurementId: "G-6SQJB8MD9H"
+  apiKey: "AIzaSyAWhGhoS5GixDZdqGVRf-ieCdMB28GCDLM",
+  authDomain: "decisive-mapper-216306.firebaseapp.com",
+  projectId: "decisive-mapper-216306",
+  storageBucket: "decisive-mapper-216306.firebasestorage.app",
+  messagingSenderId: "1050974079411",
+  appId: "1:10050974079411:web:a41943132e2402f55563c6",
+  measurementId: "G-BTW41XX3GH"
 };
 
 // Initialize Firebase App (Singleton Pattern)
 const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 
-// Resilient Firestore Getter: Tries "miniapp-spartan" Database ID first, falls back to default
+// Initialize Firestore Instance (Project: decisive-mapper-216306)
 let firestoreInstance: Firestore;
 try {
   firestoreInstance = getFirestore(app, "miniapp-spartan");
 } catch (e) {
-  console.warn("Falling back to default Firestore database instance:", e);
   firestoreInstance = getFirestore(app);
 }
 
