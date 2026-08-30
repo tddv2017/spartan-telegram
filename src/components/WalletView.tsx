@@ -33,6 +33,7 @@ export const WalletView: React.FC<WalletViewProps> = ({
 
   // Firestore Realtime Listener for User Transactions
   useEffect(() => {
+    if (!telegramId) return;
     const unsubscribe = subscribeToUserTransactions(telegramId, (txs) => {
       setFirestoreTxs(txs);
     });
@@ -48,15 +49,15 @@ export const WalletView: React.FC<WalletViewProps> = ({
 
   const allTransactions = Array.from(combinedTxsMap.values());
 
-  // Dynamic Total Deposited & Withdrawn calculated from live state
+  // Dynamic Total Deposited & Withdrawn calculated purely from real transactions
   const approvedDeposits = allTransactions.filter(t => t.type === 'DEPOSIT' && t.status === 'APPROVED');
   const approvedWithdrawals = allTransactions.filter(t => t.type === 'WITHDRAW' && t.status === 'APPROVED');
 
-  const totalDepositedNet = approvedDeposits.reduce((acc, t) => acc + t.netAmount, 0) || 9094.00;
-  const depositCount = approvedDeposits.length || 2;
+  const totalDepositedNet = approvedDeposits.reduce((acc, t) => acc + t.netAmount, 0);
+  const depositCount = approvedDeposits.length;
 
-  const totalWithdrawnNet = approvedWithdrawals.reduce((acc, t) => acc + t.netAmount, 0) || 2265.00;
-  const withdrawCount = approvedWithdrawals.length || 2;
+  const totalWithdrawnNet = approvedWithdrawals.reduce((acc, t) => acc + t.netAmount, 0);
+  const withdrawCount = approvedWithdrawals.length;
 
   const numAmount = parseFloat(amount) || 0;
   const depositBreakdown = calculateDepositFee(numAmount);
@@ -75,7 +76,7 @@ export const WalletView: React.FC<WalletViewProps> = ({
     setLoading(true);
 
     try {
-      // Create live pending deposit in Firestore / Local fallback
+      // Create live pending deposit in Firestore / RTDB
       const newTx = await createLiveTransaction(telegramId, username, 'DEPOSIT', numAmount);
 
       setLocalTxs((prev) => [newTx, ...prev]);
@@ -105,7 +106,7 @@ export const WalletView: React.FC<WalletViewProps> = ({
     setLoading(true);
 
     try {
-      // Create live pending withdrawal in Firestore / Local fallback
+      // Create live pending withdrawal in Firestore / RTDB
       const newTx = await createLiveTransaction(telegramId, username, 'WITHDRAW', numAmount);
 
       setLocalTxs((prev) => [newTx, ...prev]);
@@ -126,7 +127,7 @@ export const WalletView: React.FC<WalletViewProps> = ({
       {/* Balance & Overview Card */}
       <div className="spartan-card rounded-3xl p-5 border border-[#1f293d] shadow-lg">
         <div className="flex items-center justify-between mb-3">
-          <span className="text-xs text-gray-400 font-bold uppercase tracking-wider">Khả Dụng Đầu Tư (Live Firestore)</span>
+          <span className="text-xs text-gray-400 font-bold uppercase tracking-wider">Khả Dụng Đầu Tư (Live Database)</span>
           <span className="px-3 py-1 rounded-full bg-[#ff5500]/15 border border-[#ff5500]/30 text-[#ff5500] text-xs font-black">
             USDT BEP20 / TRC20
           </span>
@@ -210,7 +211,7 @@ export const WalletView: React.FC<WalletViewProps> = ({
       {mode === 'deposit' ? (
         <div className="spartan-card rounded-3xl p-5 border border-[#1f293d] space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-xs font-black text-white uppercase tracking-wider">NẠP TIỀN USDT (FIRESTORE REALTIME)</h3>
+            <h3 className="text-xs font-black text-white uppercase tracking-wider">NẠP TIỀN USDT (FIREBASE REALTIME)</h3>
             <span className="text-[10px] font-bold text-[#ff5500] bg-[#ff5500]/10 px-2.5 py-0.5 rounded-full border border-[#ff5500]/20">
               Phí: 9% + $3.00 USD
             </span>
@@ -287,7 +288,7 @@ export const WalletView: React.FC<WalletViewProps> = ({
         /* Withdraw Mode */
         <div className="spartan-card rounded-3xl p-5 border border-[#1f293d] space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-xs font-black text-white uppercase tracking-wider">RÚT TIỀN USDT (FIRESTORE REALTIME)</h3>
+            <h3 className="text-xs font-black text-white uppercase tracking-wider">RÚT TIỀN USDT (FIREBASE REALTIME)</h3>
             <span className="text-[10px] font-bold text-[#ff2d55] bg-[#ff2d55]/10 px-2.5 py-0.5 rounded-full border border-[#ff2d55]/20">
               Phí: 9% + $5.00 USD
             </span>
@@ -361,11 +362,11 @@ export const WalletView: React.FC<WalletViewProps> = ({
         </div>
       )}
 
-      {/* LỊCH SỬ NẠP VÀ RÚT (Live Firestore Realtime Transactions) */}
+      {/* LỊCH SỬ NẠP VÀ RÚT (Live Firebase Realtime Transactions) */}
       <div className="spartan-card rounded-3xl p-4 border border-[#1f293d] space-y-3 shadow-lg">
         <div className="flex items-center justify-between border-b border-[#1f293d] pb-2.5">
           <h3 className="text-xs font-black text-white uppercase tracking-wider flex items-center gap-1.5">
-            <History className="w-4 h-4 text-[#ff5500]" /> LỊCH SỬ FIRESTORE REALTIME
+            <History className="w-4 h-4 text-[#ff5500]" /> LỊCH SỬ GIAO DỊCH
           </h3>
           <span className="text-[10px] text-gray-400 font-bold">{allTransactions.length} Giao Dịch</span>
         </div>
@@ -373,7 +374,7 @@ export const WalletView: React.FC<WalletViewProps> = ({
         <div className="space-y-2">
           {allTransactions.length === 0 ? (
             <div className="text-center py-6 text-xs font-bold text-gray-500">
-              Chưa có giao dịch nào trên Firestore miniapp-spartan
+              Chưa có giao dịch nào trên Firebase
             </div>
           ) : (
             allTransactions.map((tx) => (

@@ -64,13 +64,14 @@ export async function getOrCreateUser(telegramId: string, username: string = '',
     }
   } catch (e) {}
 
+  // Clean initialization: 0.00 initial balance (No hardcoded mockdata!)
   const defaultUser: UserData = {
     telegramId: String(telegramId),
     username: username || 'user_' + String(telegramId).slice(-4),
     firstName: firstName || 'Warrior',
     role: isAdmin ? 'ADMIN' : 'CLIENT',
-    tradingBalance: isAdmin ? 7462415.57 : 0.00,
-    referralBalance: isAdmin ? 800.00 : 0.00,
+    tradingBalance: 0.00,
+    referralBalance: 0.00,
     referralCode: `SPARTAN_${telegramId}`,
     resellerTier: 1,
   };
@@ -90,12 +91,12 @@ export async function getOrCreateUser(telegramId: string, username: string = '',
   return defaultUser;
 }
 
-// 2. Realtime Listener for Single User Data (Realtime Database RTDB is Primary Source of Truth)
+// 2. Realtime Listener for Single User Data
 export function subscribeToUser(telegramId: string, callback: (user: UserData | null) => void) {
   let firestoreUnsub = () => {};
   let rtdbUnsub = () => {};
 
-  // A. Primary RTDB Listener (Instant sync when edited in RTDB Console)
+  // A. Primary RTDB Listener
   try {
     const rtdbUserRef = ref(rtdb, `users/${telegramId}`);
     rtdbUnsub = onValue(rtdbUserRef, (snapshot) => {
@@ -103,7 +104,6 @@ export function subscribeToUser(telegramId: string, callback: (user: UserData | 
         const userData = snapshot.val() as UserData;
         callback(userData);
 
-        // Keep Firestore document in sync with RTDB console edits
         try {
           const userRef = doc(db, "users", String(telegramId));
           setDoc(userRef, userData, { merge: true });
@@ -193,7 +193,9 @@ export function subscribeToUserTransactions(telegramId: string, callback: (txs: 
         const txs: TransactionData[] = Object.values(data).filter(
           (t: any) => String(t.userId) === String(telegramId)
         ) as TransactionData[];
-        if (txs.length > 0) callback(txs);
+        callback(txs);
+      } else {
+        callback([]);
       }
     });
   } catch (e) {}
@@ -234,7 +236,9 @@ export function subscribeToPendingTransactions(callback: (txs: TransactionData[]
         const pendingTxs: TransactionData[] = Object.values(data).filter(
           (t: any) => t.status === 'PENDING'
         ) as TransactionData[];
-        if (pendingTxs.length > 0) callback(pendingTxs);
+        callback(pendingTxs);
+      } else {
+        callback([]);
       }
     });
   } catch (e) {}
@@ -300,6 +304,14 @@ export async function approveLiveTransaction(txId: string, adminUsername: string
         await update(rtdbUserRef, {
           tradingBalance: Math.max(0, newBal)
         });
+
+        // Also update Firestore
+        try {
+          const userRef = doc(db, "users", String(userId));
+          await updateDoc(userRef, {
+            tradingBalance: Math.max(0, newBal)
+          });
+        } catch (e) {}
       }
     } catch (e) {}
   }

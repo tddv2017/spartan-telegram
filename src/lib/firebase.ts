@@ -1,5 +1,5 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
-import { getFirestore, Firestore } from "firebase/firestore";
+import { getFirestore } from "firebase/firestore";
 import { getDatabase } from "firebase/database";
 import { getAnalytics, isSupported } from "firebase/analytics";
 
@@ -18,15 +18,8 @@ const firebaseConfig = {
 // Initialize Firebase App (Singleton Pattern)
 const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 
-// Initialize Firestore Instance (Project: decisive-mapper-216306)
-let firestoreInstance: Firestore;
-try {
-  firestoreInstance = getFirestore(app, "miniapp-spartan");
-} catch (e) {
-  firestoreInstance = getFirestore(app);
-}
-
-export const db = firestoreInstance;
+// Initialize Default Firestore Database for Project decisive-mapper-216306
+export const db = getFirestore(app);
 
 // Initialize Realtime Database (rtdb - asia-southeast1)
 export const rtdb = getDatabase(app);
