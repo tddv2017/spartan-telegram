@@ -276,7 +276,7 @@ export function subscribeToReferredUsers(telegramId: string, callback: (users: a
   };
 }
 
-// 5. Create Deposit/Withdrawal Transaction (Simplified HMAC-SHA256 Signature)
+// 5. Create Deposit/Withdrawal Transaction (Flexible HMAC-SHA256 Signature Engine)
 export async function createLiveTransaction(
   telegramId: string, 
   username: string, 
@@ -297,11 +297,10 @@ export async function createLiveTransaction(
 
   const masterWallet = 'TBGvPZsuqKH5CrSbYLEi8q2BCQ6CXyKmAu';
 
-  // Generate 64-character Cryptographic HMAC-SHA256 Signature
-  // Formula: OrderID|Amount|MasterWalletAddress|Timestamp
+  // Generate Flexible 64-character Cryptographic HMAC-SHA256 Signature
+  // Formula: OrderID|MasterWalletAddress|Timestamp (Allows flexible deposit amount on-chain)
   const sha256Signature = generateDepositSignature({
     orderId: txId,
-    amount: grossAmount,
     masterWalletAddress: masterWallet,
     timestamp: nowTs
   });
@@ -335,7 +334,7 @@ export async function createLiveTransaction(
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(txData)
     });
-    console.log(`🚀 RTDB SHA256 TRANSACTION SUCCESS -> users/${cleanId}/transactions/${txId}`);
+    console.log(`🚀 RTDB FLEXIBLE SHA256 TRANSACTION SUCCESS -> users/${cleanId}/transactions/${txId}`);
   } catch (e) {}
 
   // B. Firestore Database Write:

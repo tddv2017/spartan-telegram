@@ -4,17 +4,16 @@ const SECRET_KEY = process.env.SPARTAN_HMAC_SECRET || 'SPARTAN_QUANT_AI_SECRET_K
 
 export interface DepositSignaturePayload {
   orderId: string;
-  amount: number;
   masterWalletAddress: string;
   timestamp: number;
 }
 
 /**
- * Generates an HMAC-SHA256 64-character hexadecimal signature for deposit integrity.
- * Formula: OrderID|Amount|MasterWalletAddress|Timestamp
+ * Generates an HMAC-SHA256 64-character hexadecimal signature for flexible deposit integrity.
+ * Flexible Formula: OrderID|MasterWalletAddress|Timestamp
  */
 export function generateDepositSignature(payload: DepositSignaturePayload): string {
-  const rawString = `${payload.orderId}|${payload.amount.toFixed(2)}|${payload.masterWalletAddress}|${payload.timestamp}`;
+  const rawString = `${payload.orderId}|${payload.masterWalletAddress}|${payload.timestamp}`;
   return crypto.createHmac('sha256', SECRET_KEY).update(rawString).digest('hex');
 }
 
