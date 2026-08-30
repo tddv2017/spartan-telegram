@@ -30,11 +30,11 @@ export const Header: React.FC<HeaderProps> = ({ onClose }) => {
       {/* Brand Header & Supreme Leader Badge */}
       <div className="flex items-center justify-between pt-1">
         <div className="flex items-center gap-3">
-          {/* Prominent Spartan High-Tech Helmet Logo Avatar (Enlarged w-12 h-12 / 48px) */}
+          {/* Prominent Clean Spartan High-Tech Helmet Logo Avatar (w-12 h-12 / 48px) */}
           <div className="w-12 h-12 rounded-2xl overflow-hidden border border-[#ff5500]/60 shadow-[0_4px_16px_rgba(255,85,0,0.5)] bg-[#0b0e17] relative flex-shrink-0 transition-transform hover:scale-105">
             <img
-              src="/assets/spartan_avatar_square.jpg"
-              alt="Spartan AI Logo"
+              src="/assets/spartan_logo_clean.jpg"
+              alt="Spartan AI Logo Clean"
               className="w-full h-full object-cover"
             />
           </div>
