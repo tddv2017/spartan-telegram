@@ -7,7 +7,7 @@ import { getAnalytics, isSupported } from "firebase/analytics";
 const firebaseConfig = {
   apiKey: "AIzaSyAWhGhoS5GixDZdqGVRf-ieCdMB28GCDLM",
   authDomain: "decisive-mapper-216306.firebaseapp.com",
-  databaseURL: "https://decisive-mapper-216306-default-rtdb.firebaseio.com",
+  databaseURL: "https://decisive-mapper-216306-default-rtdb.asia-southeast1.firebasedatabase.app/",
   projectId: "decisive-mapper-216306",
   storageBucket: "decisive-mapper-216306.firebasestorage.app",
   messagingSenderId: "1050974079411",
@@ -28,7 +28,7 @@ try {
 
 export const db = firestoreInstance;
 
-// Initialize Realtime Database (rtdb)
+// Initialize Realtime Database (rtdb - asia-southeast1)
 export const rtdb = getDatabase(app);
 
 // Initialize Analytics (Browser-only)
