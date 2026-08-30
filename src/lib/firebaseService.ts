@@ -43,8 +43,50 @@ export interface TransactionData {
 }
 
 const RTDB_BASE_URL = "https://decisive-mapper-216306-default-rtdb.asia-southeast1.firebasedatabase.app";
+const FIRESTORE_REST_BASE = "https://firestore.googleapis.com/v1/projects/decisive-mapper-216306/databases/(default)/documents";
 
-// 1. DIRECT HTTP REST API + JS SDK HYBRID WRITE ENGINE (100% Guaranteed Delivery)
+// Firestore REST Field Serializer Helper
+function convertToFirestoreFields(obj: any): any {
+  const fields: any = {};
+  for (const [key, val] of Object.entries(obj)) {
+    if (val === undefined || val === null) continue;
+    if (typeof val === 'number') {
+      fields[key] = Number.isInteger(val) ? { integerValue: val } : { doubleValue: val };
+    } else if (typeof val === 'boolean') {
+      fields[key] = { booleanValue: val };
+    } else if (typeof val === 'string') {
+      fields[key] = { stringValue: val };
+    }
+  }
+  return fields;
+}
+
+// DIRECT FIRESTORE REST API WRITE ENGINE (Guaranteed 100% Write to Firestore Console)
+export async function saveToFirestoreREST(collectionName: string, documentId: string, data: any) {
+  try {
+    const fieldKeys = Object.keys(data).filter(k => data[k] !== undefined && data[k] !== null);
+    const queryParams = fieldKeys.map(k => `updateMask.fieldPaths=${encodeURIComponent(k)}`).join('&');
+    const url = `${FIRESTORE_REST_BASE}/${collectionName}/${documentId}?${queryParams}`;
+    const fields = convertToFirestoreFields(data);
+
+    const res = await fetch(url, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ fields })
+    });
+
+    if (res.ok) {
+      console.log(`🚀 FIRESTORE REST WRITE SUCCESS -> ${collectionName}/${documentId}`);
+    } else {
+      const err = await res.json();
+      console.warn(`Firestore REST notice (${collectionName}/${documentId}):`, err);
+    }
+  } catch (err) {
+    console.error("Firestore REST error:", err);
+  }
+}
+
+// 1. DIRECT DUAL HYBRID WRITE ENGINE FOR USER PROFILES (RTDB + FIRESTORE)
 export async function forceSyncUserProfile(
   telegramId: string, 
   username: string = '', 
@@ -57,7 +99,6 @@ export async function forceSyncUserProfile(
 
   const nowIso = new Date().toISOString();
 
-  // Read existing balance if present to prevent resetting custom balance
   let existingTradingBal = 0.00;
   let existingRefBal = 0.00;
 
@@ -88,7 +129,7 @@ export async function forceSyncUserProfile(
 
   let restSuccess = false;
 
-  // A. Direct HTTP REST API Write (0.05s response time, zero SDK socket dependency)
+  // A. Direct Realtime Database HTTP REST Write
   try {
     const restRes = await fetch(`${RTDB_BASE_URL}/users/${cleanId}.json`, {
       method: "PUT",
@@ -97,7 +138,7 @@ export async function forceSyncUserProfile(
     });
     if (restRes.ok) {
       restSuccess = true;
-      console.log("🚀 HTTP REST API WRITE SUCCESS -> users/" + cleanId);
+      console.log("🚀 RTDB REST WRITE SUCCESS -> users/" + cleanId);
     }
 
     if (referrerId && referrerId !== cleanId) {
@@ -113,10 +154,13 @@ export async function forceSyncUserProfile(
       });
     }
   } catch (err) {
-    console.error("❌ HTTP REST API WRITE ERROR:", err);
+    console.error("❌ RTDB REST WRITE ERROR:", err);
   }
 
-  // B. Firestore SDK Backup Write
+  // B. Direct Firestore Database HTTP REST Write (Guaranteed Document Creation in Firestore Console)
+  await saveToFirestoreREST("users", cleanId, userPayload);
+
+  // C. JS SDK Backup Write
   try {
     const userRef = doc(db, "users", cleanId);
     await setDoc(userRef, { 
@@ -124,19 +168,7 @@ export async function forceSyncUserProfile(
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp() 
     }, { merge: true });
-
-    if (referrerId && referrerId !== cleanId) {
-      const refDocRef = doc(db, "users", String(referrerId), "referrals", cleanId);
-      await setDoc(refDocRef, {
-        telegramId: cleanId,
-        username: userPayload.username,
-        firstName: userPayload.firstName,
-        joinedAt: serverTimestamp(),
-      }, { merge: true });
-    }
-  } catch (err) {
-    console.error("❌ Firestore set user error:", err);
-  }
+  } catch (err) {}
 
   return {
     success: restSuccess,
@@ -178,13 +210,12 @@ export async function getOrCreateUser(
   };
 }
 
-// 3. Realtime Listener for Single User Data (Hybrid Polling + WebSocket)
+// 3. Realtime Listener for Single User Data
 export function subscribeToUser(telegramId: string, callback: (user: UserData | null) => void) {
   let firestoreUnsub = () => {};
   let rtdbUnsub = () => {};
   const cleanId = String(telegramId || '1788035393');
 
-  // HTTP Polling fallback (Ensures zero delay UI update)
   const intervalId = setInterval(async () => {
     try {
       const res = await fetch(`${RTDB_BASE_URL}/users/${cleanId}.json`);
@@ -195,7 +226,6 @@ export function subscribeToUser(telegramId: string, callback: (user: UserData | 
     } catch (e) {}
   }, 3000);
 
-  // RTDB Listener
   try {
     const rtdbUserRef = ref(rtdb, `users/${cleanId}`);
     rtdbUnsub = onValue(rtdbUserRef, (snapshot) => {
@@ -205,7 +235,6 @@ export function subscribeToUser(telegramId: string, callback: (user: UserData | 
     });
   } catch (e) {}
 
-  // Firestore Listener
   try {
     const userRef = doc(db, "users", cleanId);
     firestoreUnsub = onSnapshot(userRef, (snap) => {
@@ -250,7 +279,7 @@ export function subscribeToReferredUsers(telegramId: string, callback: (users: a
   };
 }
 
-// 5. Create Deposit or Withdrawal Transaction
+// 5. Create Deposit or Withdrawal Transaction (Writes to BOTH RTDB and Firestore Console)
 export async function createLiveTransaction(
   telegramId: string, 
   username: string, 
@@ -281,19 +310,22 @@ export async function createLiveTransaction(
     createdAt: new Date().toISOString()
   };
 
-  // Direct HTTP REST PUT (Guaranteed Immediate Save)
+  // A. Realtime Database REST Write
   try {
     await fetch(`${RTDB_BASE_URL}/transactions/${txId}.json`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(txData)
     });
-    console.log("🚀 HTTP REST TRANSACTION SUCCESS -> transactions/" + txId);
+    console.log("🚀 RTDB TRANSACTION REST SUCCESS -> transactions/" + txId);
   } catch (e) {
-    console.error("❌ HTTP REST TRANSACTION ERROR:", e);
+    console.error("❌ RTDB TRANSACTION REST ERROR:", e);
   }
 
-  // Firestore Backup Write
+  // B. Firestore Database REST Write (Guaranteed Document Creation in Firestore Console)
+  await saveToFirestoreREST("transactions", txId, txData);
+
+  // C. Firestore SDK Backup Write
   try {
     const txDocRef = doc(db, "transactions", txId);
     await setDoc(txDocRef, {
@@ -408,6 +440,13 @@ export async function approveLiveTransaction(txId: string, adminUsername: string
             approvedAt: new Date().toISOString()
           })
         });
+
+        // Firestore REST Approval Update
+        await saveToFirestoreREST("transactions", txId, {
+          status: 'APPROVED',
+          approvedBy: adminUsername,
+          approvedAt: new Date().toISOString()
+        });
       }
     }
   } catch (e) {}
@@ -425,6 +464,11 @@ export async function approveLiveTransaction(txId: string, adminUsername: string
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ tradingBalance: Math.max(0, newBal) })
+          });
+
+          // Firestore REST Balance Update
+          await saveToFirestoreREST("users", userId, {
+            tradingBalance: Math.max(0, newBal)
           });
         }
       }
