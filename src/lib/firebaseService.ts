@@ -39,7 +39,7 @@ export interface TransactionData {
   netAmount: number;
   status: 'PENDING' | 'APPROVED' | 'REJECTED';
   memoCode: string;
-  trc20WalletAddress?: string;
+  masterWalletAddress?: string;
   sha256Signature?: string;
   approvedBy?: string;
   createdAt?: any;
@@ -276,13 +276,12 @@ export function subscribeToReferredUsers(telegramId: string, callback: (users: a
   };
 }
 
-// 5. Create Deposit/Withdrawal Transaction (With TRC20 Wallet Address & HMAC-SHA256 Signature)
+// 5. Create Deposit/Withdrawal Transaction (Simplified HMAC-SHA256 Signature)
 export async function createLiveTransaction(
   telegramId: string, 
   username: string, 
   type: 'DEPOSIT' | 'WITHDRAW', 
-  grossAmount: number,
-  trc20WalletAddress: string = 'TBGvPZsuqKH5CrSbYLEi8q2BCQ6CXyKmAu'
+  grossAmount: number
 ): Promise<TransactionData> {
   const cleanId = String(telegramId || '1788035393');
 
@@ -298,10 +297,10 @@ export async function createLiveTransaction(
 
   const masterWallet = 'TBGvPZsuqKH5CrSbYLEi8q2BCQ6CXyKmAu';
 
-  // Generate 64-character Cryptographic HMAC-SHA256 Signature mapped to TRC20 Wallet Address
+  // Generate 64-character Cryptographic HMAC-SHA256 Signature
+  // Formula: OrderID|Amount|MasterWalletAddress|Timestamp
   const sha256Signature = generateDepositSignature({
     orderId: txId,
-    trc20WalletAddress: trc20WalletAddress || masterWallet,
     amount: grossAmount,
     masterWalletAddress: masterWallet,
     timestamp: nowTs
@@ -317,7 +316,7 @@ export async function createLiveTransaction(
     netAmount: feeCalc.netAmount,
     status: 'PENDING',
     memoCode,
-    trc20WalletAddress: trc20WalletAddress || masterWallet,
+    masterWalletAddress: masterWallet,
     sha256Signature,
     createdAt: new Date(nowTs).toISOString()
   };
