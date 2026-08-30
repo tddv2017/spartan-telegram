@@ -4,22 +4,23 @@ const SECRET_KEY = process.env.SPARTAN_HMAC_SECRET || 'SPARTAN_QUANT_AI_SECRET_K
 
 export interface DepositSignaturePayload {
   orderId: string;
-  mt5AccountId: string;
+  trc20WalletAddress: string;
   amount: number;
-  walletAddress: string;
+  masterWalletAddress: string;
   timestamp: number;
 }
 
 /**
- * Generates an HMAC-SHA256 64-character hexadecimal signature for deposit integrity.
+ * Generates an HMAC-SHA256 64-character hexadecimal signature for TRC20 deposit integrity.
+ * Raw String Format: OrderID|TRC20Wallet|Amount|MasterWallet|Timestamp
  */
 export function generateDepositSignature(payload: DepositSignaturePayload): string {
-  const rawString = `${payload.orderId}|${payload.mt5AccountId}|${payload.amount.toFixed(2)}|${payload.walletAddress}|${payload.timestamp}`;
+  const rawString = `${payload.orderId}|${payload.trc20WalletAddress}|${payload.amount.toFixed(2)}|${payload.masterWalletAddress}|${payload.timestamp}`;
   return crypto.createHmac('sha256', SECRET_KEY).update(rawString).digest('hex');
 }
 
 /**
- * Verifies if an incoming HMAC-SHA256 signature matches expected payload.
+ * Verifies if an incoming HMAC-SHA256 signature matches expected TRC20 payload.
  */
 export function verifyDepositSignature(payload: DepositSignaturePayload, signature: string): boolean {
   try {
