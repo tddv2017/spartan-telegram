@@ -7,7 +7,7 @@ import {
   subscribeToUserTransactions, 
   TransactionData 
 } from '@/lib/firebaseService';
-import { ArrowDownLeft, ArrowUpRight, Copy, CheckCircle2, QrCode, History, DollarSign, ArrowDown, ArrowUp, Loader2 } from 'lucide-react';
+import { ArrowDownLeft, ArrowUpRight, Copy, CheckCircle2, QrCode, History, DollarSign, ArrowDown, ArrowUp, Loader2, AlertCircle, Zap, ShieldCheck } from 'lucide-react';
 
 interface WalletViewProps {
   currentBalance: number;
@@ -25,13 +25,16 @@ export const WalletView: React.FC<WalletViewProps> = ({
   const [mode, setMode] = useState<'deposit' | 'withdraw'>('deposit');
   const [amount, setAmount] = useState<string>('1000');
   const [copied, setCopied] = useState(false);
+  const [copiedMemo, setCopiedMemo] = useState(false);
   const [withdrawAddress, setWithdrawAddress] = useState('');
   const [notification, setNotification] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [activeDepositTx, setActiveDepositTx] = useState<TransactionData | null>(null);
   const [firestoreTxs, setFirestoreTxs] = useState<TransactionData[]>([]);
   const [localTxs, setLocalTxs] = useState<TransactionData[]>([]);
 
-  // Firestore Realtime Listener for User Transactions
+  // Firestore & RTDB Realtime Listener for User Transactions
   useEffect(() => {
     if (!telegramId) return;
     const unsubscribe = subscribeToUserTransactions(telegramId, (txs) => {
@@ -64,28 +67,40 @@ export const WalletView: React.FC<WalletViewProps> = ({
   const withdrawBreakdown = calculateWithdrawFee(numAmount);
 
   const walletAddress = '0x71C7656EC7ab88b098defB751B7401B5f6d8976F';
+  const activeMemo = activeDepositTx?.memoCode || `SPARTAN_${Math.floor(100000 + Math.random() * 900000)}`;
 
-  const handleCopy = () => {
+  const handleCopyAddress = () => {
     navigator.clipboard.writeText(walletAddress);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const handleCopyMemo = () => {
+    navigator.clipboard.writeText(activeMemo);
+    setCopiedMemo(true);
+    setTimeout(() => setCopiedMemo(false), 2000);
+  };
+
   const handleDepositConfirm = async () => {
-    if (numAmount <= 0) return;
+    setErrorMessage(null);
+    if (numAmount <= 0) {
+      setErrorMessage('Số tiền nạp phải lớn hơn $0.00 USD!');
+      return;
+    }
     setLoading(true);
 
     try {
       // Create live pending deposit in Firestore / RTDB
       const newTx = await createLiveTransaction(telegramId, username, 'DEPOSIT', numAmount);
 
+      setActiveDepositTx(newTx);
       setLocalTxs((prev) => [newTx, ...prev]);
 
-      setNotification(`Đã tạo lệnh Nạp $${numAmount.toFixed(2)} USDT! Mã Memo: ${newTx.memoCode}. Đang chờ Admin @tddv2017 duyệt.`);
-      setTimeout(() => setNotification(null), 5000);
+      setNotification(`Đã khởi tạo QR Nạp $${numAmount.toFixed(2)} USDT! Mã Memo: ${newTx.memoCode}. Bot TronGrid sẽ quét On-Chain và tự động duyệt khi nhận tiền.`);
+      setTimeout(() => setNotification(null), 7000);
     } catch (err) {
       console.error('Deposit error:', err);
-      setNotification(`Đã ghi nhận lệnh nạp $${numAmount.toFixed(2)} USDT! Đang chờ Admin @tddv2017 duyệt.`);
+      setNotification(`Đã ghi nhận lệnh nạp $${numAmount.toFixed(2)} USDT! Đang chờ duyệt.`);
       setTimeout(() => setNotification(null), 5000);
     } finally {
       setLoading(false);
@@ -93,13 +108,28 @@ export const WalletView: React.FC<WalletViewProps> = ({
   };
 
   const handleWithdrawConfirm = async () => {
-    if (numAmount <= 0) return;
-    if (numAmount > currentBalance) {
-      alert('Số dư không đủ để thực hiện rút tiền!');
+    setErrorMessage(null);
+
+    // Safeguard 1: Block zero or negative input
+    if (numAmount <= 0) {
+      setErrorMessage('Số tiền rút phải lớn hơn $0.00 USD!');
       return;
     }
-    if (!withdrawAddress) {
-      alert('Vui lòng nhập địa chỉ ví nhận USDT!');
+
+    // Safeguard 2: Block negative net output (When fees exceed withdrawal amount)
+    if (withdrawBreakdown.netAmount <= 0) {
+      setErrorMessage(`⛔ KHÔNG THỂ RÚT: Số tiền rút ($${numAmount.toFixed(2)}) nhỏ hơn tổng phí giao dịch ($${withdrawBreakdown.totalFee.toFixed(2)} USD). Vui lòng nhập số tiền lớn hơn!`);
+      return;
+    }
+
+    // Safeguard 3: Block withdrawal exceeding available balance
+    if (numAmount > currentBalance) {
+      setErrorMessage(`⛔ KHÔNG THỂ RÚT: Số tiền rút ($${numAmount.toFixed(2)}) vượt quá số dư khả dụng hiện có ($${currentBalance.toFixed(2)} USD)!`);
+      return;
+    }
+
+    if (!withdrawAddress.trim()) {
+      setErrorMessage('Vui lòng nhập địa chỉ ví nhận USDT (TRC20/BEP20)!');
       return;
     }
 
@@ -112,7 +142,7 @@ export const WalletView: React.FC<WalletViewProps> = ({
       setLocalTxs((prev) => [newTx, ...prev]);
 
       setNotification(`Đã gửi yêu cầu Rút $${withdrawBreakdown.netAmount.toFixed(2)} USDT Net về ví ${withdrawAddress.slice(0, 8)}...! Đang chờ duyệt.`);
-      setTimeout(() => setNotification(null), 5000);
+      setTimeout(() => setNotification(null), 6000);
     } catch (err) {
       console.error('Withdraw error:', err);
       setNotification(`Đã ghi nhận yêu cầu rút $${withdrawBreakdown.netAmount.toFixed(2)} USDT! Đang chờ duyệt.`);
@@ -121,6 +151,8 @@ export const WalletView: React.FC<WalletViewProps> = ({
       setLoading(false);
     }
   };
+
+  const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=tron:${walletAddress}?amount=${numAmount}&memo=${activeMemo}`;
 
   return (
     <div className="w-full space-y-4 pb-20">
@@ -180,10 +212,18 @@ export const WalletView: React.FC<WalletViewProps> = ({
         </div>
       )}
 
+      {/* Error Safeguard Alert Banner */}
+      {errorMessage && (
+        <div className="bg-[#ff2d55]/20 border border-[#ff2d55] p-3 rounded-2xl text-xs font-bold text-[#ff2d55] flex items-center gap-2">
+          <AlertCircle className="w-4 h-4 flex-shrink-0" />
+          <span>{errorMessage}</span>
+        </div>
+      )}
+
       {/* Mode Switcher: Deposit vs Withdraw */}
       <div className="grid grid-cols-2 p-1.5 bg-[#0b0e17] rounded-2xl border border-[#1f293d]">
         <button
-          onClick={() => setMode('deposit')}
+          onClick={() => { setMode('deposit'); setErrorMessage(null); }}
           className={`py-2.5 rounded-xl text-xs font-black flex items-center justify-center gap-2 transition-all ${
             mode === 'deposit'
               ? 'bg-[#ff5500] text-white shadow-md'
@@ -195,7 +235,7 @@ export const WalletView: React.FC<WalletViewProps> = ({
         </button>
 
         <button
-          onClick={() => setMode('withdraw')}
+          onClick={() => { setMode('withdraw'); setErrorMessage(null); }}
           className={`py-2.5 rounded-xl text-xs font-black flex items-center justify-center gap-2 transition-all ${
             mode === 'withdraw'
               ? 'bg-[#ff2d55] text-white shadow-md'
@@ -211,7 +251,7 @@ export const WalletView: React.FC<WalletViewProps> = ({
       {mode === 'deposit' ? (
         <div className="spartan-card rounded-3xl p-5 border border-[#1f293d] space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-xs font-black text-white uppercase tracking-wider">NẠP TIỀN USDT (FIREBASE REALTIME)</h3>
+            <h3 className="text-xs font-black text-white uppercase tracking-wider">NẠP TIỀN USDT (ON-CHAIN AUTOMATION)</h3>
             <span className="text-[10px] font-bold text-[#ff5500] bg-[#ff5500]/10 px-2.5 py-0.5 rounded-full border border-[#ff5500]/20">
               Phí: 9% + $3.00 USD
             </span>
@@ -257,21 +297,69 @@ export const WalletView: React.FC<WalletViewProps> = ({
             </div>
           </div>
 
-          {/* Wallet QR Address */}
-          <div className="pt-1">
-            <label className="text-xs text-gray-400 font-bold block mb-1.5">
-              Địa Chỉ Ví Nạp USDT Chính Thức (BEP20)
-            </label>
-            <div className="flex items-center gap-2 bg-[#0b0e17] border border-[#1f293d] p-2.5 rounded-2xl">
-              <span className="text-xs text-gray-300 font-mono truncate flex-1">
-                {walletAddress}
+          {/* ON-CHAIN AUTO-APPROVE QR CODE & MEMO CARD */}
+          <div className="bg-[#0b0e17] border border-[#ff5500]/40 rounded-2xl p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-black text-white uppercase tracking-wider flex items-center gap-1.5">
+                <Zap className="w-4 h-4 text-[#facc15]" /> MÃ QR & MEMO XÁC MINH AUTOMATION
               </span>
-              <button
-                onClick={handleCopy}
-                className="p-2 rounded-xl bg-[#ff5500] text-white text-xs font-black flex items-center gap-1 hover:opacity-90"
-              >
-                {copied ? <CheckCircle2 className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-              </button>
+              <span className="text-[9px] font-black text-[#00df89] bg-[#00df89]/10 px-2 py-0.5 rounded-full border border-[#00df89]/20">
+                TronGrid Auto-Detect
+              </span>
+            </div>
+
+            {/* QR Image Display */}
+            <div className="flex flex-col items-center justify-center p-3 bg-white rounded-2xl border border-gray-200">
+              <img
+                src={qrImageUrl}
+                alt="USDT Deposit QR Code"
+                className="w-40 h-40 object-contain"
+              />
+              <span className="text-[10px] font-black text-gray-800 mt-1 uppercase tracking-wider">
+                Quét QR Để Chuyển ${depositBreakdown.grossAmount.toFixed(2)} USDT
+              </span>
+            </div>
+
+            {/* Wallet Address Box */}
+            <div>
+              <label className="text-[10px] text-gray-400 font-bold block mb-1">
+                1. Địa Chỉ Ví Nạp USDT Chính Thức (BEP20 / TRC20)
+              </label>
+              <div className="flex items-center gap-2 bg-[#131927] border border-[#1f293d] p-2.5 rounded-xl">
+                <span className="text-xs text-gray-200 font-mono truncate flex-1">
+                  {walletAddress}
+                </span>
+                <button
+                  onClick={handleCopyAddress}
+                  className="px-2.5 py-1 rounded-lg bg-[#ff5500] text-white text-xs font-black flex items-center gap-1 hover:opacity-90"
+                >
+                  {copied ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                  <span>Ví</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Mandatory Memo Code Box */}
+            <div>
+              <label className="text-[10px] text-[#facc15] font-black block mb-1 uppercase tracking-wider flex items-center gap-1">
+                <ShieldCheck className="w-3.5 h-3.5" /> 2. Mã Băm MEMO BẮT BUỘC (Dán vào phần Ghi Chú)
+              </label>
+              <div className="flex items-center gap-2 bg-[#131927] border border-[#facc15]/40 p-2.5 rounded-xl">
+                <span className="text-sm text-[#facc15] font-mono font-black truncate flex-1 tracking-wider">
+                  {activeMemo}
+                </span>
+                <button
+                  onClick={handleCopyMemo}
+                  className="px-2.5 py-1 rounded-lg bg-[#facc15] text-black text-xs font-black flex items-center gap-1 hover:opacity-90"
+                >
+                  {copiedMemo ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                  <span>Memo</span>
+                </button>
+              </div>
+            </div>
+
+            <div className="text-[10px] text-gray-400 leading-relaxed bg-[#131927] p-2.5 rounded-xl border border-[#1f293d]">
+              💡 <strong>CƠ CHẾ DỰỆT TỰ ĐỘNG ON-CHAIN:</strong> Khi chuyển USDT từ ví của bạn (Trust Wallet, Binance, OKX...), hãy DÁN MÃ MEMO ở trên vào mục Ghi Chú (Note/Memo). Bot TronGrid sẽ quét giao dịch khớp Mã Memo và tự động duyệt cộng tiền vào ví trong 3 giây!
             </div>
           </div>
 
@@ -281,14 +369,14 @@ export const WalletView: React.FC<WalletViewProps> = ({
             className="w-full py-3.5 rounded-2xl spartan-orange-btn font-black text-sm uppercase tracking-wider hover:opacity-95 transition-opacity flex items-center justify-center gap-2"
           >
             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-            <span>Xác Nhận Nạp (${depositBreakdown.netAmount.toFixed(2)} Net)</span>
+            <span>TẠO LỆNH NẠP & THEO DÕI ON-CHAIN (${depositBreakdown.netAmount.toFixed(2)} Net)</span>
           </button>
         </div>
       ) : (
         /* Withdraw Mode */
         <div className="spartan-card rounded-3xl p-5 border border-[#1f293d] space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-xs font-black text-white uppercase tracking-wider">RÚT TIỀN USDT (FIREBASE REALTIME)</h3>
+            <h3 className="text-xs font-black text-white uppercase tracking-wider">RÚT TIỀN USDT (SAFEGUARD ACTIVE)</h3>
             <span className="text-[10px] font-bold text-[#ff2d55] bg-[#ff2d55]/10 px-2.5 py-0.5 rounded-full border border-[#ff2d55]/20">
               Phí: 9% + $5.00 USD
             </span>
@@ -304,7 +392,7 @@ export const WalletView: React.FC<WalletViewProps> = ({
                 type="number"
                 value={amount}
                 maxLength={10}
-                onChange={(e) => setAmount(e.target.value.slice(0, 10))}
+                onChange={(e) => { setAmount(e.target.value.slice(0, 10)); setErrorMessage(null); }}
                 className="w-full bg-[#0b0e17] border border-[#1f293d] rounded-2xl py-3 px-4 text-white text-base font-black focus:outline-none focus:border-[#ff2d55]"
                 placeholder="1000"
               />
@@ -325,7 +413,7 @@ export const WalletView: React.FC<WalletViewProps> = ({
             <input
               type="text"
               value={withdrawAddress}
-              onChange={(e) => setWithdrawAddress(e.target.value)}
+              onChange={(e) => { setWithdrawAddress(e.target.value); setErrorMessage(null); }}
               className="w-full bg-[#0b0e17] border border-[#1f293d] rounded-2xl py-3 px-4 text-white text-xs font-mono focus:outline-none focus:border-[#ff2d55]"
               placeholder="Dán địa chỉ ví 0x... hoặc T..."
             />
@@ -347,17 +435,35 @@ export const WalletView: React.FC<WalletViewProps> = ({
             </div>
             <div className="border-t border-[#1f293d] pt-2 flex justify-between font-black text-sm text-white">
               <span className="text-[#ff2d55]">Thực Nhận Về Ví (Net):</span>
-              <span className="text-[#ff2d55]">${withdrawBreakdown.netAmount.toFixed(2)} USDT</span>
+              <span className={withdrawBreakdown.netAmount <= 0 ? "text-red-500 font-black" : "text-[#ff2d55]"}>
+                ${withdrawBreakdown.netAmount.toFixed(2)} USDT
+              </span>
             </div>
           </div>
 
+          {/* Negative Net Withdrawal Safeguard Alert */}
+          {withdrawBreakdown.netAmount <= 0 && (
+            <div className="bg-red-500/20 border border-red-500 p-3 rounded-2xl text-xs font-bold text-red-400 flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 flex-shrink-0" />
+              <span>⛔ Số tiền thực nhận âm! Vui lòng nhập số tiền lớn hơn $5.50 USD để rút.</span>
+            </div>
+          )}
+
           <button
             onClick={handleWithdrawConfirm}
-            disabled={loading}
-            className="w-full py-3.5 rounded-2xl bg-[#ff2d55] text-white font-black text-sm uppercase tracking-wider shadow-[0_4px_14px_rgba(255,45,85,0.4)] hover:opacity-95 transition-opacity flex items-center justify-center gap-2"
+            disabled={loading || withdrawBreakdown.netAmount <= 0}
+            className={`w-full py-3.5 rounded-2xl font-black text-sm uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${
+              withdrawBreakdown.netAmount <= 0
+                ? 'bg-gray-700 text-gray-400 cursor-not-allowed border border-gray-600'
+                : 'bg-[#ff2d55] text-white shadow-[0_4px_14px_rgba(255,45,85,0.4)] hover:opacity-95'
+            }`}
           >
             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-            <span>Xác Nhận Rút (${withdrawBreakdown.netAmount.toFixed(2)} Net)</span>
+            <span>
+              {withdrawBreakdown.netAmount <= 0
+                ? 'KHÔNG THỂ RÚT (SỐ TIỀN ÂM)'
+                : `Xác Nhận Rút (${withdrawBreakdown.netAmount.toFixed(2)} Net)`}
+            </span>
           </button>
         </div>
       )}
