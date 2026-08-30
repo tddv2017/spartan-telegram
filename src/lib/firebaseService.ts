@@ -42,7 +42,12 @@ export interface TransactionData {
 }
 
 // 1. Get or Create User Profile in Firestore AND Realtime Database (RTDB)
-export async function getOrCreateUser(telegramId: string, username: string = '', firstName: string = ''): Promise<UserData> {
+export async function getOrCreateUser(
+  telegramId: string, 
+  username: string = '', 
+  firstName: string = '',
+  referrerId?: string
+): Promise<UserData> {
   const cleanHandle = username.replace('@', '').toLowerCase();
   const isAdmin = cleanHandle === 'tddv2017' || cleanHandle === 'spartan_9824029' || telegramId === '1788035393';
 
@@ -64,7 +69,7 @@ export async function getOrCreateUser(telegramId: string, username: string = '',
     }
   } catch (e) {}
 
-  // Clean initialization: 0.00 initial balance (No hardcoded mockdata!)
+  // Clean initialization for new client
   const defaultUser: UserData = {
     telegramId: String(telegramId),
     username: username || 'user_' + String(telegramId).slice(-4),
@@ -73,6 +78,7 @@ export async function getOrCreateUser(telegramId: string, username: string = '',
     tradingBalance: 0.00,
     referralBalance: 0.00,
     referralCode: `SPARTAN_${telegramId}`,
+    referrerId: referrerId || undefined,
     resellerTier: 1,
   };
 
@@ -80,12 +86,33 @@ export async function getOrCreateUser(telegramId: string, username: string = '',
   try {
     const rtdbUserRef = ref(rtdb, `users/${telegramId}`);
     await set(rtdbUserRef, { ...defaultUser, createdAt: new Date().toISOString() });
+
+    // Link under referrer's referrals sub-tree if present
+    if (referrerId && referrerId !== telegramId) {
+      const refLinkRef = ref(rtdb, `users/${referrerId}/referrals/${telegramId}`);
+      await set(refLinkRef, {
+        telegramId: String(telegramId),
+        username: defaultUser.username,
+        firstName: defaultUser.firstName,
+        joinedAt: new Date().toISOString(),
+      });
+    }
   } catch (e) {}
 
   // Save to Firestore
   try {
     const userRef = doc(db, "users", String(telegramId));
     await setDoc(userRef, { ...defaultUser, createdAt: serverTimestamp() });
+
+    if (referrerId && referrerId !== telegramId) {
+      const refDocRef = doc(db, "users", String(referrerId), "referrals", String(telegramId));
+      await setDoc(refDocRef, {
+        telegramId: String(telegramId),
+        username: defaultUser.username,
+        firstName: defaultUser.firstName,
+        joinedAt: serverTimestamp(),
+      });
+    }
   } catch (e) {}
 
   return defaultUser;
@@ -132,7 +159,27 @@ export function subscribeToUser(telegramId: string, callback: (user: UserData | 
   };
 }
 
-// 3. Create Deposit or Withdrawal Transaction in Firestore AND Realtime Database (RTDB)
+// 3. Listener for Referred Users List
+export function subscribeToReferredUsers(telegramId: string, callback: (users: any[]) => void) {
+  let rtdbUnsub = () => {};
+
+  try {
+    const refsRef = ref(rtdb, `users/${telegramId}/referrals`);
+    rtdbUnsub = onValue(refsRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.val();
+        const list = Object.values(data);
+        callback(list);
+      } else {
+        callback([]);
+      }
+    });
+  } catch (e) {}
+
+  return () => rtdbUnsub();
+}
+
+// 4. Create Deposit or Withdrawal Transaction
 export async function createLiveTransaction(
   telegramId: string, 
   username: string, 
@@ -180,7 +227,7 @@ export async function createLiveTransaction(
   return txData;
 }
 
-// 4. Realtime Listener for User's Transactions History
+// 5. Realtime Listener for User's Transactions History
 export function subscribeToUserTransactions(telegramId: string, callback: (txs: TransactionData[]) => void) {
   let firestoreUnsub = () => {};
   let rtdbUnsub = () => {};
@@ -223,7 +270,7 @@ export function subscribeToUserTransactions(telegramId: string, callback: (txs: 
   };
 }
 
-// 5. Realtime Listener for Admin Pending Queue
+// 6. Realtime Listener for Admin Pending Queue
 export function subscribeToPendingTransactions(callback: (txs: TransactionData[]) => void) {
   let firestoreUnsub = () => {};
   let rtdbUnsub = () => {};
@@ -266,7 +313,7 @@ export function subscribeToPendingTransactions(callback: (txs: TransactionData[]
   };
 }
 
-// 6. Admin Approval of Pending Transaction
+// 7. Admin Approval of Pending Transaction
 export async function approveLiveTransaction(txId: string, adminUsername: string = 'tddv2017') {
   let userId = '';
   let netAmount = 0;
@@ -305,7 +352,6 @@ export async function approveLiveTransaction(txId: string, adminUsername: string
           tradingBalance: Math.max(0, newBal)
         });
 
-        // Also update Firestore
         try {
           const userRef = doc(db, "users", String(userId));
           await updateDoc(userRef, {

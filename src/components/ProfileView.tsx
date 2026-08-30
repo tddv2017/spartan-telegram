@@ -1,17 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { User, Share2, Copy, CheckCircle2, ShieldCheck, Users, Trophy, DollarSign, ArrowUpRight } from 'lucide-react';
-
-interface ReferredUserItem {
-  id: number;
-  name: string;
-  handle: string;
-  deposit: string;
-  commission: string;
-  status: string;
-  date: string;
-}
+import { subscribeToReferredUsers } from '@/lib/firebaseService';
 
 interface ProfileViewProps {
   telegramId?: string;
@@ -25,7 +16,16 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
   referralBalance = 0.00,
 }) => {
   const [copied, setCopied] = useState(false);
-  const [referredUsers, setReferredUsers] = useState<ReferredUserItem[]>([]);
+  const [referredUsers, setReferredUsers] = useState<any[]>([]);
+
+  // Realtime subscription for Referred Users under this Reseller's account
+  useEffect(() => {
+    if (!telegramId) return;
+    const unsub = subscribeToReferredUsers(telegramId, (users) => {
+      setReferredUsers(users);
+    });
+    return () => unsub();
+  }, [telegramId]);
 
   const refLink = `https://t.me/SpartanQuantAIBot?start=ref_${telegramId || '1788035393'}`;
 
@@ -43,8 +43,8 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
           SP
         </div>
         <div>
-          <h2 className="text-base font-black text-white tracking-tight">Spartan Master Trader</h2>
-          <p className="text-xs text-gray-400 font-mono">@{username || 'tddv2017'} • ID: {telegramId}</p>
+          <h2 className="text-base font-black text-white tracking-tight">Spartan Trader Profile</h2>
+          <p className="text-xs text-gray-400 font-mono">@{username || 'user'} • ID: {telegramId}</p>
           <span className="inline-flex items-center gap-1 mt-1 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-[#ff5500]/15 text-[#ff5500] border border-[#ff5500]/30">
             👑 MASTER AGENT (LEVEL 1)
           </span>
@@ -121,32 +121,32 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
               Chưa có thành viên giới thiệu nào. Hãy chia sẻ link đại lý ở trên!
             </div>
           ) : (
-            referredUsers.map((user) => (
+            referredUsers.map((user, idx) => (
               <div
-                key={user.id}
+                key={user.telegramId || idx}
                 className="flex items-center justify-between p-3 rounded-xl bg-[#0b0e17] border border-[#1f293d] hover:border-gray-700 transition-colors text-xs"
               >
                 <div className="flex items-center gap-2.5">
                   <div className="w-8 h-8 rounded-xl bg-[#ff5500]/15 border border-[#ff5500]/30 flex items-center justify-center font-black text-[#ff5500] text-xs">
-                    #{user.id}
+                    #{idx + 1}
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="font-extrabold text-white">{user.name}</span>
-                      <span className="text-[10px] text-gray-500 font-mono">{user.handle}</span>
+                      <span className="font-extrabold text-white">{user.firstName || 'Warrior'}</span>
+                      <span className="text-[10px] text-gray-500 font-mono">@{user.username}</span>
                     </div>
                     <span className="text-[10px] text-gray-400 block mt-0.5">
-                      Vốn nạp: <strong className="text-gray-200">{user.deposit}</strong> • {user.date}
+                      ID: {user.telegramId} • Tham gia: {user.joinedAt ? new Date(user.joinedAt).toLocaleDateString('vi-VN') : 'Gần đây'}
                     </span>
                   </div>
                 </div>
 
                 <div className="text-right">
                   <span className="font-black text-xs text-[#00df89] block">
-                    {user.commission}
+                    ACTIVE
                   </span>
                   <span className="text-[9px] font-extrabold text-[#00df89] bg-[#00df89]/10 px-1.5 py-0.5 rounded border border-[#00df89]/30 inline-block mt-0.5">
-                    {user.status}
+                    +5% HOA HỒNG
                   </span>
                 </div>
               </div>

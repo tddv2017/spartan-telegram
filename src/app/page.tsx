@@ -21,70 +21,88 @@ export default function Home() {
   const [tradingBalance, setTradingBalance] = useState<number>(0.00);
   const [referralsIncome, setReferralsIncome] = useState<number>(0.00);
   const [isBotActive, setIsBotActive] = useState<boolean>(true);
-  const [currentTelegramUser, setCurrentTelegramUser] = useState<string>('tddv2017');
-  const [currentTelegramId, setCurrentTelegramId] = useState<string>('1788035393');
-  const [isAdmin, setIsAdmin] = useState<boolean>(true);
+  const [currentTelegramUser, setCurrentTelegramUser] = useState<string>('');
+  const [currentTelegramId, setCurrentTelegramId] = useState<string>('');
+  const [userFirstName, setUserFirstName] = useState<string>('');
+  const [isAdmin, setIsAdmin] = useState<boolean>(false);
 
-  // 1. One-time Telegram WebApp user detection on mount
+  // Dynamic Real Telegram SDK User Detection & Referral Tracking
   useEffect(() => {
-    let userHandle = '';
-    let userId = '';
-    let userFirstName = '';
+    let handle = '';
+    let id = '';
+    let firstName = '';
+    let referrerId = '';
 
     if (typeof window !== 'undefined') {
-      const tgUser = (window as any).Telegram?.WebApp?.initDataUnsafe?.user;
-      if (tgUser) {
-        if (tgUser.username) userHandle = tgUser.username;
-        if (tgUser.id) userId = String(tgUser.id);
-        if (tgUser.first_name) userFirstName = tgUser.first_name;
+      // 1. Read directly from Telegram WebApp SDK
+      const tg = (window as any).Telegram?.WebApp;
+      if (tg) {
+        tg.ready();
+        const tgUser = tg.initDataUnsafe?.user;
+        if (tgUser) {
+          id = String(tgUser.id);
+          handle = tgUser.username || `user_${id.slice(-4)}`;
+          firstName = tgUser.first_name || 'Warrior';
+        }
+
+        // Extract referral parameter from Telegram WebApp (e.g. ref_494232782)
+        const startParam = tg.initDataUnsafe?.start_param;
+        if (startParam && startParam.startsWith('ref_')) {
+          referrerId = startParam.replace('ref_', '');
+        }
       }
 
-      if (!userId || !userHandle) {
+      // 2. Fallback to URL search params if outside Telegram (or for testing)
+      if (!id || !handle) {
         const params = new URLSearchParams(window.location.search);
-        userHandle = params.get('user') || localStorage.getItem('spartan_username') || 'tddv2017';
-        userId = params.get('id') || localStorage.getItem('spartan_userid') || '1788035393';
+        id = params.get('id') || '';
+        handle = params.get('user') || '';
+        firstName = params.get('name') || '';
+
+        const refParam = params.get('ref') || params.get('start');
+        if (refParam) {
+          referrerId = refParam.replace('ref_', '');
+        }
       }
 
-      localStorage.setItem('spartan_username', userHandle);
-      localStorage.setItem('spartan_userid', userId);
+      // 3. Default fallback ONLY if completely un-identified outside Telegram
+      if (!id && !handle) {
+        handle = localStorage.getItem('spartan_username') || 'tddv2017';
+        id = localStorage.getItem('spartan_userid') || '1788035393';
+        firstName = 'Admin';
+      }
     }
 
-    if (!userHandle) userHandle = 'tddv2017';
-    if (!userId) userId = '1788035393';
-    if (!userFirstName) userFirstName = 'Admin';
+    if (!handle) handle = 'user_' + id.slice(-4);
+    if (!id) id = '1788035393';
+    if (!firstName) firstName = 'Warrior';
 
-    setCurrentTelegramUser(userHandle);
-    setCurrentTelegramId(userId);
+    setCurrentTelegramUser(handle);
+    setCurrentTelegramId(id);
+    setUserFirstName(firstName);
 
-    const adminStatus = checkIsAdmin(userHandle);
+    const adminStatus = checkIsAdmin(handle);
     setIsAdmin(adminStatus);
 
-    // Synchronize user profile with Firebase
-    getOrCreateUser(userId, userHandle, userFirstName).then((profile) => {
-      if (profile && typeof profile.tradingBalance === 'number') {
-        setTradingBalance(profile.tradingBalance);
-      }
-      if (profile && typeof profile.referralBalance === 'number') {
-        setReferralsIncome(profile.referralBalance);
+    // Synchronize current Telegram user profile with Firebase
+    getOrCreateUser(id, handle, firstName, referrerId).then((profile) => {
+      if (profile) {
+        if (typeof profile.tradingBalance === 'number') setTradingBalance(profile.tradingBalance);
+        if (typeof profile.referralBalance === 'number') setReferralsIncome(profile.referralBalance);
       }
     });
 
-    // Instant Realtime Listener for Balance Updates from Firebase (RTDB & Firestore)
-    const unsub = subscribeToUser(userId, (userData) => {
+    // Instant Realtime Listener for Balance Updates from Firebase
+    const unsub = subscribeToUser(id, (userData) => {
       if (userData) {
-        if (typeof userData.tradingBalance === 'number') {
-          setTradingBalance(userData.tradingBalance);
-        }
-        if (typeof userData.referralBalance === 'number') {
-          setReferralsIncome(userData.referralBalance);
-        }
+        if (typeof userData.tradingBalance === 'number') setTradingBalance(userData.tradingBalance);
+        if (typeof userData.referralBalance === 'number') setReferralsIncome(userData.referralBalance);
       }
     });
 
     return () => unsub();
   }, []);
 
-  // Security guard on tab change
   const handleTabChange = (newTab: TabType) => {
     if (!isAdmin && newTab === 'admin') {
       setActiveTab('home');
