@@ -150,7 +150,8 @@ export const WalletView: React.FC<WalletViewProps> = ({
     }
   };
 
-  const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=tron:${walletAddress}?amount=${numAmount}&memo=${activeMemo}`;
+  // Pure TRC20 Wallet Address QR Code (100% Scannable by Trust Wallet, Binance, OKX, Bitget)
+  const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${walletAddress}`;
 
   return (
     <div className="w-full space-y-4 pb-20">
@@ -306,7 +307,7 @@ export const WalletView: React.FC<WalletViewProps> = ({
               </span>
             </div>
 
-            {/* QR Image Display */}
+            {/* QR Image Display (Pure Clean TRC20 Address Stream) */}
             <div className="flex flex-col items-center justify-center p-3 bg-white rounded-2xl border border-gray-200">
               <img
                 src={qrImageUrl}
@@ -314,7 +315,7 @@ export const WalletView: React.FC<WalletViewProps> = ({
                 className="w-40 h-40 object-contain"
               />
               <span className="text-[10px] font-black text-gray-800 mt-1 uppercase tracking-wider">
-                Quét QR Để Chuyển ${depositBreakdown.grossAmount.toFixed(2)} USDT
+                Quét QR Chuyển Tiền Vào Ví TRC20
               </span>
             </div>
 
@@ -453,7 +454,7 @@ export const WalletView: React.FC<WalletViewProps> = ({
             className={`w-full py-3.5 rounded-2xl font-black text-sm uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${
               withdrawBreakdown.netAmount <= 0
                 ? 'bg-gray-700 text-gray-400 cursor-not-allowed border border-gray-600'
-                : 'bg-[#ff2d55] text-white shadow-[0_4px_14px_rgba(255,45,85,0.4)] hover:opacity-95'
+                : 'bg-[#ff2d55] text-[#ffffff] shadow-[0_4px_14px_rgba(255,45,85,0.4)] hover:opacity-95'
             }`}
           >
             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
