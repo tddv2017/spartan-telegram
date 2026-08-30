@@ -2,7 +2,6 @@
 
 import React from 'react';
 import { Crown, Activity, MoreHorizontal } from 'lucide-react';
-import Image from 'next/image';
 
 interface HeaderProps {
   onClose?: () => void;
@@ -30,9 +29,9 @@ export const Header: React.FC<HeaderProps> = ({ onClose }) => {
 
       {/* Brand Header & Supreme Leader Badge */}
       <div className="flex items-center justify-between pt-1">
-        <div className="flex items-center gap-2.5">
-          {/* Newly Generated Spartan High-Tech Helmet Logo Avatar */}
-          <div className="w-9 h-9 rounded-xl overflow-hidden border border-[#ff5500]/50 shadow-[0_4px_14px_rgba(255,85,0,0.5)] bg-[#0b0e17] relative flex-shrink-0">
+        <div className="flex items-center gap-3">
+          {/* Prominent Spartan High-Tech Helmet Logo Avatar (Enlarged w-12 h-12 / 48px) */}
+          <div className="w-12 h-12 rounded-2xl overflow-hidden border border-[#ff5500]/60 shadow-[0_4px_16px_rgba(255,85,0,0.5)] bg-[#0b0e17] relative flex-shrink-0 transition-transform hover:scale-105">
             <img
               src="/assets/spartan_avatar_square.jpg"
               alt="Spartan AI Logo"
@@ -41,12 +40,12 @@ export const Header: React.FC<HeaderProps> = ({ onClose }) => {
           </div>
           <div>
             <div className="flex items-center gap-1.5">
-              <span className="text-sm font-black text-white tracking-tight">
+              <span className="text-base font-black text-white tracking-tight">
                 SPARTAN
               </span>
-              <span className="text-[9px] font-bold text-gray-400 tracking-wider">TRADING SYSTEM</span>
+              <span className="text-[10px] font-extrabold text-gray-400 tracking-wider">TRADING SYSTEM</span>
             </div>
-            <span className="inline-flex items-center gap-1 text-[9px] font-bold px-2 py-0.5 rounded-full spartan-gold-badge uppercase tracking-wider mt-0.5">
+            <span className="inline-flex items-center gap-1 text-[9px] font-bold px-2.5 py-0.5 rounded-full spartan-gold-badge uppercase tracking-wider mt-1">
               <Crown className="w-2.5 h-2.5 text-[#fbbf24]" /> SUPREME LEADER
             </span>
           </div>
