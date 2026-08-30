@@ -18,21 +18,20 @@ import { getOrCreateUser, subscribeToUser, UserData } from '@/lib/firebaseServic
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<TabType>('home');
-  const [tradingBalance, setTradingBalance] = useState<number>(7462415.57);
-  const [referralsIncome, setReferralsIncome] = useState<number>(800.00);
+  const [tradingBalance, setTradingBalance] = useState<number>(500.00);
+  const [referralsIncome, setReferralsIncome] = useState<number>(0.00);
   const [isBotActive, setIsBotActive] = useState<boolean>(true);
   const [currentTelegramUser, setCurrentTelegramUser] = useState<string>('tddv2017');
   const [currentTelegramId, setCurrentTelegramId] = useState<string>('1788035393');
   const [isAdmin, setIsAdmin] = useState<boolean>(true);
 
-  // 1. One-time Telegram WebApp user detection on mount (Prevents re-creation of duplicate users on tab switch)
+  // 1. One-time Telegram WebApp user detection on mount
   useEffect(() => {
     let userHandle = '';
     let userId = '';
     let userFirstName = '';
 
     if (typeof window !== 'undefined') {
-      // Read from Telegram WebApp SDK
       const tgUser = (window as any).Telegram?.WebApp?.initDataUnsafe?.user;
       if (tgUser) {
         if (tgUser.username) userHandle = tgUser.username;
@@ -40,14 +39,12 @@ export default function Home() {
         if (tgUser.first_name) userFirstName = tgUser.first_name;
       }
 
-      // Check URL params if not in Telegram (for testing)
       if (!userId || !userHandle) {
         const params = new URLSearchParams(window.location.search);
         userHandle = params.get('user') || localStorage.getItem('spartan_username') || 'tddv2017';
         userId = params.get('id') || localStorage.getItem('spartan_userid') || '1788035393';
       }
 
-      // Persist in localStorage
       localStorage.setItem('spartan_username', userHandle);
       localStorage.setItem('spartan_userid', userId);
     }
@@ -62,25 +59,30 @@ export default function Home() {
     const adminStatus = checkIsAdmin(userHandle);
     setIsAdmin(adminStatus);
 
-    // Initial Profile Sync to Firebase
+    // Synchronize user profile with Firebase
     getOrCreateUser(userId, userHandle, userFirstName).then((profile) => {
-      if (profile && typeof profile.tradingBalance === 'number' && profile.tradingBalance > 0) {
+      if (profile && typeof profile.tradingBalance === 'number') {
         setTradingBalance(profile.tradingBalance);
+      }
+      if (profile && typeof profile.referralBalance === 'number') {
+        setReferralsIncome(profile.referralBalance);
       }
     });
 
-    // Realtime Listener for Balance Updates from Firebase
+    // Instant Realtime Listener for Balance Updates from Firebase (RTDB & Firestore)
     const unsub = subscribeToUser(userId, (userData) => {
-      if (userData && typeof userData.tradingBalance === 'number') {
-        setTradingBalance(userData.tradingBalance);
-      }
-      if (userData && typeof userData.referralBalance === 'number') {
-        setReferralsIncome(userData.referralBalance);
+      if (userData) {
+        if (typeof userData.tradingBalance === 'number') {
+          setTradingBalance(userData.tradingBalance);
+        }
+        if (typeof userData.referralBalance === 'number') {
+          setReferralsIncome(userData.referralBalance);
+        }
       }
     });
 
     return () => unsub();
-  }, []); // Run ONLY ONCE on mount!
+  }, []);
 
   // Security guard on tab change
   const handleTabChange = (newTab: TabType) => {
