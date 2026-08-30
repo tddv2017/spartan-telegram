@@ -23,6 +23,7 @@ export const WalletView: React.FC<WalletViewProps> = ({
   username = 'tddv2017',
 }) => {
   const [mode, setMode] = useState<'deposit' | 'withdraw'>('deposit');
+  const [qrMode, setQrMode] = useState<'pure' | 'embedded'>('pure');
   const [amount, setAmount] = useState<string>('1000');
   const [copied, setCopied] = useState(false);
   const [copiedMemo, setCopiedMemo] = useState(false);
@@ -150,8 +151,10 @@ export const WalletView: React.FC<WalletViewProps> = ({
     }
   };
 
-  // Pure TRC20 Wallet Address QR Code (100% Scannable by Trust Wallet, Binance, OKX, Bitget)
-  const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${walletAddress}`;
+  // QR Code URL based on selected mode
+  const pureQrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${walletAddress}`;
+  const embeddedQrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${walletAddress}?memo=${activeMemo}`;
+  const currentQrUrl = qrMode === 'pure' ? pureQrUrl : embeddedQrUrl;
 
   return (
     <div className="w-full space-y-4 pb-20">
@@ -307,15 +310,39 @@ export const WalletView: React.FC<WalletViewProps> = ({
               </span>
             </div>
 
-            {/* QR Image Display (Pure Clean TRC20 Address Stream) */}
+            {/* QR Format Selector Toggle */}
+            <div className="grid grid-cols-2 gap-1.5 p-1 bg-[#131927] rounded-xl text-[10px] font-extrabold">
+              <button
+                onClick={() => setQrMode('pure')}
+                className={`py-1.5 rounded-lg transition-all ${
+                  qrMode === 'pure' 
+                    ? 'bg-[#ff5500] text-white shadow-sm' 
+                    : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                Ví Chuẩn TRC20 (Binance/Trust)
+              </button>
+              <button
+                onClick={() => setQrMode('embedded')}
+                className={`py-1.5 rounded-lg transition-all ${
+                  qrMode === 'embedded' 
+                    ? 'bg-[#facc15] text-black shadow-sm' 
+                    : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                Ví + Chèn Mã Băm Memo
+              </button>
+            </div>
+
+            {/* QR Image Display */}
             <div className="flex flex-col items-center justify-center p-3 bg-white rounded-2xl border border-gray-200">
               <img
-                src={qrImageUrl}
+                src={currentQrUrl}
                 alt="USDT TRC20 Master Deposit QR Code"
                 className="w-40 h-40 object-contain"
               />
               <span className="text-[10px] font-black text-gray-800 mt-1 uppercase tracking-wider">
-                Quét QR Chuyển Tiền Vào Ví TRC20
+                {qrMode === 'pure' ? 'QR Chứa Địa Chỉ Ví TRC20 Nguyên Bản' : 'QR Chèn Sẵn Mã Băm Memo'}
               </span>
             </div>
 
@@ -454,7 +481,7 @@ export const WalletView: React.FC<WalletViewProps> = ({
             className={`w-full py-3.5 rounded-2xl font-black text-sm uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${
               withdrawBreakdown.netAmount <= 0
                 ? 'bg-gray-700 text-gray-400 cursor-not-allowed border border-gray-600'
-                : 'bg-[#ff2d55] text-[#ffffff] shadow-[0_4px_14px_rgba(255,45,85,0.4)] hover:opacity-95'
+                : 'bg-[#ff2d55] text-white shadow-[0_4px_14px_rgba(255,45,85,0.4)] hover:opacity-95'
             }`}
           >
             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
