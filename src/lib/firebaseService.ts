@@ -58,7 +58,9 @@ export async function getOrCreateUser(
     if (rtdbSnap.exists()) {
       return rtdbSnap.val() as UserData;
     }
-  } catch (e) {}
+  } catch (e) {
+    console.warn("RTDB get error:", e);
+  }
 
   // Check Firestore next
   try {
@@ -67,7 +69,9 @@ export async function getOrCreateUser(
     if (userSnap.exists()) {
       return userSnap.data() as UserData;
     }
-  } catch (e) {}
+  } catch (e) {
+    console.warn("Firestore get error:", e);
+  }
 
   // Clean initialization for new client
   const defaultUser: UserData = {
@@ -87,7 +91,6 @@ export async function getOrCreateUser(
     const rtdbUserRef = ref(rtdb, `users/${telegramId}`);
     await set(rtdbUserRef, { ...defaultUser, createdAt: new Date().toISOString() });
 
-    // Link under referrer's referrals sub-tree if present
     if (referrerId && referrerId !== telegramId) {
       const refLinkRef = ref(rtdb, `users/${referrerId}/referrals/${telegramId}`);
       await set(refLinkRef, {
@@ -97,7 +100,9 @@ export async function getOrCreateUser(
         joinedAt: new Date().toISOString(),
       });
     }
-  } catch (e) {}
+  } catch (e) {
+    console.error("RTDB set user error:", e);
+  }
 
   // Save to Firestore
   try {
@@ -113,7 +118,9 @@ export async function getOrCreateUser(
         joinedAt: serverTimestamp(),
       });
     }
-  } catch (e) {}
+  } catch (e) {
+    console.error("Firestore set user error:", e);
+  }
 
   return defaultUser;
 }
@@ -136,6 +143,8 @@ export function subscribeToUser(telegramId: string, callback: (user: UserData | 
           setDoc(userRef, userData, { merge: true });
         } catch (e) {}
       }
+    }, (err) => {
+      console.warn("RTDB subscribeToUser notice:", err);
     });
   } catch (e) {}
 
@@ -149,7 +158,9 @@ export function subscribeToUser(telegramId: string, callback: (user: UserData | 
           callback(snap.data() as UserData);
         }
       },
-      (err) => {}
+      (err) => {
+        console.warn("Firestore subscribeToUser notice:", err);
+      }
     );
   } catch (e) {}
 
@@ -209,7 +220,10 @@ export async function createLiveTransaction(
   try {
     const rtdbRef = ref(rtdb, `transactions/${txData.id}`);
     await set(rtdbRef, txData);
-  } catch (e) {}
+    console.log("SUCCESS: RTDB transaction created!", txData.id);
+  } catch (e) {
+    console.error("RTDB set transaction error:", e);
+  }
 
   // Save to Firestore
   try {
@@ -222,7 +236,10 @@ export async function createLiveTransaction(
 
     const rtdbRef = ref(rtdb, `transactions/${docRef.id}`);
     await set(rtdbRef, { ...txData, id: docRef.id });
-  } catch (e) {}
+    console.log("SUCCESS: Firestore transaction created!", docRef.id);
+  } catch (e) {
+    console.error("Firestore addDoc transaction error:", e);
+  }
 
   return txData;
 }

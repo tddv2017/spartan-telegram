@@ -21,8 +21,11 @@ const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 // Initialize Default Firestore Database for Project decisive-mapper-216306
 export const db = getFirestore(app);
 
-// Initialize Realtime Database (rtdb - asia-southeast1)
-export const rtdb = getDatabase(app);
+// Initialize Realtime Database (Explicitly targeted to asia-southeast1 region database URL)
+export const rtdb = getDatabase(
+  app, 
+  "https://decisive-mapper-216306-default-rtdb.asia-southeast1.firebasedatabase.app/"
+);
 
 // Initialize Analytics (Browser-only)
 export let analytics: any = null;
