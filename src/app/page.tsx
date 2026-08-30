@@ -23,36 +23,38 @@ export default function Home() {
   const [isBotActive, setIsBotActive] = useState<boolean>(true);
   const [currentTelegramUser, setCurrentTelegramUser] = useState<string>('tddv2017');
   const [currentTelegramId, setCurrentTelegramId] = useState<string>('1788035393');
-  const [isAdmin, setIsAdmin] = useState<boolean>(false);
+  const [isAdmin, setIsAdmin] = useState<boolean>(true);
 
-  // Dynamic Telegram WebApp user detection & Automatic Firebase Profile Sync
+  // 1. One-time Telegram WebApp user detection on mount (Prevents re-creation of duplicate users on tab switch)
   useEffect(() => {
     let userHandle = '';
-    let userId = '1788035393';
-    let userFirstName = 'Warrior';
+    let userId = '';
+    let userFirstName = '';
 
     if (typeof window !== 'undefined') {
-      // 1. Try reading from Telegram WebApp SDK
+      // Read from Telegram WebApp SDK
       const tgUser = (window as any).Telegram?.WebApp?.initDataUnsafe?.user;
-      if (tgUser?.username) {
-        userHandle = tgUser.username;
-      }
-      if (tgUser?.id) {
-        userId = String(tgUser.id);
-      }
-      if (tgUser?.first_name) {
-        userFirstName = tgUser.first_name;
+      if (tgUser) {
+        if (tgUser.username) userHandle = tgUser.username;
+        if (tgUser.id) userId = String(tgUser.id);
+        if (tgUser.first_name) userFirstName = tgUser.first_name;
       }
 
-      if (!userHandle && !tgUser?.id) {
-        // 2. Check URL search params for testing (e.g. ?user=tddv2017)
+      // Check URL params if not in Telegram (for testing)
+      if (!userId || !userHandle) {
         const params = new URLSearchParams(window.location.search);
-        userHandle = params.get('user') || 'tddv2017';
-        userId = params.get('id') || '1788035393';
+        userHandle = params.get('user') || localStorage.getItem('spartan_username') || 'tddv2017';
+        userId = params.get('id') || localStorage.getItem('spartan_userid') || '1788035393';
       }
+
+      // Persist in localStorage
+      localStorage.setItem('spartan_username', userHandle);
+      localStorage.setItem('spartan_userid', userId);
     }
 
-    if (!userHandle) userHandle = 'user_' + userId.slice(-4);
+    if (!userHandle) userHandle = 'tddv2017';
+    if (!userId) userId = '1788035393';
+    if (!userFirstName) userFirstName = 'Admin';
 
     setCurrentTelegramUser(userHandle);
     setCurrentTelegramId(userId);
@@ -60,9 +62,9 @@ export default function Home() {
     const adminStatus = checkIsAdmin(userHandle);
     setIsAdmin(adminStatus);
 
-    // Sync Account Profile to Firebase Firestore & RTDB on app launch
+    // Initial Profile Sync to Firebase
     getOrCreateUser(userId, userHandle, userFirstName).then((profile) => {
-      if (profile && profile.tradingBalance) {
+      if (profile && typeof profile.tradingBalance === 'number' && profile.tradingBalance > 0) {
         setTradingBalance(profile.tradingBalance);
       }
     });
@@ -77,13 +79,17 @@ export default function Home() {
       }
     });
 
-    // Security guard: If normal user tries to access admin tab, fallback to home
-    if (!adminStatus && activeTab === 'admin') {
-      setActiveTab('home');
-    }
-
     return () => unsub();
-  }, [activeTab]);
+  }, []); // Run ONLY ONCE on mount!
+
+  // Security guard on tab change
+  const handleTabChange = (newTab: TabType) => {
+    if (!isAdmin && newTab === 'admin') {
+      setActiveTab('home');
+    } else {
+      setActiveTab(newTab);
+    }
+  };
 
   const totalCombinedBalance = tradingBalance + referralsIncome;
 
@@ -150,8 +156,8 @@ export default function Home() {
         {activeTab === 'admin' && isAdmin && <AdminPanel />}
       </div>
 
-      {/* Bottom Navigation: Admin tab only renders when isAdmin is true */}
-      <BottomNav activeTab={activeTab} onChangeTab={setActiveTab} isAdmin={isAdmin} />
+      {/* Bottom Navigation */}
+      <BottomNav activeTab={activeTab} onChangeTab={handleTabChange} isAdmin={isAdmin} />
     </main>
   );
 }

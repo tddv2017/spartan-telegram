@@ -44,7 +44,7 @@ export interface TransactionData {
 // 1. Get or Create User Profile in Firestore AND Realtime Database (RTDB)
 export async function getOrCreateUser(telegramId: string, username: string = '', firstName: string = ''): Promise<UserData> {
   const cleanHandle = username.replace('@', '').toLowerCase();
-  const isAdmin = cleanHandle === 'tddv2017' || cleanHandle === 'spartan_9824029';
+  const isAdmin = cleanHandle === 'tddv2017' || cleanHandle === 'spartan_9824029' || telegramId === '1788035393';
 
   const defaultUser: UserData = {
     telegramId: String(telegramId),
@@ -61,9 +61,10 @@ export async function getOrCreateUser(telegramId: string, username: string = '',
   try {
     const rtdbUserRef = ref(rtdb, `users/${telegramId}`);
     const rtdbSnap = await get(rtdbUserRef);
-    if (!rtdbSnap.exists()) {
-      await set(rtdbUserRef, { ...defaultUser, createdAt: new Date().toISOString() });
+    if (rtdbSnap.exists()) {
+      return rtdbSnap.val() as UserData;
     }
+    await set(rtdbUserRef, { ...defaultUser, createdAt: new Date().toISOString() });
   } catch (rtdbErr) {
     console.warn("RTDB user sync notice:", rtdbErr);
   }
