@@ -14,41 +14,75 @@ import { ProfileView } from '@/components/ProfileView';
 import { TradeHistoryCard } from '@/components/TradeHistoryCard';
 import { AdminPanel } from '@/components/AdminPanel';
 import { checkIsAdmin } from '@/lib/adminAuth';
+import { getOrCreateUser, subscribeToUser, UserData } from '@/lib/firebaseService';
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<TabType>('home');
   const [tradingBalance, setTradingBalance] = useState<number>(7462415.57);
   const [referralsIncome, setReferralsIncome] = useState<number>(800.00);
   const [isBotActive, setIsBotActive] = useState<boolean>(true);
-  const [currentTelegramUser, setCurrentTelegramUser] = useState<string>('');
+  const [currentTelegramUser, setCurrentTelegramUser] = useState<string>('tddv2017');
+  const [currentTelegramId, setCurrentTelegramId] = useState<string>('1788035393');
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
 
-  // Dynamic Telegram WebApp user detection
+  // Dynamic Telegram WebApp user detection & Automatic Firebase Profile Sync
   useEffect(() => {
     let userHandle = '';
+    let userId = '1788035393';
+    let userFirstName = 'Warrior';
 
     if (typeof window !== 'undefined') {
       // 1. Try reading from Telegram WebApp SDK
       const tgUser = (window as any).Telegram?.WebApp?.initDataUnsafe?.user;
       if (tgUser?.username) {
         userHandle = tgUser.username;
-      } else if (tgUser?.id) {
-        userHandle = String(tgUser.id);
-      } else {
+      }
+      if (tgUser?.id) {
+        userId = String(tgUser.id);
+      }
+      if (tgUser?.first_name) {
+        userFirstName = tgUser.first_name;
+      }
+
+      if (!userHandle && !tgUser?.id) {
         // 2. Check URL search params for testing (e.g. ?user=tddv2017)
         const params = new URLSearchParams(window.location.search);
-        userHandle = params.get('user') || 'tddv2017'; // Default for @tddv2017 session
+        userHandle = params.get('user') || 'tddv2017';
+        userId = params.get('id') || '1788035393';
       }
     }
 
+    if (!userHandle) userHandle = 'user_' + userId.slice(-4);
+
     setCurrentTelegramUser(userHandle);
+    setCurrentTelegramId(userId);
+
     const adminStatus = checkIsAdmin(userHandle);
     setIsAdmin(adminStatus);
+
+    // Sync Account Profile to Firebase Firestore & RTDB on app launch
+    getOrCreateUser(userId, userHandle, userFirstName).then((profile) => {
+      if (profile && profile.tradingBalance) {
+        setTradingBalance(profile.tradingBalance);
+      }
+    });
+
+    // Realtime Listener for Balance Updates from Firebase
+    const unsub = subscribeToUser(userId, (userData) => {
+      if (userData && typeof userData.tradingBalance === 'number') {
+        setTradingBalance(userData.tradingBalance);
+      }
+      if (userData && typeof userData.referralBalance === 'number') {
+        setReferralsIncome(userData.referralBalance);
+      }
+    });
 
     // Security guard: If normal user tries to access admin tab, fallback to home
     if (!adminStatus && activeTab === 'admin') {
       setActiveTab('home');
     }
+
+    return () => unsub();
   }, [activeTab]);
 
   const totalCombinedBalance = tradingBalance + referralsIncome;
@@ -96,6 +130,8 @@ export default function Home() {
           <WalletView
             currentBalance={totalCombinedBalance}
             onUpdateBalance={handleUpdateBalance}
+            telegramId={currentTelegramId}
+            username={currentTelegramUser}
           />
         )}
 

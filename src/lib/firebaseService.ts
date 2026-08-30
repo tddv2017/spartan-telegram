@@ -41,9 +41,10 @@ export interface TransactionData {
   createdAt?: any;
 }
 
-// 1. Get or Create User
+// 1. Get or Create User Profile in Firestore AND Realtime Database (RTDB)
 export async function getOrCreateUser(telegramId: string, username: string = '', firstName: string = ''): Promise<UserData> {
-  const isAdmin = username.replace('@', '').toLowerCase() === 'tddv2017';
+  const cleanHandle = username.replace('@', '').toLowerCase();
+  const isAdmin = cleanHandle === 'tddv2017' || cleanHandle === 'spartan_9824029';
 
   const defaultUser: UserData = {
     telegramId: String(telegramId),
@@ -56,6 +57,18 @@ export async function getOrCreateUser(telegramId: string, username: string = '',
     resellerTier: 1,
   };
 
+  // A. Save to Realtime Database (RTDB)
+  try {
+    const rtdbUserRef = ref(rtdb, `users/${telegramId}`);
+    const rtdbSnap = await get(rtdbUserRef);
+    if (!rtdbSnap.exists()) {
+      await set(rtdbUserRef, { ...defaultUser, createdAt: new Date().toISOString() });
+    }
+  } catch (rtdbErr) {
+    console.warn("RTDB user sync notice:", rtdbErr);
+  }
+
+  // B. Save to Firestore
   try {
     const userRef = doc(db, "users", String(telegramId));
     const userSnap = await getDoc(userRef);
@@ -67,31 +80,44 @@ export async function getOrCreateUser(telegramId: string, username: string = '',
     await setDoc(userRef, { ...defaultUser, createdAt: serverTimestamp() });
     return defaultUser;
   } catch (err) {
-    console.warn("Firestore getOrCreateUser fallback:", err);
+    console.warn("Firestore user sync notice (RTDB active):", err);
     return defaultUser;
   }
 }
 
-// 2. Realtime Listener for Single User Data
+// 2. Realtime Listener for Single User Data (Listens to both RTDB and Firestore)
 export function subscribeToUser(telegramId: string, callback: (user: UserData | null) => void) {
+  let firestoreUnsub = () => {};
+  let rtdbUnsub = () => {};
+
+  // A. Firestore Listener
   try {
     const userRef = doc(db, "users", String(telegramId));
-    return onSnapshot(
+    firestoreUnsub = onSnapshot(
       userRef, 
       (snap) => {
         if (snap.exists()) {
           callback(snap.data() as UserData);
-        } else {
-          callback(null);
         }
       },
-      (err) => {
-        console.warn("Firestore subscribeToUser notice:", err);
-      }
+      (err) => {}
     );
-  } catch (e) {
-    return () => {};
-  }
+  } catch (e) {}
+
+  // B. RTDB Listener
+  try {
+    const rtdbUserRef = ref(rtdb, `users/${telegramId}`);
+    rtdbUnsub = onValue(rtdbUserRef, (snapshot) => {
+      if (snapshot.exists()) {
+        callback(snapshot.val() as UserData);
+      }
+    });
+  } catch (e) {}
+
+  return () => {
+    firestoreUnsub();
+    rtdbUnsub();
+  };
 }
 
 // 3. Create Deposit or Withdrawal Transaction in Firestore AND Realtime Database (RTDB)
@@ -120,7 +146,7 @@ export async function createLiveTransaction(
     createdAt: new Date().toISOString()
   };
 
-  // A. Save to Realtime Database (RTDB - https://bot-trading-5f8c9-default-rtdb.asia-southeast1.firebasedatabase.app)
+  // A. Save to Realtime Database (RTDB)
   try {
     const rtdbRef = ref(rtdb, `transactions/${txData.id}`);
     await set(rtdbRef, txData);
@@ -128,7 +154,7 @@ export async function createLiveTransaction(
     console.warn("RTDB set error:", rtdbErr);
   }
 
-  // B. Save to Firestore (Database: miniapp-spartan)
+  // B. Save to Firestore
   try {
     const txCol = collection(db, "transactions");
     const docRef = await addDoc(txCol, {
@@ -147,12 +173,11 @@ export async function createLiveTransaction(
   return txData;
 }
 
-// 4. Realtime Listener for User's Transactions History (No Index Required!)
+// 4. Realtime Listener for User's Transactions History
 export function subscribeToUserTransactions(telegramId: string, callback: (txs: TransactionData[]) => void) {
   let firestoreUnsub = () => {};
   let rtdbUnsub = () => {};
 
-  // A. Firestore Listener (Single field query - NO Composite Index required!)
   try {
     const txCol = collection(db, "transactions");
     const q = query(txCol, where("userId", "==", String(telegramId)));
@@ -166,13 +191,10 @@ export function subscribeToUserTransactions(telegramId: string, callback: (txs: 
         });
         callback(txs);
       },
-      (err) => {
-        console.warn("Firestore user txs notice:", err);
-      }
+      (err) => {}
     );
   } catch (e) {}
 
-  // B. RTDB Fallback Listener
   try {
     const rtdbTxRef = ref(rtdb, 'transactions');
     rtdbUnsub = onValue(rtdbTxRef, (snapshot) => {
@@ -192,12 +214,11 @@ export function subscribeToUserTransactions(telegramId: string, callback: (txs: 
   };
 }
 
-// 5. Realtime Listener for Admin Pending Queue (No Index Required!)
+// 5. Realtime Listener for Admin Pending Queue
 export function subscribeToPendingTransactions(callback: (txs: TransactionData[]) => void) {
   let firestoreUnsub = () => {};
   let rtdbUnsub = () => {};
 
-  // A. Firestore Listener (Single field query - NO Composite Index required!)
   try {
     const txCol = collection(db, "transactions");
     const q = query(txCol, where("status", "==", "PENDING"));
@@ -211,13 +232,10 @@ export function subscribeToPendingTransactions(callback: (txs: TransactionData[]
         });
         callback(txs);
       },
-      (err) => {
-        console.warn("Firestore pending queue notice:", err);
-      }
+      (err) => {}
     );
   } catch (e) {}
 
-  // B. RTDB Listener for Pending Queue
   try {
     const rtdbTxRef = ref(rtdb, 'transactions');
     rtdbUnsub = onValue(rtdbTxRef, (snapshot) => {
@@ -239,7 +257,6 @@ export function subscribeToPendingTransactions(callback: (txs: TransactionData[]
 
 // 6. Admin Approval of Pending Transaction (Updates Firestore AND RTDB)
 export async function approveLiveTransaction(txId: string, adminUsername: string = 'tddv2017') {
-  // A. Update RTDB
   try {
     const rtdbTxRef = ref(rtdb, `transactions/${txId}`);
     await update(rtdbTxRef, {
@@ -249,7 +266,6 @@ export async function approveLiveTransaction(txId: string, adminUsername: string
     });
   } catch (e) {}
 
-  // B. Update Firestore
   try {
     const txRef = doc(db, "transactions", txId);
     const txSnap = await getDoc(txRef);
@@ -273,6 +289,12 @@ export async function approveLiveTransaction(txId: string, adminUsername: string
           : currentBal - tx.grossAmount;
 
         await updateDoc(userRef, {
+          tradingBalance: Math.max(0, newBal)
+        });
+
+        // Also update RTDB
+        const rtdbUserRef = ref(rtdb, `users/${tx.userId}`);
+        await update(rtdbUserRef, {
           tradingBalance: Math.max(0, newBal)
         });
       }
