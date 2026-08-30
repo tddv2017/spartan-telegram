@@ -25,6 +25,7 @@ export interface UserData {
   referrerId?: string;
   resellerTier: number;
   createdAt?: any;
+  updatedAt?: any;
 }
 
 export interface TransactionData {
@@ -41,88 +42,96 @@ export interface TransactionData {
   createdAt?: any;
 }
 
-// 1. Get or Create User Profile in Firestore AND Realtime Database (RTDB)
+// 1. Get or Create or Upsert User Profile in Firestore AND Realtime Database (RTDB)
 export async function getOrCreateUser(
   telegramId: string, 
   username: string = '', 
   firstName: string = '',
   referrerId?: string
 ): Promise<UserData> {
-  const cleanHandle = username.replace('@', '').toLowerCase();
-  const isAdmin = cleanHandle === 'tddv2017' || cleanHandle === 'spartan_9824029' || telegramId === '1788035393';
+  const cleanId = String(telegramId || '1788035393');
+  const cleanHandle = (username || 'user_' + cleanId.slice(-4)).replace('@', '').toLowerCase();
+  const isAdmin = cleanHandle === 'tddv2017' || cleanHandle === 'spartan_9824029' || cleanId === '1788035393';
 
-  // Check Realtime Database (RTDB) first
+  let existingUser: Partial<UserData> = {};
+
+  // Check RTDB first
   try {
-    const rtdbUserRef = ref(rtdb, `users/${telegramId}`);
+    const rtdbUserRef = ref(rtdb, `users/${cleanId}`);
     const rtdbSnap = await get(rtdbUserRef);
     if (rtdbSnap.exists()) {
-      return rtdbSnap.val() as UserData;
+      existingUser = rtdbSnap.val();
     }
-  } catch (e) {
-    console.warn("RTDB get error:", e);
+  } catch (e) {}
+
+  // Check Firestore next if not in RTDB
+  if (!existingUser.telegramId) {
+    try {
+      const userRef = doc(db, "users", cleanId);
+      const userSnap = await getDoc(userRef);
+      if (userSnap.exists()) {
+        existingUser = userSnap.data() as UserData;
+      }
+    } catch (e) {}
   }
 
-  // Check Firestore next
-  try {
-    const userRef = doc(db, "users", String(telegramId));
-    const userSnap = await getDoc(userRef);
-    if (userSnap.exists()) {
-      return userSnap.data() as UserData;
-    }
-  } catch (e) {
-    console.warn("Firestore get error:", e);
-  }
-
-  // Clean initialization for new client
-  const defaultUser: UserData = {
-    telegramId: String(telegramId),
-    username: username || 'user_' + String(telegramId).slice(-4),
-    firstName: firstName || 'Warrior',
-    role: isAdmin ? 'ADMIN' : 'CLIENT',
-    tradingBalance: 0.00,
-    referralBalance: 0.00,
-    referralCode: `SPARTAN_${telegramId}`,
-    referrerId: referrerId || undefined,
-    resellerTier: 1,
+  // Construct complete user profile object
+  const userProfile: UserData = {
+    telegramId: cleanId,
+    username: username || existingUser.username || 'user_' + cleanId.slice(-4),
+    firstName: firstName || existingUser.firstName || 'Warrior',
+    role: existingUser.role || (isAdmin ? 'ADMIN' : 'CLIENT'),
+    tradingBalance: typeof existingUser.tradingBalance === 'number' ? existingUser.tradingBalance : 0.00,
+    referralBalance: typeof existingUser.referralBalance === 'number' ? existingUser.referralBalance : 0.00,
+    referralCode: existingUser.referralCode || `SPARTAN_${cleanId}`,
+    referrerId: existingUser.referrerId || referrerId || undefined,
+    resellerTier: existingUser.resellerTier || 1,
+    updatedAt: new Date().toISOString()
   };
 
-  // Save to RTDB (Path: users/<telegramId>)
+  // GUARANTEED ALWAYS SAVE/UPDATE TO RTDB (Path: users/<cleanId>)
   try {
-    const rtdbUserRef = ref(rtdb, `users/${telegramId}`);
-    await set(rtdbUserRef, { ...defaultUser, createdAt: new Date().toISOString() });
+    const rtdbUserRef = ref(rtdb, `users/${cleanId}`);
+    await set(rtdbUserRef, { ...userProfile, createdAt: existingUser.createdAt || new Date().toISOString() });
+    console.log("✅ SUCCESS: User profile saved to RTDB at users/" + cleanId);
 
-    if (referrerId && referrerId !== telegramId) {
-      const refLinkRef = ref(rtdb, `users/${referrerId}/referrals/${telegramId}`);
+    if (referrerId && referrerId !== cleanId) {
+      const refLinkRef = ref(rtdb, `users/${referrerId}/referrals/${cleanId}`);
       await set(refLinkRef, {
-        telegramId: String(telegramId),
-        username: defaultUser.username,
-        firstName: defaultUser.firstName,
+        telegramId: cleanId,
+        username: userProfile.username,
+        firstName: userProfile.firstName,
         joinedAt: new Date().toISOString(),
       });
     }
   } catch (e) {
-    console.error("RTDB set user error:", e);
+    console.error("❌ RTDB set user error:", e);
   }
 
-  // Save to Firestore (Collection: users, Document: <telegramId>)
+  // GUARANTEED ALWAYS SAVE/UPDATE TO FIRESTORE (Collection: users, Document: <cleanId>)
   try {
-    const userRef = doc(db, "users", String(telegramId));
-    await setDoc(userRef, { ...defaultUser, createdAt: serverTimestamp() });
+    const userRef = doc(db, "users", cleanId);
+    await setDoc(userRef, { 
+      ...userProfile, 
+      createdAt: existingUser.createdAt || serverTimestamp(),
+      updatedAt: serverTimestamp() 
+    }, { merge: true });
+    console.log("✅ SUCCESS: User profile saved to Firestore at users/" + cleanId);
 
-    if (referrerId && referrerId !== telegramId) {
-      const refDocRef = doc(db, "users", String(referrerId), "referrals", String(telegramId));
+    if (referrerId && referrerId !== cleanId) {
+      const refDocRef = doc(db, "users", String(referrerId), "referrals", cleanId);
       await setDoc(refDocRef, {
-        telegramId: String(telegramId),
-        username: defaultUser.username,
-        firstName: defaultUser.firstName,
+        telegramId: cleanId,
+        username: userProfile.username,
+        firstName: userProfile.firstName,
         joinedAt: serverTimestamp(),
-      });
+      }, { merge: true });
     }
   } catch (e) {
-    console.error("Firestore set user error:", e);
+    console.error("❌ Firestore set user error:", e);
   }
 
-  return defaultUser;
+  return userProfile;
 }
 
 // 2. Realtime Listener for Single User Data
@@ -130,16 +139,18 @@ export function subscribeToUser(telegramId: string, callback: (user: UserData | 
   let firestoreUnsub = () => {};
   let rtdbUnsub = () => {};
 
+  const cleanId = String(telegramId || '1788035393');
+
   // A. Primary RTDB Listener
   try {
-    const rtdbUserRef = ref(rtdb, `users/${telegramId}`);
+    const rtdbUserRef = ref(rtdb, `users/${cleanId}`);
     rtdbUnsub = onValue(rtdbUserRef, (snapshot) => {
       if (snapshot.exists()) {
         const userData = snapshot.val() as UserData;
         callback(userData);
 
         try {
-          const userRef = doc(db, "users", String(telegramId));
+          const userRef = doc(db, "users", cleanId);
           setDoc(userRef, userData, { merge: true });
         } catch (e) {}
       }
@@ -150,7 +161,7 @@ export function subscribeToUser(telegramId: string, callback: (user: UserData | 
 
   // B. Secondary Firestore Listener
   try {
-    const userRef = doc(db, "users", String(telegramId));
+    const userRef = doc(db, "users", cleanId);
     firestoreUnsub = onSnapshot(
       userRef, 
       (snap) => {
@@ -173,9 +184,10 @@ export function subscribeToUser(telegramId: string, callback: (user: UserData | 
 // 3. Listener for Referred Users List
 export function subscribeToReferredUsers(telegramId: string, callback: (users: any[]) => void) {
   let rtdbUnsub = () => {};
+  const cleanId = String(telegramId || '1788035393');
 
   try {
-    const refsRef = ref(rtdb, `users/${telegramId}/referrals`);
+    const refsRef = ref(rtdb, `users/${cleanId}/referrals`);
     rtdbUnsub = onValue(refsRef, (snapshot) => {
       if (snapshot.exists()) {
         const data = snapshot.val();
@@ -190,13 +202,18 @@ export function subscribeToReferredUsers(telegramId: string, callback: (users: a
   return () => rtdbUnsub();
 }
 
-// 4. Create Deposit or Withdrawal Transaction (Predictable Document ID: TX-XXXXX)
+// 4. Create Deposit or Withdrawal Transaction
 export async function createLiveTransaction(
   telegramId: string, 
   username: string, 
   type: 'DEPOSIT' | 'WITHDRAW', 
   grossAmount: number
 ): Promise<TransactionData> {
+  const cleanId = String(telegramId || '1788035393');
+
+  // Guarantee user profile document is upserted first
+  await getOrCreateUser(cleanId, username);
+
   const feeCalc = type === 'DEPOSIT' 
     ? calculateDepositFee(grossAmount) 
     : calculateWithdrawFee(grossAmount);
@@ -206,8 +223,8 @@ export async function createLiveTransaction(
 
   const txData: TransactionData = {
     id: txId,
-    userId: String(telegramId),
-    username: username || 'user_' + String(telegramId).slice(-4),
+    userId: cleanId,
+    username: username || 'user_' + cleanId.slice(-4),
     type,
     grossAmount,
     feeAmount: feeCalc.totalFee,
@@ -245,6 +262,7 @@ export async function createLiveTransaction(
 export function subscribeToUserTransactions(telegramId: string, callback: (txs: TransactionData[]) => void) {
   let firestoreUnsub = () => {};
   let rtdbUnsub = () => {};
+  const cleanId = String(telegramId || '1788035393');
 
   try {
     const rtdbTxRef = ref(rtdb, 'transactions');
@@ -252,7 +270,7 @@ export function subscribeToUserTransactions(telegramId: string, callback: (txs: 
       if (snapshot.exists()) {
         const data = snapshot.val();
         const txs: TransactionData[] = Object.values(data).filter(
-          (t: any) => String(t.userId) === String(telegramId)
+          (t: any) => String(t.userId) === cleanId
         ) as TransactionData[];
         callback(txs);
       } else {
@@ -263,7 +281,7 @@ export function subscribeToUserTransactions(telegramId: string, callback: (txs: 
 
   try {
     const txCol = collection(db, "transactions");
-    const q = query(txCol, where("userId", "==", String(telegramId)));
+    const q = query(txCol, where("userId", "==", cleanId));
 
     firestoreUnsub = onSnapshot(
       q, 
