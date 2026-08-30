@@ -3,14 +3,15 @@ import { getFirestore, Firestore } from "firebase/firestore";
 import { getDatabase } from "firebase/database";
 import { getAnalytics, isSupported } from "firebase/analytics";
 
-// User's New Live Firebase Configuration (Project: decisive-mapper-216306)
+// User's Live Firebase Configuration (Project: decisive-mapper-216306)
 const firebaseConfig = {
   apiKey: "AIzaSyAWhGhoS5GixDZdqGVRf-ieCdMB28GCDLM",
   authDomain: "decisive-mapper-216306.firebaseapp.com",
+  databaseURL: "https://decisive-mapper-216306-default-rtdb.firebaseio.com",
   projectId: "decisive-mapper-216306",
   storageBucket: "decisive-mapper-216306.firebasestorage.app",
   messagingSenderId: "1050974079411",
-  appId: "1:10050974079411:web:a41943132e2402f55563c6",
+  appId: "1:1050974079411:web:a41943132e2402f55563c6",
   measurementId: "G-BTW41XX3GH"
 };
 
