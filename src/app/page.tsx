@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Header } from '@/components/Header';
 import { BalanceCard } from '@/components/BalanceCard';
 import { EquityChart } from '@/components/EquityChart';
@@ -20,10 +20,36 @@ export default function Home() {
   const [tradingBalance, setTradingBalance] = useState<number>(7462415.57);
   const [referralsIncome, setReferralsIncome] = useState<number>(800.00);
   const [isBotActive, setIsBotActive] = useState<boolean>(true);
+  const [currentTelegramUser, setCurrentTelegramUser] = useState<string>('');
+  const [isAdmin, setIsAdmin] = useState<boolean>(false);
 
-  // Configured Admin Telegram User: @tddv2017
-  const currentTelegramUser = 'tddv2017';
-  const isAdmin = checkIsAdmin(currentTelegramUser);
+  // Dynamic Telegram WebApp user detection
+  useEffect(() => {
+    let userHandle = '';
+
+    if (typeof window !== 'undefined') {
+      // 1. Try reading from Telegram WebApp SDK
+      const tgUser = (window as any).Telegram?.WebApp?.initDataUnsafe?.user;
+      if (tgUser?.username) {
+        userHandle = tgUser.username;
+      } else if (tgUser?.id) {
+        userHandle = String(tgUser.id);
+      } else {
+        // 2. Check URL search params for testing (e.g. ?user=tddv2017)
+        const params = new URLSearchParams(window.location.search);
+        userHandle = params.get('user') || 'tddv2017'; // Default for @tddv2017 session
+      }
+    }
+
+    setCurrentTelegramUser(userHandle);
+    const adminStatus = checkIsAdmin(userHandle);
+    setIsAdmin(adminStatus);
+
+    // Security guard: If normal user tries to access admin tab, fallback to home
+    if (!adminStatus && activeTab === 'admin') {
+      setActiveTab('home');
+    }
+  }, [activeTab]);
 
   const totalCombinedBalance = tradingBalance + referralsIncome;
 
@@ -84,11 +110,11 @@ export default function Home() {
         {/* ĐẠI LÝ (PROFILE) TAB */}
         {activeTab === 'profile' && <ProfileView />}
 
-        {/* ADMIN CONTROL PANEL TAB (SPECIAL ACCESS FOR @tddv2017) */}
-        {activeTab === 'admin' && <AdminPanel />}
+        {/* ADMIN CONTROL PANEL TAB (RESTRICTED FOR @tddv2017 ONLY) */}
+        {activeTab === 'admin' && isAdmin && <AdminPanel />}
       </div>
 
-      {/* Bottom Navigation */}
+      {/* Bottom Navigation: Admin tab only renders when isAdmin is true */}
       <BottomNav activeTab={activeTab} onChangeTab={setActiveTab} isAdmin={isAdmin} />
     </main>
   );
