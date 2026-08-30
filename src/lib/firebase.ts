@@ -3,7 +3,7 @@ import { getFirestore } from "firebase/firestore";
 import { getDatabase } from "firebase/database";
 import { getAnalytics, isSupported } from "firebase/analytics";
 
-// User's Live Firebase Configuration (Project: miniapp-spartan / bot-trading-5f8c9)
+// User's Live Firebase Configuration (Project: bot-trading-5f8c9)
 const firebaseConfig = {
   apiKey: "AIzaSyAUzL5c9CD_cCv9hP-FNrbTSRKOiIMxMOs",
   authDomain: "bot-trading-5f8c9.firebaseapp.com",
@@ -18,8 +18,8 @@ const firebaseConfig = {
 // Initialize Firebase App (Singleton Pattern)
 const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 
-// Initialize Firestore Database (miniapp-spartan)
-export const db = getFirestore(app);
+// Initialize Specific Firestore Native Database ID: "miniapp-spartan" (Location: asia-southeast3)
+export const db = getFirestore(app, "miniapp-spartan");
 
 // Initialize Realtime Database (rtdb)
 export const rtdb = getDatabase(app);
