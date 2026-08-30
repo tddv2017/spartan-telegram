@@ -45,7 +45,6 @@ export interface TransactionData {
 const RTDB_BASE_URL = "https://decisive-mapper-216306-default-rtdb.asia-southeast1.firebasedatabase.app";
 const FIRESTORE_REST_BASE = "https://firestore.googleapis.com/v1/projects/decisive-mapper-216306/databases/(default)/documents";
 
-// Firestore REST Field Serializer Helper
 function convertToFirestoreFields(obj: any): any {
   const fields: any = {};
   for (const [key, val] of Object.entries(obj)) {
@@ -61,12 +60,12 @@ function convertToFirestoreFields(obj: any): any {
   return fields;
 }
 
-// DIRECT FIRESTORE REST API WRITE ENGINE (Guaranteed 100% Write to Firestore Console)
-export async function saveToFirestoreREST(collectionName: string, documentId: string, data: any) {
+// DIRECT FIRESTORE REST API WRITE ENGINE (Supports Sub-collections)
+export async function saveToFirestoreREST(documentPath: string, data: any) {
   try {
     const fieldKeys = Object.keys(data).filter(k => data[k] !== undefined && data[k] !== null);
     const queryParams = fieldKeys.map(k => `updateMask.fieldPaths=${encodeURIComponent(k)}`).join('&');
-    const url = `${FIRESTORE_REST_BASE}/${collectionName}/${documentId}?${queryParams}`;
+    const url = `${FIRESTORE_REST_BASE}/${documentPath}?${queryParams}`;
     const fields = convertToFirestoreFields(data);
 
     const res = await fetch(url, {
@@ -76,17 +75,17 @@ export async function saveToFirestoreREST(collectionName: string, documentId: st
     });
 
     if (res.ok) {
-      console.log(`🚀 FIRESTORE REST WRITE SUCCESS -> ${collectionName}/${documentId}`);
+      console.log(`🚀 FIRESTORE REST WRITE SUCCESS -> ${documentPath}`);
     } else {
       const err = await res.json();
-      console.warn(`Firestore REST notice (${collectionName}/${documentId}):`, err);
+      console.warn(`Firestore REST notice (${documentPath}):`, err);
     }
   } catch (err) {
     console.error("Firestore REST error:", err);
   }
 }
 
-// 1. DIRECT DUAL HYBRID WRITE ENGINE FOR USER PROFILES (RTDB + FIRESTORE)
+// 1. FORCE USER PROFILE SYNC ENGINE
 export async function forceSyncUserProfile(
   telegramId: string, 
   username: string = '', 
@@ -129,17 +128,14 @@ export async function forceSyncUserProfile(
 
   let restSuccess = false;
 
-  // A. Direct Realtime Database HTTP REST Write
+  // A. Realtime Database Write (users/<cleanId>)
   try {
     const restRes = await fetch(`${RTDB_BASE_URL}/users/${cleanId}.json`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(userPayload)
     });
-    if (restRes.ok) {
-      restSuccess = true;
-      console.log("🚀 RTDB REST WRITE SUCCESS -> users/" + cleanId);
-    }
+    if (restRes.ok) restSuccess = true;
 
     if (referrerId && referrerId !== cleanId) {
       await fetch(`${RTDB_BASE_URL}/users/${referrerId}/referrals/${cleanId}.json`, {
@@ -153,12 +149,10 @@ export async function forceSyncUserProfile(
         })
       });
     }
-  } catch (err) {
-    console.error("❌ RTDB REST WRITE ERROR:", err);
-  }
+  } catch (err) {}
 
-  // B. Direct Firestore Database HTTP REST Write (Guaranteed Document Creation in Firestore Console)
-  await saveToFirestoreREST("users", cleanId, userPayload);
+  // B. Firestore Database Write (users/<cleanId>)
+  await saveToFirestoreREST(`users/${cleanId}`, userPayload);
 
   // C. JS SDK Backup Write
   try {
@@ -279,7 +273,8 @@ export function subscribeToReferredUsers(telegramId: string, callback: (users: a
   };
 }
 
-// 5. Create Deposit or Withdrawal Transaction (Writes to BOTH RTDB and Firestore Console)
+// 5. Create Deposit/Withdrawal Transaction (Sub-collection Architecture)
+// Writes to users/{userId}/transactions/{txId} AND global transactions/{txId}
 export async function createLiveTransaction(
   telegramId: string, 
   username: string, 
@@ -310,62 +305,79 @@ export async function createLiveTransaction(
     createdAt: new Date().toISOString()
   };
 
-  // A. Realtime Database REST Write
+  // A. Realtime Database Write:
+  // 1. Sub-tree: users/{userId}/transactions/{txId}
+  // 2. Global tree: transactions/{txId}
   try {
+    await fetch(`${RTDB_BASE_URL}/users/${cleanId}/transactions/${txId}.json`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(txData)
+    });
     await fetch(`${RTDB_BASE_URL}/transactions/${txId}.json`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(txData)
     });
-    console.log("🚀 RTDB TRANSACTION REST SUCCESS -> transactions/" + txId);
-  } catch (e) {
-    console.error("❌ RTDB TRANSACTION REST ERROR:", e);
-  }
+    console.log(`🚀 RTDB SUBCOLLECTION SUCCESS -> users/${cleanId}/transactions/${txId}`);
+  } catch (e) {}
 
-  // B. Firestore Database REST Write (Guaranteed Document Creation in Firestore Console)
-  await saveToFirestoreREST("transactions", txId, txData);
+  // B. Firestore Database Write:
+  // 1. Sub-collection: users/{userId}/transactions/{txId}
+  // 2. Global collection: transactions/{txId}
+  await saveToFirestoreREST(`users/${cleanId}/transactions/${txId}`, txData);
+  await saveToFirestoreREST(`transactions/${txId}`, txData);
 
   // C. Firestore SDK Backup Write
   try {
-    const txDocRef = doc(db, "transactions", txId);
-    await setDoc(txDocRef, {
-      ...txData,
-      createdAt: serverTimestamp()
-    });
+    const userTxDocRef = doc(db, "users", cleanId, "transactions", txId);
+    await setDoc(userTxDocRef, { ...txData, createdAt: serverTimestamp() });
+
+    const globalTxDocRef = doc(db, "transactions", txId);
+    await setDoc(globalTxDocRef, { ...txData, createdAt: serverTimestamp() });
   } catch (e) {}
 
   return txData;
 }
 
-// 6. Realtime Listener for User's Transactions History
+// 6. Realtime Listener for User's Transactions History (Reads directly from Sub-collection users/{userId}/transactions)
 export function subscribeToUserTransactions(telegramId: string, callback: (txs: TransactionData[]) => void) {
   let firestoreUnsub = () => {};
   let rtdbUnsub = () => {};
   const cleanId = String(telegramId || '1788035393');
 
+  // HTTP REST Polling from Sub-collection path
   const intervalId = setInterval(async () => {
     try {
-      const res = await fetch(`${RTDB_BASE_URL}/transactions.json`);
+      const res = await fetch(`${RTDB_BASE_URL}/users/${cleanId}/transactions.json`);
       if (res.ok) {
         const data = await res.json();
         if (data) {
-          const list = Object.values(data).filter((t: any) => String(t.userId) === cleanId) as TransactionData[];
+          const list = Object.values(data) as TransactionData[];
           callback(list);
         }
       }
     } catch (e) {}
   }, 3000);
 
+  // RTDB Sub-tree Listener
   try {
-    const rtdbTxRef = ref(rtdb, 'transactions');
-    rtdbUnsub = onValue(rtdbTxRef, (snapshot) => {
+    const userTxsRef = ref(rtdb, `users/${cleanId}/transactions`);
+    rtdbUnsub = onValue(userTxsRef, (snapshot) => {
       if (snapshot.exists()) {
         const data = snapshot.val();
-        const txs: TransactionData[] = Object.values(data).filter(
-          (t: any) => String(t.userId) === cleanId
-        ) as TransactionData[];
-        callback(txs);
+        callback(Object.values(data));
       }
+    });
+  } catch (e) {}
+
+  // Firestore Sub-collection Listener (users/{cleanId}/transactions)
+  try {
+    const userTxsCol = collection(db, "users", cleanId, "transactions");
+    firestoreUnsub = onSnapshot(userTxsCol, (snapshot) => {
+      const txs: TransactionData[] = [];
+      snapshot.forEach((d) => txs.push({ id: d.id, ...d.data() } as TransactionData));
+      if (txs.length > 0) callback(txs);
     });
   } catch (e) {}
 
@@ -414,7 +426,7 @@ export function subscribeToPendingTransactions(callback: (txs: TransactionData[]
   };
 }
 
-// 8. Admin Approval of Pending Transaction
+// 8. Admin Approval of Pending Transaction (Updates Sub-collection + Global)
 export async function approveLiveTransaction(txId: string, adminUsername: string = 'tddv2017') {
   let userId = '';
   let netAmount = 0;
@@ -431,22 +443,27 @@ export async function approveLiveTransaction(txId: string, adminUsername: string
         grossAmount = tx.grossAmount;
         type = tx.type;
 
-        await fetch(`${RTDB_BASE_URL}/transactions/${txId}.json`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            status: 'APPROVED',
-            approvedBy: adminUsername,
-            approvedAt: new Date().toISOString()
-          })
-        });
-
-        // Firestore REST Approval Update
-        await saveToFirestoreREST("transactions", txId, {
+        const updatePayload = {
           status: 'APPROVED',
           approvedBy: adminUsername,
           approvedAt: new Date().toISOString()
+        };
+
+        // Update RTDB Global & Sub-tree
+        await fetch(`${RTDB_BASE_URL}/transactions/${txId}.json`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(updatePayload)
         });
+        await fetch(`${RTDB_BASE_URL}/users/${userId}/transactions/${txId}.json`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(updatePayload)
+        });
+
+        // Update Firestore Global & Sub-collection
+        await saveToFirestoreREST(`transactions/${txId}`, updatePayload);
+        await saveToFirestoreREST(`users/${userId}/transactions/${txId}`, updatePayload);
       }
     }
   } catch (e) {}
@@ -460,16 +477,15 @@ export async function approveLiveTransaction(txId: string, adminUsername: string
           const currentBal = user.tradingBalance || 0;
           const newBal = type === 'DEPOSIT' ? currentBal + netAmount : currentBal - grossAmount;
 
+          const balPayload = { tradingBalance: Math.max(0, newBal) };
+
           await fetch(`${RTDB_BASE_URL}/users/${userId}.json`, {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ tradingBalance: Math.max(0, newBal) })
+            body: JSON.stringify(balPayload)
           });
 
-          // Firestore REST Balance Update
-          await saveToFirestoreREST("users", userId, {
-            tradingBalance: Math.max(0, newBal)
-          });
+          await saveToFirestoreREST(`users/${userId}`, balPayload);
         }
       }
     } catch (e) {}
