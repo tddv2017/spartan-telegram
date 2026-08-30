@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { Crown, Activity, MoreHorizontal } from 'lucide-react';
+import Image from 'next/image';
 
 interface HeaderProps {
   onClose?: () => void;
@@ -30,8 +31,13 @@ export const Header: React.FC<HeaderProps> = ({ onClose }) => {
       {/* Brand Header & Supreme Leader Badge */}
       <div className="flex items-center justify-between pt-1">
         <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#ff5500] via-[#ea580c] to-[#7c3aed] flex items-center justify-center font-black text-white text-lg shadow-[0_4px_12px_rgba(255,85,0,0.4)]">
-            S
+          {/* Newly Generated Spartan High-Tech Helmet Logo Avatar */}
+          <div className="w-9 h-9 rounded-xl overflow-hidden border border-[#ff5500]/50 shadow-[0_4px_14px_rgba(255,85,0,0.5)] bg-[#0b0e17] relative flex-shrink-0">
+            <img
+              src="/assets/spartan_avatar_square.jpg"
+              alt="Spartan AI Logo"
+              className="w-full h-full object-cover"
+            />
           </div>
           <div>
             <div className="flex items-center gap-1.5">
@@ -46,7 +52,7 @@ export const Header: React.FC<HeaderProps> = ({ onClose }) => {
           </div>
         </div>
 
-        {/* Bot Running Status Indicator Pill (Synced Orange with 15% Violet Glow) */}
+        {/* Bot Running Status Indicator Pill */}
         <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#ff5500]/10 border border-[#ff5500]/30 text-[#ff5500] text-[11px] font-extrabold shadow-[0_0_10px_rgba(124,58,237,0.15)]">
           <Activity className="w-3.5 h-3.5 text-[#ff5500] animate-pulse" />
           <span>BOT ĐANG CHẠY</span>
