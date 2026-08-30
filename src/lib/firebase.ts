@@ -1,5 +1,5 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
-import { getFirestore } from "firebase/firestore";
+import { getFirestore, Firestore } from "firebase/firestore";
 import { getDatabase } from "firebase/database";
 import { getAnalytics, isSupported } from "firebase/analytics";
 
@@ -18,8 +18,16 @@ const firebaseConfig = {
 // Initialize Firebase App (Singleton Pattern)
 const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 
-// Initialize Specific Firestore Native Database ID: "miniapp-spartan" (Location: asia-southeast3)
-export const db = getFirestore(app, "miniapp-spartan");
+// Resilient Firestore Getter: Tries "miniapp-spartan" Database ID first, falls back to default
+let firestoreInstance: Firestore;
+try {
+  firestoreInstance = getFirestore(app, "miniapp-spartan");
+} catch (e) {
+  console.warn("Falling back to default Firestore database instance:", e);
+  firestoreInstance = getFirestore(app);
+}
+
+export const db = firestoreInstance;
 
 // Initialize Realtime Database (rtdb)
 export const rtdb = getDatabase(app);

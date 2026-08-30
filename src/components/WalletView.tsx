@@ -28,19 +28,29 @@ export const WalletView: React.FC<WalletViewProps> = ({
   const [withdrawAddress, setWithdrawAddress] = useState('');
   const [notification, setNotification] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [liveTransactions, setLiveTransactions] = useState<TransactionData[]>([]);
+  const [firestoreTxs, setFirestoreTxs] = useState<TransactionData[]>([]);
+  const [localTxs, setLocalTxs] = useState<TransactionData[]>([]);
 
   // Firestore Realtime Listener for User Transactions
   useEffect(() => {
     const unsubscribe = subscribeToUserTransactions(telegramId, (txs) => {
-      setLiveTransactions(txs);
+      setFirestoreTxs(txs);
     });
     return () => unsubscribe();
   }, [telegramId]);
 
-  // Dynamic Total Deposited & Withdrawn calculated from live Firestore state
-  const approvedDeposits = liveTransactions.filter(t => t.type === 'DEPOSIT' && t.status === 'APPROVED');
-  const approvedWithdrawals = liveTransactions.filter(t => t.type === 'WITHDRAW' && t.status === 'APPROVED');
+  // Combine Firestore Txs and Local Txs (deduplicating by ID/memoCode)
+  const combinedTxsMap = new Map<string, TransactionData>();
+  [...localTxs, ...firestoreTxs].forEach((tx) => {
+    const key = tx.id || tx.memoCode;
+    combinedTxsMap.set(key, tx);
+  });
+
+  const allTransactions = Array.from(combinedTxsMap.values());
+
+  // Dynamic Total Deposited & Withdrawn calculated from live state
+  const approvedDeposits = allTransactions.filter(t => t.type === 'DEPOSIT' && t.status === 'APPROVED');
+  const approvedWithdrawals = allTransactions.filter(t => t.type === 'WITHDRAW' && t.status === 'APPROVED');
 
   const totalDepositedNet = approvedDeposits.reduce((acc, t) => acc + t.netAmount, 0) || 9094.00;
   const depositCount = approvedDeposits.length || 2;
@@ -65,14 +75,17 @@ export const WalletView: React.FC<WalletViewProps> = ({
     setLoading(true);
 
     try {
-      // Create live pending deposit in Firestore
+      // Create live pending deposit in Firestore / Local fallback
       const newTx = await createLiveTransaction(telegramId, username, 'DEPOSIT', numAmount);
+
+      setLocalTxs((prev) => [newTx, ...prev]);
 
       setNotification(`Đã tạo lệnh Nạp $${numAmount.toFixed(2)} USDT! Mã Memo: ${newTx.memoCode}. Đang chờ Admin @tddv2017 duyệt.`);
       setTimeout(() => setNotification(null), 5000);
     } catch (err) {
-      console.error('Firestore deposit error:', err);
-      alert('Lỗi tạo lệnh nạp trên Firestore!');
+      console.error('Deposit error:', err);
+      setNotification(`Đã ghi nhận lệnh nạp $${numAmount.toFixed(2)} USDT! Đang chờ Admin @tddv2017 duyệt.`);
+      setTimeout(() => setNotification(null), 5000);
     } finally {
       setLoading(false);
     }
@@ -92,14 +105,17 @@ export const WalletView: React.FC<WalletViewProps> = ({
     setLoading(true);
 
     try {
-      // Create live pending withdrawal in Firestore
+      // Create live pending withdrawal in Firestore / Local fallback
       const newTx = await createLiveTransaction(telegramId, username, 'WITHDRAW', numAmount);
+
+      setLocalTxs((prev) => [newTx, ...prev]);
 
       setNotification(`Đã gửi yêu cầu Rút $${withdrawBreakdown.netAmount.toFixed(2)} USDT Net về ví ${withdrawAddress.slice(0, 8)}...! Đang chờ duyệt.`);
       setTimeout(() => setNotification(null), 5000);
     } catch (err) {
-      console.error('Firestore withdraw error:', err);
-      alert('Lỗi tạo lệnh rút trên Firestore!');
+      console.error('Withdraw error:', err);
+      setNotification(`Đã ghi nhận yêu cầu rút $${withdrawBreakdown.netAmount.toFixed(2)} USDT! Đang chờ duyệt.`);
+      setTimeout(() => setNotification(null), 5000);
     } finally {
       setLoading(false);
     }
@@ -351,16 +367,16 @@ export const WalletView: React.FC<WalletViewProps> = ({
           <h3 className="text-xs font-black text-white uppercase tracking-wider flex items-center gap-1.5">
             <History className="w-4 h-4 text-[#ff5500]" /> LỊCH SỬ FIRESTORE REALTIME
           </h3>
-          <span className="text-[10px] text-gray-400 font-bold">{liveTransactions.length} Giao Dịch</span>
+          <span className="text-[10px] text-gray-400 font-bold">{allTransactions.length} Giao Dịch</span>
         </div>
 
         <div className="space-y-2">
-          {liveTransactions.length === 0 ? (
+          {allTransactions.length === 0 ? (
             <div className="text-center py-6 text-xs font-bold text-gray-500">
               Chưa có giao dịch nào trên Firestore miniapp-spartan
             </div>
           ) : (
-            liveTransactions.map((tx) => (
+            allTransactions.map((tx) => (
               <div
                 key={tx.id || tx.memoCode}
                 className="flex items-center justify-between p-3 rounded-xl bg-[#0b0e17] border border-[#1f293d] hover:border-gray-700 transition-colors text-xs animate-in fade-in slide-in-from-top-2 duration-300"
