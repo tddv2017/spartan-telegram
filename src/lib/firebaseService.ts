@@ -86,7 +86,7 @@ export async function getOrCreateUser(
     resellerTier: 1,
   };
 
-  // Save to RTDB
+  // Save to RTDB (Path: users/<telegramId>)
   try {
     const rtdbUserRef = ref(rtdb, `users/${telegramId}`);
     await set(rtdbUserRef, { ...defaultUser, createdAt: new Date().toISOString() });
@@ -104,7 +104,7 @@ export async function getOrCreateUser(
     console.error("RTDB set user error:", e);
   }
 
-  // Save to Firestore
+  // Save to Firestore (Collection: users, Document: <telegramId>)
   try {
     const userRef = doc(db, "users", String(telegramId));
     await setDoc(userRef, { ...defaultUser, createdAt: serverTimestamp() });
@@ -190,7 +190,7 @@ export function subscribeToReferredUsers(telegramId: string, callback: (users: a
   return () => rtdbUnsub();
 }
 
-// 4. Create Deposit or Withdrawal Transaction
+// 4. Create Deposit or Withdrawal Transaction (Predictable Document ID: TX-XXXXX)
 export async function createLiveTransaction(
   telegramId: string, 
   username: string, 
@@ -202,9 +202,10 @@ export async function createLiveTransaction(
     : calculateWithdrawFee(grossAmount);
 
   const memoCode = `SPARTAN_${Math.floor(100000 + Math.random() * 900000)}`;
+  const txId = `TX-${Math.floor(10000 + Math.random() * 90000)}`;
 
   const txData: TransactionData = {
-    id: `TX-${Math.floor(10000 + Math.random() * 90000)}`,
+    id: txId,
     userId: String(telegramId),
     username: username || 'user_' + String(telegramId).slice(-4),
     type,
@@ -216,29 +217,25 @@ export async function createLiveTransaction(
     createdAt: new Date().toISOString()
   };
 
-  // Save to RTDB
+  // Save to RTDB (Path: transactions/TX-XXXXX)
   try {
-    const rtdbRef = ref(rtdb, `transactions/${txData.id}`);
+    const rtdbRef = ref(rtdb, `transactions/${txId}`);
     await set(rtdbRef, txData);
-    console.log("SUCCESS: RTDB transaction created!", txData.id);
+    console.log("✅ SUCCESS: RTDB transaction created at transactions/" + txId);
   } catch (e) {
-    console.error("RTDB set transaction error:", e);
+    console.error("❌ RTDB set transaction error:", e);
   }
 
-  // Save to Firestore
+  // Save to Firestore (Collection: transactions, Document: TX-XXXXX)
   try {
-    const txCol = collection(db, "transactions");
-    const docRef = await addDoc(txCol, {
+    const txDocRef = doc(db, "transactions", txId);
+    await setDoc(txDocRef, {
       ...txData,
       createdAt: serverTimestamp()
     });
-    txData.id = docRef.id;
-
-    const rtdbRef = ref(rtdb, `transactions/${docRef.id}`);
-    await set(rtdbRef, { ...txData, id: docRef.id });
-    console.log("SUCCESS: Firestore transaction created!", docRef.id);
+    console.log("✅ SUCCESS: Firestore transaction created at transactions/" + txId);
   } catch (e) {
-    console.error("Firestore addDoc transaction error:", e);
+    console.error("❌ Firestore setDoc transaction error:", e);
   }
 
   return txData;
