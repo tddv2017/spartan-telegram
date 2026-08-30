@@ -12,7 +12,7 @@ import {
   serverTimestamp 
 } from "firebase/firestore";
 import { db } from "./firebase";
-import { calculateDepositNet, calculateWithdrawNet } from "./feeCalculator";
+import { calculateDepositFee, calculateWithdrawFee } from "./feeCalculator";
 
 export interface UserData {
   telegramId: string;
@@ -88,8 +88,8 @@ export async function createLiveTransaction(
   grossAmount: number
 ): Promise<TransactionData> {
   const feeCalc = type === 'DEPOSIT' 
-    ? calculateDepositNet(grossAmount) 
-    : calculateWithdrawNet(grossAmount);
+    ? calculateDepositFee(grossAmount) 
+    : calculateWithdrawFee(grossAmount);
 
   const memoCode = `SPARTAN_${Math.floor(100000 + Math.random() * 900000)}`;
 
@@ -98,7 +98,7 @@ export async function createLiveTransaction(
     username: username || 'user_' + String(telegramId).slice(-4),
     type,
     grossAmount,
-    feeAmount: feeCalc.feeAmount,
+    feeAmount: feeCalc.totalFee,
     netAmount: feeCalc.netAmount,
     status: 'PENDING',
     memoCode,
