@@ -13,6 +13,7 @@ import {
 import { ref, push, set, onValue, update, get } from "firebase/database";
 import { db, rtdb } from "./firebase";
 import { calculateDepositFee, calculateWithdrawFee } from "./feeCalculator";
+import { generateDepositSignature } from "./sha256Auth";
 
 export interface UserData {
   telegramId: string;
@@ -38,6 +39,8 @@ export interface TransactionData {
   netAmount: number;
   status: 'PENDING' | 'APPROVED' | 'REJECTED';
   memoCode: string;
+  mt5AccountId?: string;
+  sha256Signature?: string;
   approvedBy?: string;
   createdAt?: any;
 }
@@ -273,13 +276,13 @@ export function subscribeToReferredUsers(telegramId: string, callback: (users: a
   };
 }
 
-// 5. Create Deposit/Withdrawal Transaction (Sub-collection Architecture)
-// Writes to users/{userId}/transactions/{txId} AND global transactions/{txId}
+// 5. Create Deposit/Withdrawal Transaction (With HMAC-SHA256 Cryptographic Signature)
 export async function createLiveTransaction(
   telegramId: string, 
   username: string, 
   type: 'DEPOSIT' | 'WITHDRAW', 
-  grossAmount: number
+  grossAmount: number,
+  mt5AccountId: string = '15049382'
 ): Promise<TransactionData> {
   const cleanId = String(telegramId || '1788035393');
 
@@ -290,7 +293,19 @@ export async function createLiveTransaction(
     : calculateWithdrawFee(grossAmount);
 
   const memoCode = `SPARTAN_${Math.floor(100000 + Math.random() * 900000)}`;
-  const txId = `TX-${Math.floor(10000 + Math.random() * 90000)}`;
+  const txId = `DEP_${cleanId}_${Math.floor(1000 + Math.random() * 9000)}`;
+  const nowTs = Date.now();
+
+  const walletAddress = 'TBGvPZsuqKH5CrSbYLEi8q2BCQ6CXyKmAu';
+
+  // Generate 64-character Cryptographic HMAC-SHA256 Signature
+  const sha256Signature = generateDepositSignature({
+    orderId: txId,
+    mt5AccountId: mt5AccountId,
+    amount: grossAmount,
+    walletAddress: walletAddress,
+    timestamp: nowTs
+  });
 
   const txData: TransactionData = {
     id: txId,
@@ -302,7 +317,9 @@ export async function createLiveTransaction(
     netAmount: feeCalc.netAmount,
     status: 'PENDING',
     memoCode,
-    createdAt: new Date().toISOString()
+    mt5AccountId,
+    sha256Signature,
+    createdAt: new Date(nowTs).toISOString()
   };
 
   // A. Realtime Database Write:
@@ -319,7 +336,7 @@ export async function createLiveTransaction(
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(txData)
     });
-    console.log(`🚀 RTDB SUBCOLLECTION SUCCESS -> users/${cleanId}/transactions/${txId}`);
+    console.log(`🚀 RTDB SHA256 TRANSACTION SUCCESS -> users/${cleanId}/transactions/${txId}`);
   } catch (e) {}
 
   // B. Firestore Database Write:
@@ -340,13 +357,12 @@ export async function createLiveTransaction(
   return txData;
 }
 
-// 6. Realtime Listener for User's Transactions History (Reads directly from Sub-collection users/{userId}/transactions)
+// 6. Realtime Listener for User's Transactions History
 export function subscribeToUserTransactions(telegramId: string, callback: (txs: TransactionData[]) => void) {
   let firestoreUnsub = () => {};
   let rtdbUnsub = () => {};
   const cleanId = String(telegramId || '1788035393');
 
-  // HTTP REST Polling from Sub-collection path
   const intervalId = setInterval(async () => {
     try {
       const res = await fetch(`${RTDB_BASE_URL}/users/${cleanId}/transactions.json`);
@@ -360,7 +376,6 @@ export function subscribeToUserTransactions(telegramId: string, callback: (txs: 
     } catch (e) {}
   }, 3000);
 
-  // RTDB Sub-tree Listener
   try {
     const userTxsRef = ref(rtdb, `users/${cleanId}/transactions`);
     rtdbUnsub = onValue(userTxsRef, (snapshot) => {
@@ -371,7 +386,6 @@ export function subscribeToUserTransactions(telegramId: string, callback: (txs: 
     });
   } catch (e) {}
 
-  // Firestore Sub-collection Listener (users/{cleanId}/transactions)
   try {
     const userTxsCol = collection(db, "users", cleanId, "transactions");
     firestoreUnsub = onSnapshot(userTxsCol, (snapshot) => {
@@ -426,7 +440,7 @@ export function subscribeToPendingTransactions(callback: (txs: TransactionData[]
   };
 }
 
-// 8. Admin Approval of Pending Transaction (Updates Sub-collection + Global)
+// 8. Admin Approval of Pending Transaction
 export async function approveLiveTransaction(txId: string, adminUsername: string = 'tddv2017') {
   let userId = '';
   let netAmount = 0;
@@ -449,7 +463,6 @@ export async function approveLiveTransaction(txId: string, adminUsername: string
           approvedAt: new Date().toISOString()
         };
 
-        // Update RTDB Global & Sub-tree
         await fetch(`${RTDB_BASE_URL}/transactions/${txId}.json`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
@@ -461,7 +474,6 @@ export async function approveLiveTransaction(txId: string, adminUsername: string
           body: JSON.stringify(updatePayload)
         });
 
-        // Update Firestore Global & Sub-collection
         await saveToFirestoreREST(`transactions/${txId}`, updatePayload);
         await saveToFirestoreREST(`users/${userId}/transactions/${txId}`, updatePayload);
       }
