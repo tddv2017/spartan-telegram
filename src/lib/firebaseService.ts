@@ -276,7 +276,7 @@ export function subscribeToReferredUsers(telegramId: string, callback: (users: a
   };
 }
 
-// 5. Create Deposit/Withdrawal Transaction (Flexible HMAC-SHA256 Signature Engine)
+// 5. Create Deposit/Withdrawal Transaction (With Available Balance Verification)
 export async function createLiveTransaction(
   telegramId: string, 
   username: string, 
@@ -287,18 +287,47 @@ export async function createLiveTransaction(
 
   await forceSyncUserProfile(cleanId, username);
 
+  // If Withdrawal, verify available balance minus pending withdrawals
+  if (type === 'WITHDRAW') {
+    let currentBal = 0;
+    let pendingWithdrawTotal = 0;
+
+    try {
+      const uRes = await fetch(`${RTDB_BASE_URL}/users/${cleanId}.json`);
+      if (uRes.ok) {
+        const uData = await uRes.json();
+        if (uData && typeof uData.tradingBalance === 'number') currentBal = uData.tradingBalance;
+      }
+
+      const txRes = await fetch(`${RTDB_BASE_URL}/users/${cleanId}/transactions.json`);
+      if (txRes.ok) {
+        const txData = await txRes.json();
+        if (txData) {
+          const list = Object.values(txData) as TransactionData[];
+          pendingWithdrawTotal = list
+            .filter(t => t.type === 'WITHDRAW' && t.status === 'PENDING')
+            .reduce((acc, t) => acc + t.grossAmount, 0);
+        }
+      }
+    } catch (e) {}
+
+    const availableBal = Math.max(0, currentBal - pendingWithdrawTotal);
+    if (grossAmount > availableBal) {
+      throw new Error(`INSUFFICIENT_AVAILABLE_FUNDS: Số dư khả dụng không đủ. Số dư: $${currentBal.toFixed(2)}, Đang chờ rút: $${pendingWithdrawTotal.toFixed(2)}.`);
+    }
+  }
+
   const feeCalc = type === 'DEPOSIT' 
     ? calculateDepositFee(grossAmount) 
     : calculateWithdrawFee(grossAmount);
 
   const memoCode = `SPARTAN_${Math.floor(100000 + Math.random() * 900000)}`;
-  const txId = `DEP_${cleanId}_${Math.floor(1000 + Math.random() * 9000)}`;
+  const txId = `${type === 'DEPOSIT' ? 'DEP' : 'WDR'}_${cleanId}_${Math.floor(1000 + Math.random() * 9000)}`;
   const nowTs = Date.now();
 
   const masterWallet = 'TBGvPZsuqKH5CrSbYLEi8q2BCQ6CXyKmAu';
 
   // Generate Flexible 64-character Cryptographic HMAC-SHA256 Signature
-  // Formula: OrderID|MasterWalletAddress|Timestamp (Allows flexible deposit amount on-chain)
   const sha256Signature = generateDepositSignature({
     orderId: txId,
     masterWalletAddress: masterWallet,
@@ -321,8 +350,6 @@ export async function createLiveTransaction(
   };
 
   // A. Realtime Database Write:
-  // 1. Sub-tree: users/{userId}/transactions/{txId}
-  // 2. Global tree: transactions/{txId}
   try {
     await fetch(`${RTDB_BASE_URL}/users/${cleanId}/transactions/${txId}.json`, {
       method: "PUT",
@@ -334,12 +361,9 @@ export async function createLiveTransaction(
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(txData)
     });
-    console.log(`🚀 RTDB FLEXIBLE SHA256 TRANSACTION SUCCESS -> users/${cleanId}/transactions/${txId}`);
   } catch (e) {}
 
   // B. Firestore Database Write:
-  // 1. Sub-collection: users/{userId}/transactions/{txId}
-  // 2. Global collection: transactions/{txId}
   await saveToFirestoreREST(`users/${cleanId}/transactions/${txId}`, txData);
   await saveToFirestoreREST(`transactions/${txId}`, txData);
 
@@ -438,8 +462,8 @@ export function subscribeToPendingTransactions(callback: (txs: TransactionData[]
   };
 }
 
-// 8. Admin Approval of Pending Transaction
-export async function approveLiveTransaction(txId: string, adminUsername: string = 'tddv2017') {
+// 8. Admin Approval with ATOMIC BALANCE SAFEGUARD (Blocks Duplicate Over-Withdrawals)
+export async function approveLiveTransaction(txId: string, adminUsername: string = 'tddv2017'): Promise<{ success: boolean; message: string }> {
   let userId = '';
   let netAmount = 0;
   let grossAmount = 0;
@@ -450,11 +474,56 @@ export async function approveLiveTransaction(txId: string, adminUsername: string
     if (res.ok) {
       const tx = await res.json();
       if (tx) {
+        if (tx.status === 'APPROVED') {
+          return { success: false, message: 'Lệnh này đã được phê duyệt trước đó!' };
+        }
+        if (tx.status === 'REJECTED') {
+          return { success: false, message: 'Lệnh này đã bị từ chối trước đó!' };
+        }
+
         userId = tx.userId;
         netAmount = tx.netAmount;
         grossAmount = tx.grossAmount;
         type = tx.type;
 
+        // ATOMIC BALANCE CHECK BEFORE APPROVING WITHDRAWAL
+        if (type === 'WITHDRAW' && userId) {
+          const userRes = await fetch(`${RTDB_BASE_URL}/users/${userId}.json`);
+          if (userRes.ok) {
+            const user = await userRes.json();
+            const currentBal = user?.tradingBalance || 0;
+
+            // If balance is less than withdrawal amount, AUTO-REJECT duplicate request!
+            if (currentBal < grossAmount) {
+              const rejectPayload = {
+                status: 'REJECTED',
+                approvedBy: 'SYSTEM_AUTO_REJECT_INSUFFICIENT_FUNDS',
+                rejectedAt: new Date().toISOString()
+              };
+
+              await fetch(`${RTDB_BASE_URL}/transactions/${txId}.json`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(rejectPayload)
+              });
+              await fetch(`${RTDB_BASE_URL}/users/${userId}/transactions/${txId}.json`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(rejectPayload)
+              });
+
+              await saveToFirestoreREST(`transactions/${txId}`, rejectPayload);
+              await saveToFirestoreREST(`users/${userId}/transactions/${txId}`, rejectPayload);
+
+              return {
+                success: false,
+                message: `⛔ TỪ CHỐI TỰ ĐỘNG: Số dư tài khoản ($${currentBal.toFixed(2)}) không đủ để duyệt lệnh rút $${grossAmount.toFixed(2)} thứ 2 này! Lệnh đã tự động chuyển sang TỪ CHỐI.`
+              };
+            }
+          }
+        }
+
+        // Execute Approval
         const updatePayload = {
           status: 'APPROVED',
           approvedBy: adminUsername,
@@ -500,4 +569,6 @@ export async function approveLiveTransaction(txId: string, adminUsername: string
       }
     } catch (e) {}
   }
+
+  return { success: true, message: 'Phê duyệt giao dịch thành công!' };
 }

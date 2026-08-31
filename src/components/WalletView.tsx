@@ -7,7 +7,7 @@ import {
   subscribeToUserTransactions, 
   TransactionData 
 } from '@/lib/firebaseService';
-import { ArrowDownLeft, ArrowUpRight, Copy, CheckCircle2, QrCode, History, DollarSign, ArrowDown, ArrowUp, Loader2, AlertCircle, Zap, ShieldCheck } from 'lucide-react';
+import { ArrowDownLeft, ArrowUpRight, Copy, CheckCircle2, QrCode, History, DollarSign, ArrowDown, ArrowUp, Loader2, AlertCircle, Zap, ShieldCheck, Lock } from 'lucide-react';
 
 interface WalletViewProps {
   currentBalance: number;
@@ -63,6 +63,13 @@ export const WalletView: React.FC<WalletViewProps> = ({
   const totalWithdrawnNet = approvedWithdrawals.reduce((acc, t) => acc + t.netAmount, 0);
   const withdrawCount = approvedWithdrawals.length;
 
+  // Calculate Pending Withdrawals to Lock Available Balance (Anti-Double-Withdrawal Safeguard)
+  const pendingWithdrawalTotal = allTransactions
+    .filter(t => t.type === 'WITHDRAW' && t.status === 'PENDING')
+    .reduce((acc, t) => acc + t.grossAmount, 0);
+
+  const availableForWithdraw = Math.max(0, currentBalance - pendingWithdrawalTotal);
+
   const numAmount = parseFloat(amount) || 0;
   const depositBreakdown = calculateDepositFee(numAmount);
   const withdrawBreakdown = calculateWithdrawFee(numAmount);
@@ -84,6 +91,7 @@ export const WalletView: React.FC<WalletViewProps> = ({
   };
 
   const handleDepositConfirm = async () => {
+    if (loading) return; // Immediate Debounce Lock
     setErrorMessage(null);
     if (numAmount <= 0) {
       setErrorMessage('Số tiền nạp phải lớn hơn $0.00 USD!');
@@ -110,25 +118,33 @@ export const WalletView: React.FC<WalletViewProps> = ({
   };
 
   const handleWithdrawConfirm = async () => {
+    if (loading) return; // Immediate Debounce Lock
     setErrorMessage(null);
 
+    // Safeguard 1: Block zero or negative input
     if (numAmount <= 0) {
       setErrorMessage('Số tiền rút phải lớn hơn $0.00 USD!');
       return;
     }
 
+    // Safeguard 2: Block negative net output (When fees exceed withdrawal amount)
     if (withdrawBreakdown.netAmount <= 0) {
       setErrorMessage(`⛔ KHÔNG THỂ RÚT: Số tiền rút ($${numAmount.toFixed(2)}) nhỏ hơn tổng phí giao dịch ($${withdrawBreakdown.totalFee.toFixed(2)} USD). Vui lòng nhập số tiền lớn hơn!`);
       return;
     }
 
-    if (numAmount > currentBalance) {
-      setErrorMessage(`⛔ KHÔNG THỂ RÚT: Số tiền rút ($${numAmount.toFixed(2)}) vượt quá số dư khả dụng hiện có ($${currentBalance.toFixed(2)} USD)!`);
+    // Safeguard 3: Lock-in Pending Withdrawals to Block Double-Clicks & Over-Withdrawals
+    if (numAmount > availableForWithdraw) {
+      if (pendingWithdrawalTotal > 0) {
+        setErrorMessage(`⛔ BỊ KHÓA LỆNH: Bạn đang có $${pendingWithdrawalTotal.toFixed(2)} USD lệnh rút CHỜ DUYỆT. Số dư khả dụng rút còn lại là $${availableForWithdraw.toFixed(2)} USD!`);
+      } else {
+        setErrorMessage(`⛔ KHÔNG THỂ RÚT: Số tiền rút ($${numAmount.toFixed(2)}) vượt quá số dư khả dụng hiện có ($${currentBalance.toFixed(2)} USD)!`);
+      }
       return;
     }
 
     if (!withdrawAddress.trim()) {
-      setErrorMessage('Vui lòng nhập địa chỉ ví nhận USDT (TRC20/BEP20)!');
+      setErrorMessage('Vui lòng nhập địa chỉ ví nhận USDT (TRC20)!');
       return;
     }
 
@@ -142,9 +158,13 @@ export const WalletView: React.FC<WalletViewProps> = ({
 
       setNotification(`Đã gửi yêu cầu Rút $${withdrawBreakdown.netAmount.toFixed(2)} USDT Net về ví ${withdrawAddress.slice(0, 8)}...! Đang chờ duyệt.`);
       setTimeout(() => setNotification(null), 6000);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Withdraw error:', err);
-      setNotification(`Đã ghi nhận yêu cầu rút $${withdrawBreakdown.netAmount.toFixed(2)} USDT! Đang chờ duyệt.`);
+      if (err.message && err.message.includes('INSUFFICIENT_AVAILABLE_FUNDS')) {
+        setErrorMessage(`⛔ BỊ KHÓA LỆNH: Bạn đang có lệnh rút chờ duyệt. Số dư khả dụng không đủ!`);
+      } else {
+        setNotification(`Đã ghi nhận yêu cầu rút $${withdrawBreakdown.netAmount.toFixed(2)} USDT! Đang chờ duyệt.`);
+      }
       setTimeout(() => setNotification(null), 5000);
     } finally {
       setLoading(false);
@@ -169,6 +189,17 @@ export const WalletView: React.FC<WalletViewProps> = ({
         <div className="text-3xl font-black text-white truncate">
           ${currentBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <span className="text-xs text-gray-400 font-bold">USDT</span>
         </div>
+
+        {/* Available Withdrawal Lock Banner */}
+        {pendingWithdrawalTotal > 0 && (
+          <div className="mt-3 p-2 bg-amber-500/10 border border-amber-500/30 rounded-xl flex items-center justify-between text-[11px] font-bold text-amber-400">
+            <span className="flex items-center gap-1">
+              <Lock className="w-3.5 h-3.5 flex-shrink-0" />
+              Đang tạm khóa do có lệnh rút chờ duyệt:
+            </span>
+            <span className="font-mono font-black text-amber-300">-${pendingWithdrawalTotal.toFixed(2)} USD</span>
+          </div>
+        )}
       </div>
 
       {/* Dynamic Total Deposited (Net) & Total Withdrawn (Net) Summary Banner */}
@@ -402,9 +433,17 @@ export const WalletView: React.FC<WalletViewProps> = ({
         /* Withdraw Mode */
         <div className="spartan-card rounded-3xl p-5 border border-[#1f293d] space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-xs font-black text-white uppercase tracking-wider">RÚT TIỀN USDT (SAFEGUARD ACTIVE)</h3>
+            <h3 className="text-xs font-black text-white uppercase tracking-wider">RÚT TIỀN USDT (DOUBLE-WITHDRAW LOCK ACTIVE)</h3>
             <span className="text-[10px] font-bold text-[#ff2d55] bg-[#ff2d55]/10 px-2.5 py-0.5 rounded-full border border-[#ff2d55]/20">
               Phí: 9% + $5.00 USD
+            </span>
+          </div>
+
+          {/* Available Balance Status */}
+          <div className="bg-[#0b0e17] p-3 rounded-2xl border border-[#1f293d] flex items-center justify-between text-xs font-bold">
+            <span className="text-gray-400">Khả Dụng Rút Tiền:</span>
+            <span className="text-[#00df89] font-mono text-sm font-black">
+              ${availableForWithdraw.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USDT
             </span>
           </div>
 
@@ -423,10 +462,10 @@ export const WalletView: React.FC<WalletViewProps> = ({
                 placeholder="1000"
               />
               <button
-                onClick={() => setAmount(currentBalance.toString())}
+                onClick={() => setAmount(availableForWithdraw.toString())}
                 className="absolute right-3 top-2.5 px-2.5 py-1 bg-[#ff2d55]/20 text-[#ff2d55] rounded-lg text-xs font-black border border-[#ff2d55]/30"
               >
-                MAX
+                MAX KHẢ DỤNG
               </button>
             </div>
           </div>
@@ -477,16 +516,18 @@ export const WalletView: React.FC<WalletViewProps> = ({
 
           <button
             onClick={handleWithdrawConfirm}
-            disabled={loading || withdrawBreakdown.netAmount <= 0}
+            disabled={loading || withdrawBreakdown.netAmount <= 0 || numAmount > availableForWithdraw}
             className={`w-full py-3.5 rounded-2xl font-black text-sm uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${
-              withdrawBreakdown.netAmount <= 0
+              loading || withdrawBreakdown.netAmount <= 0 || numAmount > availableForWithdraw
                 ? 'bg-gray-700 text-gray-400 cursor-not-allowed border border-gray-600'
                 : 'bg-[#ff2d55] text-white shadow-[0_4px_14px_rgba(255,45,85,0.4)] hover:opacity-95'
             }`}
           >
             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
             <span>
-              {withdrawBreakdown.netAmount <= 0
+              {numAmount > availableForWithdraw
+                ? 'KHÓA NẠP/RÚT (SỐ DƯ KHẢ DỤNG KHÔNG ĐỦ)'
+                : withdrawBreakdown.netAmount <= 0
                 ? 'KHÔNG THỂ RÚT (SỐ TIỀN ÂM)'
                 : `Xác Nhận Rút (${withdrawBreakdown.netAmount.toFixed(2)} Net)`}
             </span>
@@ -533,7 +574,13 @@ export const WalletView: React.FC<WalletViewProps> = ({
                       <span className="font-extrabold text-white">
                         {tx.type === 'DEPOSIT' ? 'NẠP TIỀN' : 'RÚT TIỀN'}
                       </span>
-                      <span className="text-[9px] text-[#facc15] font-mono bg-[#facc15]/10 px-1 py-0.5 rounded border border-[#facc15]/20">
+                      <span className={`text-[9px] font-mono px-1 py-0.5 rounded border ${
+                        tx.status === 'APPROVED' 
+                          ? 'text-[#00df89] bg-[#00df89]/10 border-[#00df89]/20' 
+                          : tx.status === 'PENDING' 
+                          ? 'text-[#facc15] bg-[#facc15]/10 border-[#facc15]/20' 
+                          : 'text-[#ff2d55] bg-[#ff2d55]/10 border-[#ff2d55]/20'
+                      }`}>
                         {tx.status === 'APPROVED' ? 'ĐÃ DUYỆT' : tx.status === 'PENDING' ? 'CHỜ DUYỆT' : 'TỪ CHỐI'}
                       </span>
                     </div>
