@@ -7,7 +7,7 @@ import {
   subscribeToUserTransactions, 
   TransactionData 
 } from '@/lib/firebaseService';
-import { ArrowDownLeft, ArrowUpRight, Copy, CheckCircle2, QrCode, History, DollarSign, ArrowDown, ArrowUp, Loader2, AlertCircle, Zap, ShieldCheck, Lock } from 'lucide-react';
+import { ArrowDownLeft, ArrowUpRight, Copy, CheckCircle2, QrCode, History, DollarSign, ArrowDown, ArrowUp, Loader2, AlertCircle, Zap, ShieldCheck, Lock, Clock } from 'lucide-react';
 
 interface WalletViewProps {
   currentBalance: number;
@@ -19,7 +19,7 @@ interface WalletViewProps {
 export const WalletView: React.FC<WalletViewProps> = ({
   currentBalance,
   onUpdateBalance,
-  telegramId = '1788035393',
+  telegramId = '494232782',
   username = 'tddv2017',
 }) => {
   const [mode, setMode] = useState<'deposit' | 'withdraw'>('deposit');
@@ -51,7 +51,12 @@ export const WalletView: React.FC<WalletViewProps> = ({
     combinedTxsMap.set(key, tx);
   });
 
-  const allTransactions = Array.from(combinedTxsMap.values());
+  // Sort Chronologically: Newest Transactions On Top (Mới nhất nằm ở trên)
+  const allTransactions = Array.from(combinedTxsMap.values()).sort((a, b) => {
+    const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+    const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+    return timeB - timeA;
+  });
 
   // Dynamic Total Deposited & Withdrawn calculated purely from real transactions
   const approvedDeposits = allTransactions.filter(t => t.type === 'DEPOSIT' && t.status === 'APPROVED');
@@ -127,7 +132,7 @@ export const WalletView: React.FC<WalletViewProps> = ({
       return;
     }
 
-    // Safeguard 2: Block negative net output (When fees exceed withdrawal amount)
+    // Safeguard 2: Block negative net output
     if (withdrawBreakdown.netAmount <= 0) {
       setErrorMessage(`⛔ KHÔNG THỂ RÚT: Số tiền rút ($${numAmount.toFixed(2)}) nhỏ hơn tổng phí giao dịch ($${withdrawBreakdown.totalFee.toFixed(2)} USD). Vui lòng nhập số tiền lớn hơn!`);
       return;
@@ -171,6 +176,22 @@ export const WalletView: React.FC<WalletViewProps> = ({
     }
   };
 
+  const formatTxTime = (isoString?: string) => {
+    if (!isoString) return 'Mới đây';
+    try {
+      const date = new Date(isoString);
+      return date.toLocaleString('vi-VN', {
+        day: '2-digit',
+        month: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+      });
+    } catch (e) {
+      return 'Mới đây';
+    }
+  };
+
   // QR Code URL based on selected mode
   const pureQrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${walletAddress}`;
   const embeddedQrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${walletAddress}?memo=${activeMemo}`;
@@ -204,7 +225,7 @@ export const WalletView: React.FC<WalletViewProps> = ({
 
       {/* Dynamic Total Deposited (Net) & Total Withdrawn (Net) Summary Banner */}
       <div className="grid grid-cols-2 gap-3">
-        {/* Total Deposited (Net - Đã trừ phí) */}
+        {/* Total Deposited */}
         <div className="spartan-card rounded-2xl p-4 border border-[#1f293d] flex items-center justify-between transition-all">
           <div>
             <span className="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider block mb-0.5">
@@ -220,7 +241,7 @@ export const WalletView: React.FC<WalletViewProps> = ({
           </div>
         </div>
 
-        {/* Total Withdrawn (Net - Thực nhận) */}
+        {/* Total Withdrawn */}
         <div className="spartan-card rounded-2xl p-4 border border-[#1f293d] flex items-center justify-between transition-all">
           <div>
             <span className="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider block mb-0.5">
@@ -535,11 +556,11 @@ export const WalletView: React.FC<WalletViewProps> = ({
         </div>
       )}
 
-      {/* LỊCH SỬ NẠP VÀ RÚT (Live Firebase Realtime Transactions) */}
+      {/* LỊCH SỬ NẠP VÀ RÚT (MỚI NHẤT TRÊN CÙNG - CHRONOLOGICAL REVERSE ORDER) */}
       <div className="spartan-card rounded-3xl p-4 border border-[#1f293d] space-y-3 shadow-lg">
         <div className="flex items-center justify-between border-b border-[#1f293d] pb-2.5">
           <h3 className="text-xs font-black text-white uppercase tracking-wider flex items-center gap-1.5">
-            <History className="w-4 h-4 text-[#ff5500]" /> LỊCH SỬ GIAO DỊCH
+            <History className="w-4 h-4 text-[#ff5500]" /> LỊCH SỬ GIAO DỊCH (MỚI NHẤT XẾP TRÊN CÙNG)
           </h3>
           <span className="text-[10px] text-gray-400 font-bold">{allTransactions.length} Giao Dịch</span>
         </div>
@@ -574,7 +595,7 @@ export const WalletView: React.FC<WalletViewProps> = ({
                       <span className="font-extrabold text-white">
                         {tx.type === 'DEPOSIT' ? 'NẠP TIỀN' : 'RÚT TIỀN'}
                       </span>
-                      <span className={`text-[9px] font-mono px-1 py-0.5 rounded border ${
+                      <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded border font-black ${
                         tx.status === 'APPROVED' 
                           ? 'text-[#00df89] bg-[#00df89]/10 border-[#00df89]/20' 
                           : tx.status === 'PENDING' 
@@ -584,9 +605,14 @@ export const WalletView: React.FC<WalletViewProps> = ({
                         {tx.status === 'APPROVED' ? 'ĐÃ DUYỆT' : tx.status === 'PENDING' ? 'CHỜ DUYỆT' : 'TỪ CHỐI'}
                       </span>
                     </div>
-                    <span className="text-[10px] text-gray-500 font-mono block mt-0.5">
-                      Memo: {tx.memoCode}
-                    </span>
+                    <div className="flex items-center gap-2 text-[10px] text-gray-500 font-mono mt-0.5">
+                      <span>Memo: {tx.memoCode}</span>
+                      <span>•</span>
+                      <span className="flex items-center gap-0.5 text-gray-400">
+                        <Clock className="w-3 h-3 text-gray-500" />
+                        {formatTxTime(tx.createdAt)}
+                      </span>
+                    </div>
                   </div>
                 </div>
 
