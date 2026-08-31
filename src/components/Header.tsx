@@ -49,13 +49,15 @@ interface HeaderProps {
   username?: string;
   isAdmin?: boolean;
   resellerTier?: number;
+  tradingBalance?: number;
 }
 
 export const Header: React.FC<HeaderProps> = ({ 
   onClose,
   username = 'tddv2017',
   isAdmin = true,
-  resellerTier = 1
+  resellerTier = 1,
+  tradingBalance = 0
 }) => {
   const rank = getUserRankInfo(isAdmin, username, resellerTier);
 
