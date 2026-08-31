@@ -206,7 +206,7 @@ export default function Home() {
       {/* Bottom Navigation Toolbar */}
       <BottomNav 
         activeTab={activeTab} 
-        onTabChange={handleTabChange} 
+        onChangeTab={handleTabChange} 
         isAdmin={isAdmin}
       />
     </main>
