@@ -159,9 +159,7 @@ export default function Home() {
           />
 
           <BotStatusCard 
-            isActive={isBotActive} 
-            onStart={handleStart} 
-            onStop={handleStop} 
+            isActive={isBotActive}
           />
 
           <EquityChart />
