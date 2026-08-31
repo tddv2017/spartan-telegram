@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { BarChart3, TrendingUp, ShieldAlert, Award, Percent, DollarSign, ArrowUpRight, ArrowDownRight } from 'lucide-react';
+import { TradeHistoryCard } from './TradeHistoryCard';
 
 export const AnalyticsView: React.FC = () => {
   return (
@@ -59,44 +60,36 @@ export const AnalyticsView: React.FC = () => {
           <div className="bg-[#0b0e17] rounded-xl p-3 border border-[#1f293d] hover:border-gray-700 transition-colors">
             <div className="flex justify-between items-center text-[10px] text-gray-400 font-bold mb-1">
               <span>MAX DRAWDOWN</span>
-              <ShieldAlert className="w-3.5 h-3.5 text-[#ff2d55]" />
+              <ShieldAlert className="w-3.5 h-3.5 text-amber-400" />
             </div>
-            <div className="text-xl font-black text-[#ff2d55]">$37,350.94</div>
-            <span className="text-[9px] text-red-400 font-bold block mt-0.5">An toàn 96.2%</span>
+            <div className="text-xl font-black text-amber-400">1.2%</div>
+            <span className="text-[9px] text-amber-400 font-bold block mt-0.5">Cực kỳ an toàn</span>
           </div>
         </div>
 
-        {/* Detailed Breakdown Grid */}
-        <div className="grid grid-cols-2 gap-2.5 pt-1">
-          <div className="bg-[#0b0e17] rounded-xl p-2.5 border border-[#1f293d]">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold text-gray-400">TB Thắng:</span>
-              <span className="text-xs font-black text-[#00df89]">+$9,950.14</span>
-            </div>
+        {/* Breakdown Stats */}
+        <div className="space-y-1.5 pt-1 text-[11px]">
+          <div className="flex justify-between p-2 rounded-lg bg-[#0b0e17] border border-[#1f293d]">
+            <span className="text-gray-400">Tổng Lãi (Gross Profit):</span>
+            <span className="font-mono font-bold text-[#00df89]">+$757.10</span>
           </div>
-
-          <div className="bg-[#0b0e17] rounded-xl p-2.5 border border-[#1f293d]">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold text-gray-400">TB Thua:</span>
-              <span className="text-xs font-black text-[#ff2d55]">-$4,230.94</span>
-            </div>
+          <div className="flex justify-between p-2 rounded-lg bg-[#0b0e17] border border-[#1f293d]">
+            <span className="text-gray-400">Tổng Lỗ (Gross Loss):</span>
+            <span className="font-mono font-bold text-[#ff2d55]">-$90.95</span>
           </div>
-
-          <div className="bg-[#0b0e17] rounded-xl p-2.5 border border-[#1f293d]">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold text-gray-400">Kỳ Vọng:</span>
-              <span className="text-xs font-black text-[#00df89]">+$6,830.30</span>
-            </div>
+          <div className="flex justify-between p-2 rounded-lg bg-[#0b0e17] border border-[#1f293d]">
+            <span className="text-gray-400">Lệnh Thắng Trung Bình:</span>
+            <span className="font-mono font-bold text-[#00df89]">+$19.41</span>
           </div>
-
-          <div className="bg-[#0b0e17] rounded-xl p-2.5 border border-[#1f293d]">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold text-gray-400">Lãi Ròng:</span>
-              <span className="text-xs font-black text-[#00df89]">+$666.15</span>
-            </div>
+          <div className="flex justify-between p-2 rounded-lg bg-[#0b0e17] border border-[#1f293d]">
+            <span className="text-gray-400">Lệnh Thua Trung Bình:</span>
+            <span className="font-mono font-bold text-[#ff2d55]">-$8.27</span>
           </div>
         </div>
       </div>
+
+      {/* LỊCH SỬ GIAO DỊCH TRADING (TRADE HISTORY CARD) */}
+      <TradeHistoryCard />
     </div>
   );
 };

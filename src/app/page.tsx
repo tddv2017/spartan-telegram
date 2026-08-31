@@ -11,7 +11,6 @@ import { BottomNav, TabType } from '@/components/BottomNav';
 import { WalletView } from '@/components/WalletView';
 import { AnalyticsView } from '@/components/AnalyticsView';
 import { ProfileView } from '@/components/ProfileView';
-import { TradeHistoryCard } from '@/components/TradeHistoryCard';
 import { AdminPanel } from '@/components/AdminPanel';
 import { checkIsAdmin } from '@/lib/adminAuth';
 import { forceSyncUserProfile, subscribeToUser, UserData } from '@/lib/firebaseService';
@@ -165,8 +164,6 @@ export default function Home() {
           <EquityChart />
 
           <QuantStrategyCard />
-
-          <TradeHistoryCard />
         </div>
       )}
 
