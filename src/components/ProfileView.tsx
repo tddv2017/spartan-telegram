@@ -11,6 +11,7 @@ interface ProfileViewProps {
   username?: string;
   referralBalance?: number;
   resellerTier?: number;
+  tradingBalance?: number;
 }
 
 export const ProfileView: React.FC<ProfileViewProps> = ({
@@ -18,6 +19,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
   username = 'tddv2017',
   referralBalance = 0.00,
   resellerTier = 1,
+  tradingBalance = 0.00,
 }) => {
   const [copied, setCopied] = useState(false);
   const [referredUsers, setReferredUsers] = useState<any[]>([]);
