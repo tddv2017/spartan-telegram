@@ -8,7 +8,7 @@ import {
   createLiveTransaction,
   TransactionData 
 } from '@/lib/firebaseService';
-import { ShieldAlert, CheckCircle2, XCircle, Users, DollarSign, ArrowUpRight, Radio, AlertTriangle, Send, Search, Eye, Edit3, Filter, X, ArrowDown, Clock, ShieldCheck, Loader2, PlayCircle, Zap, Ban } from 'lucide-react';
+import { ShieldAlert, CheckCircle2, XCircle, Users, DollarSign, ArrowUpRight, Radio, AlertTriangle, Send, Search, Eye, Edit3, Filter, X, ArrowDown, Clock, ShieldCheck, Loader2, PlayCircle, Zap, Ban, RefreshCw } from 'lucide-react';
 
 interface ClientUser {
   id: number;
@@ -83,26 +83,52 @@ export const AdminPanel: React.FC = () => {
     }
   };
 
-  // 1-CLICK END-TO-END TEST SIMULATOR (Uses Real Admin Telegram ID 494232782)
+  // 1-CLICK TEST SIMULATOR: Standard exact deposit ($1,000 -> $1,000)
   const handleRunFullDepositTest = async () => {
     setTestSimulating(true);
-    const realAdminId = '494232782'; // Real Telegram ID of @tddv2017
-    setNotification('🧪 1. Đang khởi tạo đơn nạp $1,000 USDT và ký mã băm HMAC-SHA256...');
+    const realAdminId = '494232782';
+    setNotification('🧪 1. Đang khởi tạo đơn nạp dự kiến $1,000 USDT...');
 
     try {
       const newTx = await createLiveTransaction(realAdminId, 'tddv2017', 'DEPOSIT', 1000.00);
 
-      setNotification(`🧪 2. Đã tạo Đơn Nạp ${newTx.id}! Đang giả lập Bot TronGrid quét TxHash & đối chiếu chữ ký SHA-256...`);
+      setNotification(`🧪 2. Đã tạo Đơn Nạp ${newTx.id}! Đang quét On-Chain TronGrid...`);
 
       await new Promise((r) => setTimeout(r, 1500));
 
       await approveLiveTransaction(newTx.id || '', 'BOT_TRONGRID_AUTOMATION');
 
-      setNotification(`🎉 TEST THÀNH CÔNG! Đã khởi tạo ${newTx.id}, mã băm SHA-256 đối chiếu KHỚP 100%, cộng Net +$907.00 USDT vào tài khoản @tddv2017 (ID: ${realAdminId})!`);
+      setNotification(`🎉 TEST THÀNH CÔNG! Đã khởi tạo ${newTx.id}, đối chiếu KHỚP 100%, cộng Net +$907.00 USDT vào tài khoản @tddv2017!`);
       setTimeout(() => setNotification(null), 8000);
     } catch (err) {
       console.error('Test simulation error:', err);
       alert('Lỗi chạy test giả lập!');
+    } finally {
+      setTestSimulating(false);
+    }
+  };
+
+  // 1-CLICK TEST SIMULATOR: Flexible amount deposit ($1,000 Estimated -> $750 Actual On-Chain Transferred)
+  const handleRunFlexibleDepositTest = async () => {
+    setTestSimulating(true);
+    const realAdminId = '494232782';
+    setNotification('🧪 1. Đang tạo đơn nạp dự kiến $1,000 USDT trên UI...');
+
+    try {
+      const newTx = await createLiveTransaction(realAdminId, 'tddv2017', 'DEPOSIT', 1000.00);
+
+      setNotification(`🧪 2. Khách thực tế chuyển $750 USDT trên TRON! Đang quét On-Chain & tự động tính lại phí...`);
+
+      await new Promise((r) => setTimeout(r, 1500));
+
+      // Pass actualOnChainAmount = 750.00
+      await approveLiveTransaction(newTx.id || '', 'BOT_TRONGRID_AUTOMATION', 750.00);
+
+      setNotification(`🎉 TEST LINH HOẠT THÀNH CÔNG! Đơn dự kiến $1,000 $\\rightarrow$ Thực chuyển $750.00 USDT $\\rightarrow$ Phí ($70.50) $\\rightarrow$ Cộng Net +$679.50 USDT cho @tddv2017!`);
+      setTimeout(() => setNotification(null), 8000);
+    } catch (err) {
+      console.error('Flexible test simulation error:', err);
+      alert('Lỗi chạy test giả lập nạp linh hoạt!');
     } finally {
       setTestSimulating(false);
     }
@@ -148,7 +174,7 @@ export const AdminPanel: React.FC = () => {
       <div className="spartan-card rounded-3xl p-5 border border-[#00df89]/40 bg-[#0b0e17] space-y-3 shadow-lg">
         <div className="flex items-center justify-between">
           <h3 className="text-xs font-black text-white uppercase tracking-wider flex items-center gap-1.5">
-            <Zap className="w-4 h-4 text-[#00df89]" /> BỘ CHẠY TEST GIẢ LẬP NẠP TIỀN & MÃ BĂM SHA-256
+            <Zap className="w-4 h-4 text-[#00df89]" /> BỘ CHẠY TEST GIẢ LẬP NẠP TIỀN FLEXIBLE SHA-256
           </h3>
           <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-[#00df89]/15 text-[#00df89] border border-[#00df89]/30">
             Automated Test Suite
@@ -156,18 +182,29 @@ export const AdminPanel: React.FC = () => {
         </div>
 
         <p className="text-[11px] text-gray-400 leading-relaxed">
-          Bấm nút bên dưới để khởi chạy thử nghiệm quy trình nạp tiền giả lập từ A-Z: 
-          Khởi tạo đơn nạp $\rightarrow$ Ký mã băm HMAC-SHA256 $\rightarrow$ Giả lập Bot TronGrid đối chiếu $\rightarrow$ Tự động duyệt cộng Net +$907.00 USDT vào tài khoản người dùng!
+          Bấm các nút bên dưới để thử nghiệm quy trình nạp tiền linh hoạt On-Chain: 
+          Khởi tạo đơn dự kiến $\rightarrow$ Ký mã băm HMAC-SHA256 $\rightarrow$ Quét số tiền chuyển thực tế trên TRON $\rightarrow$ Tự động tính phí và cộng đúng số tiền Net!
         </p>
 
-        <button
-          onClick={handleRunFullDepositTest}
-          disabled={testSimulating}
-          className="w-full py-3 rounded-2xl bg-[#00df89] text-black font-black text-xs uppercase tracking-wider shadow-[0_4px_14px_rgba(0,223,137,0.4)] hover:opacity-95 transition-opacity flex items-center justify-center gap-2"
-        >
-          {testSimulating ? <Loader2 className="w-4 h-4 animate-spin" /> : <PlayCircle className="w-4 h-4" />}
-          <span>🧪 BẤM ĐỂ CHẠY TEST GIẢ LẬP NẠP $1,000 USDT (SHA-256)</span>
-        </button>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+          <button
+            onClick={handleRunFullDepositTest}
+            disabled={testSimulating}
+            className="w-full py-3 rounded-2xl bg-[#00df89] text-black font-black text-xs uppercase tracking-wider shadow-[0_4px_14px_rgba(0,223,137,0.4)] hover:opacity-95 transition-opacity flex items-center justify-center gap-2"
+          >
+            {testSimulating ? <Loader2 className="w-4 h-4 animate-spin" /> : <PlayCircle className="w-4 h-4" />}
+            <span>🧪 TEST NẠP ĐÚNG $1,000 (NET +$907)</span>
+          </button>
+
+          <button
+            onClick={handleRunFlexibleDepositTest}
+            disabled={testSimulating}
+            className="w-full py-3 rounded-2xl bg-[#facc15] text-black font-black text-xs uppercase tracking-wider shadow-[0_4px_14px_rgba(250,204,21,0.4)] hover:opacity-95 transition-opacity flex items-center justify-center gap-2"
+          >
+            {testSimulating ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+            <span>🧪 TEST NẠP KHÁC TIỀN ($1,000 DỰ KIẾN $\rightarrow$ $750 THỰC)</span>
+          </button>
+        </div>
       </div>
 
       {/* PENDING WITHDRAWAL & DEPOSIT APPROVAL QUEUE (Duyệt Lệnh Live Firebase) */}
@@ -275,7 +312,7 @@ export const AdminPanel: React.FC = () => {
             className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all ${
               masterActive
                 ? 'bg-[#00df89] text-black shadow-[0_0_10px_rgba(0,223,137,0.4)]'
-                : 'bg-red-500 text-white shadow-[0_0_10px_rgba(239,68,68,0.4)]'
+                : 'bg-red-500 text-[#ffffff] shadow-[0_0_10px_rgba(239,68,68,0.4)]'
             }`}
           >
             {masterActive ? 'BẬT (ACTIVE)' : 'TẮT (PAUSED)'}

@@ -43,6 +43,8 @@ export interface TransactionData {
   sha256Signature?: string;
   approvedBy?: string;
   rejectionReason?: string;
+  actualOnChainAmount?: number;
+  adjustedOnChain?: boolean;
   createdAt?: any;
 }
 
@@ -383,7 +385,6 @@ export function subscribeToUserTransactions(telegramId: string, callback: (txs: 
 
   const intervalId = setInterval(async () => {
     try {
-      // Fetch sub-tree transactions
       const res = await fetch(`${RTDB_BASE_URL}/users/${cleanId}/transactions.json`);
       let list1: TransactionData[] = [];
       if (res.ok) {
@@ -391,7 +392,6 @@ export function subscribeToUserTransactions(telegramId: string, callback: (txs: 
         if (data) list1 = Object.values(data) as TransactionData[];
       }
 
-      // Fetch global transactions fallback
       const gRes = await fetch(`${RTDB_BASE_URL}/transactions.json`);
       let list2: TransactionData[] = [];
       if (gRes.ok) {
@@ -401,7 +401,6 @@ export function subscribeToUserTransactions(telegramId: string, callback: (txs: 
         }
       }
 
-      // Combine and deduplicate
       const map = new Map<string, TransactionData>();
       [...list2, ...list1].forEach(t => {
         if (t && (t.id || t.memoCode)) {
@@ -478,11 +477,16 @@ export function subscribeToPendingTransactions(callback: (txs: TransactionData[]
   };
 }
 
-// 8. Admin Approval with ATOMIC BALANCE SAFEGUARD
-export async function approveLiveTransaction(txId: string, adminUsername: string = 'tddv2017'): Promise<{ success: boolean; message: string }> {
+// 8. Admin Approval with FLEXIBLE ON-CHAIN AMOUNT ENGINE
+export async function approveLiveTransaction(
+  txId: string, 
+  adminUsername: string = 'tddv2017',
+  actualOnChainAmount?: number
+): Promise<{ success: boolean; message: string }> {
   let userId = '';
   let netAmount = 0;
   let grossAmount = 0;
+  let feeAmount = 0;
   let type = 'DEPOSIT';
 
   try {
@@ -498,9 +502,19 @@ export async function approveLiveTransaction(txId: string, adminUsername: string
         }
 
         userId = tx.userId;
-        netAmount = tx.netAmount;
-        grossAmount = tx.grossAmount;
         type = tx.type;
+
+        // If actualOnChainAmount is provided (e.g., user transferred a different amount on TRON), recalculate fees!
+        if (type === 'DEPOSIT' && typeof actualOnChainAmount === 'number' && actualOnChainAmount > 0) {
+          const feeCalc = calculateDepositFee(actualOnChainAmount);
+          grossAmount = actualOnChainAmount;
+          feeAmount = feeCalc.totalFee;
+          netAmount = feeCalc.netAmount;
+        } else {
+          grossAmount = tx.grossAmount;
+          feeAmount = tx.feeAmount;
+          netAmount = tx.netAmount;
+        }
 
         if (type === 'WITHDRAW' && userId) {
           const userRes = await fetch(`${RTDB_BASE_URL}/users/${userId}.json`);
@@ -540,6 +554,11 @@ export async function approveLiveTransaction(txId: string, adminUsername: string
 
         const updatePayload = {
           ...tx,
+          grossAmount,
+          feeAmount,
+          netAmount,
+          actualOnChainAmount: actualOnChainAmount || grossAmount,
+          adjustedOnChain: typeof actualOnChainAmount === 'number' && actualOnChainAmount !== tx.grossAmount,
           status: 'APPROVED',
           approvedBy: adminUsername,
           approvedAt: new Date().toISOString()
@@ -588,7 +607,7 @@ export async function approveLiveTransaction(txId: string, adminUsername: string
   return { success: true, message: 'Phê duyệt giao dịch thành công!' };
 }
 
-// 9. Admin Rejection of Pending Transaction (Full Transaction Payload Preservation)
+// 9. Admin Rejection of Pending Transaction
 export async function rejectLiveTransaction(
   txId: string, 
   adminUsername: string = 'tddv2017', 
@@ -615,14 +634,12 @@ export async function rejectLiveTransaction(
           rejectedAt: new Date().toISOString()
         };
 
-        // Write complete rejected transaction object to global transactions tree
         await fetch(`${RTDB_BASE_URL}/transactions/${txId}.json`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(rejectPayload)
         });
 
-        // Write complete rejected transaction object to user sub-tree
         if (userId) {
           await fetch(`${RTDB_BASE_URL}/users/${userId}/transactions/${txId}.json`, {
             method: "PUT",
@@ -633,8 +650,6 @@ export async function rejectLiveTransaction(
         }
 
         await saveToFirestoreREST(`transactions/${txId}`, rejectPayload);
-        console.log(`🚀 REJECT TRANSACTION SUCCESS -> users/${userId}/transactions/${txId}`);
-
         return { success: true, message: `Đã TỪ CHỐI thành công lệnh ${tx.type} ${tx.id}!` };
       }
     }
