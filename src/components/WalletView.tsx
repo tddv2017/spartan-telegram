@@ -7,7 +7,7 @@ import {
   subscribeToUserTransactions, 
   TransactionData 
 } from '@/lib/firebaseService';
-import { ArrowDownLeft, ArrowUpRight, Copy, CheckCircle2, QrCode, History, DollarSign, ArrowDown, ArrowUp, Loader2, AlertCircle, Zap, ShieldCheck, Lock, Clock, RefreshCw } from 'lucide-react';
+import { ArrowDownLeft, ArrowUpRight, Copy, CheckCircle2, QrCode, History, DollarSign, ArrowDown, ArrowUp, Loader2, AlertCircle, Zap, ShieldCheck, Lock, Clock, RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface WalletViewProps {
   currentBalance: number;
@@ -34,6 +34,8 @@ export const WalletView: React.FC<WalletViewProps> = ({
   const [activeDepositTx, setActiveDepositTx] = useState<TransactionData | null>(null);
   const [firestoreTxs, setFirestoreTxs] = useState<TransactionData[]>([]);
   const [localTxs, setLocalTxs] = useState<TransactionData[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 5;
 
   // Firestore & RTDB Realtime Listener for User Transactions
   useEffect(() => {
@@ -57,6 +59,11 @@ export const WalletView: React.FC<WalletViewProps> = ({
     const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
     return timeB - timeA;
   });
+
+  // Pagination Math (5 Items Per Page)
+  const totalPages = Math.max(1, Math.ceil(allTransactions.length / ITEMS_PER_PAGE));
+  const validPage = Math.min(currentPage, totalPages);
+  const paginatedTxs = allTransactions.slice((validPage - 1) * ITEMS_PER_PAGE, validPage * ITEMS_PER_PAGE);
 
   // Dynamic Total Deposited & Withdrawn calculated purely from real transactions
   const approvedDeposits = allTransactions.filter(t => t.type === 'DEPOSIT' && t.status === 'APPROVED');
@@ -110,6 +117,7 @@ export const WalletView: React.FC<WalletViewProps> = ({
 
       setActiveDepositTx(newTx);
       setLocalTxs((prev) => [newTx, ...prev]);
+      setCurrentPage(1); // Jump to page 1 to see newly created transaction
 
       setNotification(`🎉 ĐÃ KHỞI TẠO ĐƠN NẠP $${numAmount.toFixed(2)} USDT! Mã Memo: ${newTx.memoCode}. Hãy chuyển tiền theo QR Code ở dưới!`);
       setTimeout(() => setNotification(null), 8000);
@@ -156,6 +164,7 @@ export const WalletView: React.FC<WalletViewProps> = ({
       const newTx = await createLiveTransaction(telegramId, username, 'WITHDRAW', numAmount);
 
       setLocalTxs((prev) => [newTx, ...prev]);
+      setCurrentPage(1); // Jump to page 1 to see newly created transaction
 
       setNotification(`Đã gửi yêu cầu Rút $${withdrawBreakdown.netAmount.toFixed(2)} USDT Net về ví ${withdrawAddress.slice(0, 8)}...! Đang chờ duyệt.`);
       setTimeout(() => setNotification(null), 6000);
@@ -575,22 +584,24 @@ export const WalletView: React.FC<WalletViewProps> = ({
         </div>
       )}
 
-      {/* LỊCH SỬ NẠP VÀ RÚT (MỚI NHẤT TRÊN CÙNG) */}
+      {/* LỊCH SƯ GIAO DỊCH NẠP & RÚT (PHÂN TRANG 5 LỆNH/TRANG) */}
       <div className="spartan-card rounded-3xl p-4 border border-[#1f293d] space-y-3 shadow-lg">
         <div className="flex items-center justify-between border-b border-[#1f293d] pb-2.5">
           <h3 className="text-xs font-black text-white uppercase tracking-wider flex items-center gap-1.5">
-            <History className="w-4 h-4 text-[#ff5500]" /> LỊCH SỬ GIAO DỊCH (MỚI NHẤT XẾP TRÊN CÙNG)
+            <History className="w-4 h-4 text-[#ff5500]" /> LỊCH SỬ NẠP / RÚT TIỀN (FIREBASE REALTIME)
           </h3>
-          <span className="text-[10px] text-gray-400 font-bold">{allTransactions.length} Giao Dịch</span>
+          <span className="text-[10px] text-gray-400 font-bold">
+            Tổng {allTransactions.length} Giao Dịch
+          </span>
         </div>
 
         <div className="space-y-2">
-          {allTransactions.length === 0 ? (
+          {paginatedTxs.length === 0 ? (
             <div className="text-center py-6 text-xs font-bold text-gray-500">
               Chưa có giao dịch nào trên Firebase
             </div>
           ) : (
-            allTransactions.map((tx) => (
+            paginatedTxs.map((tx) => (
               <div
                 key={tx.id || tx.memoCode}
                 className="flex items-center justify-between p-3 rounded-xl bg-[#0b0e17] border border-[#1f293d] hover:border-gray-700 transition-colors text-xs animate-in fade-in slide-in-from-top-2 duration-300"
@@ -651,6 +662,41 @@ export const WalletView: React.FC<WalletViewProps> = ({
             ))
           )}
         </div>
+
+        {/* PAGINATION CONTROLS BAR (Hiển thị 5 lệnh / trang) */}
+        {allTransactions.length > ITEMS_PER_PAGE && (
+          <div className="flex items-center justify-between border-t border-[#1f293d] pt-3 text-xs font-bold">
+            <button
+              onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+              disabled={validPage === 1}
+              className={`px-3 py-1.5 rounded-xl border flex items-center gap-1 transition-all ${
+                validPage === 1
+                  ? 'border-gray-800 text-gray-600 bg-gray-900/50 cursor-not-allowed'
+                  : 'border-[#1f293d] bg-[#131927] text-white hover:bg-[#1f293d]'
+              }`}
+            >
+              <ChevronLeft className="w-4 h-4" />
+              <span>Trang Trước</span>
+            </button>
+
+            <span className="text-gray-400 font-mono text-[11px]">
+              Trang <strong className="text-white">{validPage}</strong> / {totalPages}
+            </span>
+
+            <button
+              onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+              disabled={validPage >= totalPages}
+              className={`px-3 py-1.5 rounded-xl border flex items-center gap-1 transition-all ${
+                validPage >= totalPages
+                  ? 'border-gray-800 text-gray-600 bg-gray-900/50 cursor-not-allowed'
+                  : 'border-[#1f293d] bg-[#131927] text-white hover:bg-[#1f293d]'
+              }`}
+            >
+              <span>Trang Sau</span>
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
