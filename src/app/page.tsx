@@ -133,7 +133,12 @@ export default function Home() {
   return (
     <main className="flex-1 flex flex-col pb-20">
       {/* Clean App Header */}
-      <Header onClose={() => alert('Telegram Mini App Closed')} />
+      <Header 
+        username={currentTelegramUser}
+        isAdmin={isAdmin}
+        tradingBalance={tradingBalance}
+        onClose={() => alert('Telegram Mini App Closed')} 
+      />
 
       {/* Sync Diagnostic Status Toast */}
       {syncStatus && (
@@ -190,6 +195,7 @@ export default function Home() {
             telegramId={currentTelegramId}
             username={currentTelegramUser}
             referralBalance={referralsIncome}
+            tradingBalance={tradingBalance}
           />
         </div>
       )}

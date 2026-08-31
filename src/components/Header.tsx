@@ -1,13 +1,80 @@
 'use client';
 
 import React from 'react';
-import { Crown, Activity, MoreHorizontal } from 'lucide-react';
+import { Crown, Activity, MoreHorizontal, ShieldCheck, Swords, Zap, Award } from 'lucide-react';
+
+export interface UserRankInfo {
+  rankName: string;
+  badgeStyle: string;
+  icon: string;
+}
+
+export function getUserRankInfo(
+  isAdmin: boolean = false,
+  username: string = '',
+  tradingBalance: number = 0
+): UserRankInfo {
+  const cleanHandle = username.replace('@', '').toLowerCase();
+
+  // 1. SUPREME LEADER (Admin or Top Account $5,000+)
+  if (isAdmin || cleanHandle === 'tddv2017' || cleanHandle === 'spartan_9824029' || tradingBalance >= 5000) {
+    return {
+      rankName: 'SUPREME LEADER',
+      badgeStyle: 'bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-[0_0_10px_rgba(245,158,11,0.3)]',
+      icon: '👑'
+    };
+  }
+
+  // 2. ELITE WARRIOR ($2,500+ balance)
+  if (tradingBalance >= 2500) {
+    return {
+      rankName: 'ELITE WARRIOR',
+      badgeStyle: 'bg-purple-500/20 text-purple-300 border border-purple-500/40 shadow-[0_0_10px_rgba(168,85,247,0.3)]',
+      icon: '⚔️'
+    };
+  }
+
+  // 3. SPARTAN COMMANDER ($1,000+ balance)
+  if (tradingBalance >= 1000) {
+    return {
+      rankName: 'SPARTAN COMMANDER',
+      badgeStyle: 'bg-blue-500/20 text-blue-300 border border-blue-500/40 shadow-[0_0_10px_rgba(59,130,246,0.3)]',
+      icon: '🛡️'
+    };
+  }
+
+  // 4. VANGUARD TITAN ($500+ balance)
+  if (tradingBalance >= 500) {
+    return {
+      rankName: 'VANGUARD TITAN',
+      badgeStyle: 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-[0_0_10px_rgba(16,185,129,0.3)]',
+      icon: '⚡'
+    };
+  }
+
+  // 5. SPARTAN RECRUIT (Base tier < $500)
+  return {
+    rankName: 'SPARTAN RECRUIT',
+    badgeStyle: 'bg-gray-800 text-gray-300 border border-gray-700',
+    icon: '🔰'
+  };
+}
 
 interface HeaderProps {
   onClose?: () => void;
+  username?: string;
+  isAdmin?: boolean;
+  tradingBalance?: number;
 }
 
-export const Header: React.FC<HeaderProps> = ({ onClose }) => {
+export const Header: React.FC<HeaderProps> = ({ 
+  onClose,
+  username = 'tddv2017',
+  isAdmin = true,
+  tradingBalance = 0
+}) => {
+  const rank = getUserRankInfo(isAdmin, username, tradingBalance);
+
   return (
     <header className="w-full bg-[#0b0e17] sticky top-0 z-50 pt-2 pb-3 px-4 border-b border-[#1f293d]">
       {/* Top Telegram Header Bar */}
@@ -27,10 +94,10 @@ export const Header: React.FC<HeaderProps> = ({ onClose }) => {
         </button>
       </div>
 
-      {/* Brand Header & Supreme Leader Badge */}
+      {/* Brand Header & Dynamic Leader Level Badge */}
       <div className="flex items-center justify-between pt-1">
         <div className="flex items-center gap-3">
-          {/* Prominent Clean Spartan High-Tech Helmet Logo Avatar (w-12 h-12 / 48px) */}
+          {/* Prominent Spartan High-Tech Helmet Logo Avatar */}
           <div className="w-12 h-12 rounded-2xl overflow-hidden border border-[#ff5500]/60 shadow-[0_4px_16px_rgba(255,85,0,0.5)] bg-[#0b0e17] relative flex-shrink-0 transition-transform hover:scale-105">
             <img
               src="/assets/spartan_logo_clean.jpg"
@@ -40,13 +107,16 @@ export const Header: React.FC<HeaderProps> = ({ onClose }) => {
           </div>
           <div>
             <div className="flex items-center gap-1.5">
-              <span className="text-base font-black text-white tracking-tight">
+              <span className="text-base font-black text-white tracking-tight uppercase">
                 SPARTAN
               </span>
               <span className="text-[10px] font-extrabold text-gray-400 tracking-wider">TRADING SYSTEM</span>
             </div>
-            <span className="inline-flex items-center gap-1 text-[9px] font-bold px-2.5 py-0.5 rounded-full spartan-gold-badge uppercase tracking-wider mt-1">
-              <Crown className="w-2.5 h-2.5 text-[#fbbf24]" /> SUPREME LEADER
+
+            {/* DYNAMIC LEADER LEVEL BADGE (👑 SUPREME LEADER / ⚔️ ELITE WARRIOR / etc.) */}
+            <span className={`inline-flex items-center gap-1 text-[9px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider mt-1 ${rank.badgeStyle}`}>
+              <span>{rank.icon}</span>
+              <span>{rank.rankName}</span>
             </span>
           </div>
         </div>
