@@ -44,18 +44,18 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // 10-LEVEL RESELLER SYSTEM SPECIFICATION (CẤP 1 LÀ THẤP NHẤT -> CẤP 10 LÀ CAO NHẤT MASTER 20%)
+  // 10-LEVEL RESELLER SYSTEM SPECIFICATION (LEVEL 1 BASE TO LEVEL 10 MASTER 20%)
   const resellerLevelsList = [
-    { level: 10, title: 'LEVEL 10 (CẤP 10)', share: '20% HOA HỒNG PHÍ', req: 'Đại lý Master Tối Cao ($100kU)', badge: 'bg-[#ff5500]/20 text-[#ff5500] border-[#ff5500]/40' },
-    { level: 9, title: 'LEVEL 9 (CẤP 9)', share: '18% HOA HỒNG PHÍ', req: 'Doanh số $75,000U', badge: 'bg-amber-500/20 text-amber-300 border-amber-500/40' },
-    { level: 8, title: 'LEVEL 8 (CẤP 8)', share: '16% HOA HỒNG PHÍ', req: 'Doanh số $50,000U', badge: 'bg-purple-500/20 text-purple-300 border-purple-500/40' },
-    { level: 7, title: 'LEVEL 7 (CẤP 7)', share: '14% HOA HỒNG PHÍ', req: 'Doanh số $35,000U', badge: 'bg-blue-500/20 text-blue-300 border-blue-500/40' },
-    { level: 6, title: 'LEVEL 6 (CẤP 6)', share: '12% HOA HỒNG PHÍ', req: 'Doanh số $20,000U', badge: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' },
-    { level: 5, title: 'LEVEL 5 (CẤP 5)', share: '10% HOA HỒNG PHÍ', req: 'Doanh số $10,000U', badge: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40' },
-    { level: 4, title: 'LEVEL 4 (CẤP 4)', share: '8% HOA HỒNG PHÍ', req: 'Doanh số $5,000U', badge: 'bg-teal-500/20 text-teal-300 border-teal-500/40' },
-    { level: 3, title: 'LEVEL 3 (CẤP 3)', share: '6% HOA HỒNG PHÍ', req: 'Tuyển 10 F1 hoặc $2,500U', badge: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40' },
-    { level: 2, title: 'LEVEL 2 (CẤP 2)', share: '4% HOA HỒNG PHÍ', req: 'Tuyển 5 F1 hoặc $1,000U', badge: 'bg-rose-500/20 text-rose-300 border-rose-500/40' },
-    { level: 1, title: 'LEVEL 1 (CẤP 1)', share: '2% HOA HỒNG PHÍ', req: 'Cấp Khởi Đầu (Mới Đăng Ký)', badge: 'bg-gray-800 text-gray-300 border-gray-700' },
+    { level: 10, title: 'LEVEL 10 (TOP MASTER)', share: '20% FEE REBATE', req: 'Master Reseller ($100kU Volume)', badge: 'bg-[#ff5500]/20 text-[#ff5500] border-[#ff5500]/40' },
+    { level: 9, title: 'LEVEL 9', share: '18% FEE REBATE', req: '$75,000U Volume Requirement', badge: 'bg-amber-500/20 text-amber-300 border-amber-500/40' },
+    { level: 8, title: 'LEVEL 8', share: '16% FEE REBATE', req: '$50,000U Volume Requirement', badge: 'bg-purple-500/20 text-purple-300 border-purple-500/40' },
+    { level: 7, title: 'LEVEL 7', share: '14% FEE REBATE', req: '$35,000U Volume Requirement', badge: 'bg-blue-500/20 text-blue-300 border-blue-500/40' },
+    { level: 6, title: 'LEVEL 6', share: '12% FEE REBATE', req: '$20,000U Volume Requirement', badge: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' },
+    { level: 5, title: 'LEVEL 5', share: '10% FEE REBATE', req: '$10,000U Volume Requirement', badge: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40' },
+    { level: 4, title: 'LEVEL 4', share: '8% FEE REBATE', req: '$5,000U Volume Requirement', badge: 'bg-teal-500/20 text-teal-300 border-teal-500/40' },
+    { level: 3, title: 'LEVEL 3', share: '6% FEE REBATE', req: '10 Active F1s or $2,500U Volume', badge: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40' },
+    { level: 2, title: 'LEVEL 2', share: '4% FEE REBATE', req: '5 Active F1s or $1,000U Volume', badge: 'bg-rose-500/20 text-rose-300 border-rose-500/40' },
+    { level: 1, title: 'LEVEL 1 (STARTING)', share: '2% FEE REBATE', req: 'Starting Reseller Tier', badge: 'bg-gray-800 text-gray-300 border-gray-700' },
   ];
 
   return (
@@ -67,10 +67,10 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
             {username.slice(0, 2).toUpperCase() || 'SP'}
           </div>
           <div>
-            <h2 className="text-base font-black text-white tracking-tight">Tài Khoản @{username}</h2>
+            <h2 className="text-base font-black text-white tracking-tight">Account @{username}</h2>
             <p className="text-xs text-gray-400 font-mono">Telegram ID: {telegramId}</p>
 
-            {/* DYNAMIC LEVEL BADGE (👑 SUPREME LEADER for Admin / 🎖️ RESELLER LEVEL 1-10 for Resellers) */}
+            {/* DYNAMIC LEVEL BADGE */}
             <span className={`inline-flex items-center gap-1.5 mt-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${rank.badgeStyle}`}>
               <span>{rank.icon}</span>
               <span>{rank.rankName}</span>
@@ -79,18 +79,18 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
         </div>
       </div>
 
-      {/* 10 RESELLER TIERS SYSTEM SPECIFICATION CARD (COMPACT SCROLLABLE BOX) */}
+      {/* 10 RESELLER TIERS SYSTEM SPECIFICATION CARD */}
       <div className="spartan-card rounded-3xl p-5 border border-[#1f293d] space-y-3 shadow-lg">
         <div className="flex items-center justify-between border-b border-[#1f293d] pb-2.5">
           <h3 className="text-xs font-black text-white uppercase tracking-wider flex items-center gap-1.5">
-            <Trophy className="w-4 h-4 text-[#ff5500]" /> BẢNG 10 CẤP ĐỘ ĐẠI LÝ RESELLER (SYSTEM TIERS)
+            <Trophy className="w-4 h-4 text-[#ff5500]" /> 10-LEVEL RESELLER TIER MATRIX
           </h3>
           <span className="text-[9px] font-black text-[#ff5500] bg-[#ff5500]/10 px-2 py-0.5 rounded-full border border-[#ff5500]/30">
-            {isAdmin ? '👑 SUPREME LEADER' : `Cấp Hiện Tại: LEVEL ${resellerTier}`}
+            {isAdmin ? '👑 SUPREME LEADER' : `Current: LEVEL ${resellerTier}`}
           </span>
         </div>
 
-        {/* COMPACT SCROLLABLE BOX WITH CUSTOM SCROLLBAR */}
+        {/* COMPACT SCROLLABLE BOX */}
         <div className="space-y-2 max-h-56 overflow-y-auto pr-1.5 scrollbar-thin scrollbar-thumb-[#ff5500]/40 scrollbar-track-[#0b0e17]">
           {resellerLevelsList.map((item) => {
             const isCurrent = !isAdmin && resellerTier === item.level;
@@ -112,7 +112,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                       </span>
                       {isCurrent && (
                         <span className="text-[9px] font-black px-1.5 py-0.2 bg-[#ff5500] text-white rounded uppercase">
-                          CẤP HIỆN TẠI
+                          CURRENT TIER
                         </span>
                       )}
                     </div>
@@ -137,29 +137,29 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
           <div className="flex items-center gap-2">
             <Share2 className="w-4 h-4 text-[#ff5500]" />
             <h3 className="text-xs font-black text-white uppercase tracking-wider">
-              CHƯƠNG TRÌNH ĐẠI LÝ (LEGION AFFILIATE)
+              LEGION RESELLER AFFILIATE PROGRAM
             </h3>
           </div>
           <span className="text-[10px] font-extrabold text-[#00df89] bg-[#00df89]/10 px-2.5 py-0.5 rounded-full border border-[#00df89]/20">
-            Hoa Hồng Tới 20%
+            Up to 20% Rebate
           </span>
         </div>
 
         {/* Stats Grid */}
         <div className="grid grid-cols-2 gap-3">
           <div className="bg-[#0b0e17] p-3 rounded-2xl border border-[#1f293d]">
-            <span className="text-[10px] text-gray-400 font-extrabold uppercase block mb-1">TỔNG THU NHẬP ĐẠI LÝ</span>
+            <span className="text-[10px] text-gray-400 font-extrabold uppercase block mb-1">TOTAL RESELLER EARNINGS</span>
             <div className="text-lg font-black text-[#00df89]">
               ${referralBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })} USDT
             </div>
           </div>
 
           <div className="bg-[#0b0e17] p-3 rounded-2xl border border-[#1f293d]">
-            <span className="text-[10px] text-gray-400 font-extrabold uppercase block mb-1">TỔNG KHÁCH TRỰC THUỘC</span>
+            <span className="text-[10px] text-gray-400 font-extrabold uppercase block mb-1">TOTAL DIRECT CLIENTS</span>
             <div className="text-lg font-black text-white flex items-center gap-1">
               <Users className="w-4 h-4 text-[#ff5500]" />
               <span>{referredUsers.length}</span>
-              <span className="text-xs text-gray-500 font-bold">F1</span>
+              <span className="text-xs text-gray-500 font-bold">F1s</span>
             </div>
           </div>
         </div>
@@ -167,7 +167,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
         {/* Exclusive Referral Link Box */}
         <div>
           <label className="text-xs text-gray-400 font-bold block mb-1.5">
-            LINK MỜI ĐẠI LÝ ĐỘC QUYỀN (TELEGRAM BOT LINK)
+            EXCLUSIVE RESELLER LINK (TELEGRAM BOT DEEP LINK)
           </label>
           <div className="flex items-center gap-2 bg-[#0b0e17] border border-[#1f293d] p-2.5 rounded-2xl">
             <span className="text-xs text-[#ff5500] font-mono font-bold truncate flex-1">
@@ -178,7 +178,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
               className="px-3 py-1.5 rounded-xl spartan-orange-btn text-xs font-black flex items-center gap-1 hover:opacity-90 transition-opacity"
             >
               {copied ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-              <span>{copied ? 'Đã chép' : 'Sao chép'}</span>
+              <span>{copied ? 'Copied' : 'Copy Link'}</span>
             </button>
           </div>
         </div>
@@ -188,13 +188,13 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
       <div className="spartan-card rounded-3xl p-5 border border-[#1f293d] space-y-3 shadow-lg">
         <div className="flex items-center justify-between border-b border-[#1f293d] pb-2.5">
           <h3 className="text-xs font-black text-white uppercase tracking-wider flex items-center gap-1.5">
-            <Users className="w-4 h-4 text-[#ff5500]" /> DANH SÁCH KHÁCH HÀNG F1 ({referredUsers.length})
+            <Users className="w-4 h-4 text-[#ff5500]" /> DIRECT F1 CLIENTS ({referredUsers.length})
           </h3>
         </div>
 
         {referredUsers.length === 0 ? (
           <div className="text-center py-6 text-xs text-gray-500 font-bold bg-[#0b0e17] rounded-2xl">
-            Chưa có khách hàng F1 nào tham gia qua link đại lý của bạn.
+            No direct F1 clients referred yet via your link.
           </div>
         ) : (
           <div className="space-y-2">
@@ -215,7 +215,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
 
                 <div className="text-right">
                   <span className="text-[10px] font-bold text-[#00df89] bg-[#00df89]/10 px-2 py-0.5 rounded border border-[#00df89]/20 block">
-                    ĐÃ KẾT NỐI F1
+                    ACTIVE F1
                   </span>
                 </div>
               </div>

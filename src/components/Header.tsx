@@ -26,7 +26,7 @@ export function getUserRankInfo(
     };
   }
 
-  // 2. RESELLER LEVELS 1 TO 10 (Chỉ phân biệt 10 Cấp Đại Lý Reseller)
+  // 2. RESELLER LEVELS 1 TO 10
   if (role === 'RESELLER' || resellerTier > 0) {
     const tierNum = Math.min(10, Math.max(1, resellerTier));
     return {
@@ -36,7 +36,7 @@ export function getUserRankInfo(
     };
   }
 
-  // 3. SPARTAN TRADER (Khách hàng thông thường)
+  // 3. SPARTAN TRADER
   return {
     rankName: 'SPARTAN TRADER',
     badgeStyle: 'bg-[#131927] text-gray-300 border border-[#1f293d]',
@@ -69,7 +69,7 @@ export const Header: React.FC<HeaderProps> = ({
           onClick={onClose} 
           className="text-[#ff5500] font-bold text-xs hover:opacity-80 transition-opacity"
         >
-          Đóng
+          Close
         </button>
         <div className="text-center flex items-center gap-1.5 justify-center">
           <h1 className="font-extrabold text-white text-sm tracking-wide">SPARTAN TRADING SYSTEM</h1>
@@ -99,7 +99,7 @@ export const Header: React.FC<HeaderProps> = ({
               <span className="text-[10px] font-extrabold text-gray-400 tracking-wider">TRADING SYSTEM</span>
             </div>
 
-            {/* DYNAMIC LEVEL BADGE (👑 SUPREME LEADER for Admin, 🎖️ RESELLER LEVEL 1-10 for Resellers) */}
+            {/* DYNAMIC LEVEL BADGE */}
             <span className={`inline-flex items-center gap-1 text-[9px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider mt-1 ${rank.badgeStyle}`}>
               <span>{rank.icon}</span>
               <span>{rank.rankName}</span>
@@ -110,7 +110,7 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Bot Running Status Indicator Pill */}
         <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#ff5500]/10 border border-[#ff5500]/30 text-[#ff5500] text-[11px] font-extrabold shadow-[0_0_10px_rgba(124,58,237,0.15)]">
           <Activity className="w-3.5 h-3.5 text-[#ff5500] animate-pulse" />
-          <span>BOT ĐANG CHẠY</span>
+          <span>BOT ACTIVE</span>
         </div>
       </div>
     </header>

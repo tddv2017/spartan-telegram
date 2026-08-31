@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { LayoutDashboard, Swords, DollarSign, Users, Shield } from 'lucide-react';
+import { Home, Wallet, BarChart2, ShieldAlert, Award } from 'lucide-react';
 
 export type TabType = 'home' | 'wallet' | 'analytics' | 'profile' | 'admin';
 
@@ -14,52 +14,47 @@ interface BottomNavProps {
 export const BottomNav: React.FC<BottomNavProps> = ({
   activeTab,
   onChangeTab,
-  isAdmin = true,
+  isAdmin = false,
 }) => {
-  const tabs = [
-    { id: 'home' as TabType, label: 'CHIẾN TRƯỜNG', icon: Swords, badge: 'LIVE' },
-    { id: 'wallet' as TabType, label: 'ĐẦU TƯ', icon: DollarSign },
-    { id: 'analytics' as TabType, label: 'TỔNG QUAN', icon: LayoutDashboard },
-    { id: 'profile' as TabType, label: 'ĐẠI LÝ', icon: Users },
+  const navItems = [
+    { id: 'home' as TabType, label: 'BATTLEGROUND', icon: Home },
+    { id: 'wallet' as TabType, label: 'INVEST', icon: Wallet },
+    { id: 'analytics' as TabType, label: 'ANALYTICS', icon: BarChart2 },
+    { id: 'profile' as TabType, label: 'RESELLER', icon: Award },
+    ...(isAdmin ? [{ id: 'admin' as TabType, label: 'ADMIN', icon: ShieldAlert }] : []),
   ];
 
-  if (isAdmin) {
-    tabs.push({ id: 'admin' as TabType, label: 'ADMIN', icon: Shield });
-  }
-
   return (
-    <nav className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-[#0b0e17]/95 backdrop-blur-lg border-t border-[#1f293d] px-3 py-2 pb-safe z-50 flex items-center justify-between">
-      {tabs.map((tab) => {
-        const Icon = tab.icon;
-        const isActive = activeTab === tab.id;
+    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-[#0b0e17]/95 backdrop-blur-md border-t border-[#1f293d] max-w-md mx-auto px-2 py-1.5">
+      <div className="flex items-center justify-around">
+        {navItems.map((item) => {
+          const Icon = item.icon;
+          const isActive = activeTab === item.id;
 
-        return (
-          <button
-            key={tab.id}
-            onClick={() => onChangeTab(tab.id)}
-            className={`flex flex-col items-center justify-center py-1 px-2 rounded-xl transition-all duration-200 relative ${
-              isActive ? 'text-white' : 'text-gray-400 hover:text-gray-200'
-            }`}
-          >
-            <div className="flex items-center gap-1">
-              <Icon className={`w-4 h-4 ${isActive ? 'text-[#ff5500]' : 'text-gray-400'}`} />
-              {tab.badge && (
-                <span className="text-[7px] font-black px-1 rounded text-white bg-[#ff2d55]">
-                  {tab.badge}
-                </span>
-              )}
-            </div>
-            <span className={`text-[9px] font-black mt-1 uppercase tracking-tight ${
-              isActive ? 'text-[#ff5500]' : 'text-gray-400'
-            }`}>
-              {tab.label}
-            </span>
-            {isActive && (
-              <span className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-8 h-0.5 bg-[#ff5500] rounded-full" />
-            )}
-          </button>
-        );
-      })}
+          return (
+            <button
+              key={item.id}
+              onClick={() => onChangeTab(item.id)}
+              className={`flex flex-col items-center justify-center py-1 px-3 rounded-2xl transition-all duration-200 ${
+                isActive
+                  ? 'text-[#ff5500] scale-105 font-black'
+                  : 'text-gray-400 hover:text-gray-200'
+              }`}
+            >
+              <div
+                className={`p-1.5 rounded-xl transition-colors ${
+                  isActive ? 'bg-[#ff5500]/15 border border-[#ff5500]/30 shadow-[0_0_12px_rgba(255,85,0,0.3)]' : ''
+                }`}
+              >
+                <Icon className={`w-5 h-5 ${isActive ? 'stroke-[2.5]' : 'stroke-2'}`} />
+              </div>
+              <span className={`text-[9px] mt-0.5 tracking-wider uppercase ${isActive ? 'font-black' : 'font-semibold'}`}>
+                {item.label}
+              </span>
+            </button>
+          );
+        })}
+      </div>
     </nav>
   );
 };
