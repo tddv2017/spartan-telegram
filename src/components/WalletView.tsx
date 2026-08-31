@@ -23,7 +23,6 @@ export const WalletView: React.FC<WalletViewProps> = ({
   username = 'tddv2017',
 }) => {
   const [mode, setMode] = useState<'deposit' | 'withdraw'>('deposit');
-  const [qrMode, setQrMode] = useState<'pure' | 'embedded'>('pure');
   const [amount, setAmount] = useState<string>('1000');
   const [copied, setCopied] = useState(false);
   const [copiedMemo, setCopiedMemo] = useState(false);
@@ -117,9 +116,9 @@ export const WalletView: React.FC<WalletViewProps> = ({
 
       setActiveDepositTx(newTx);
       setLocalTxs((prev) => [newTx, ...prev]);
-      setCurrentPage(1); // Jump to page 1 to see newly created transaction
+      setCurrentPage(1);
 
-      setNotification(`🎉 ĐÃ KHỞI TẠO ĐƠN NẠP $${numAmount.toFixed(2)} USDT! Mã Memo: ${newTx.memoCode}. Hãy chuyển tiền theo QR Code ở dưới!`);
+      setNotification(`🎉 ĐÃ KHỞI TẠO ĐƠN NẠP $${numAmount.toFixed(2)} USDT! Mã Memo: ${newTx.memoCode}. Hãy quét mã QR để chuyển tiền!`);
       setTimeout(() => setNotification(null), 8000);
     } catch (err) {
       console.error('Deposit error:', err);
@@ -164,7 +163,7 @@ export const WalletView: React.FC<WalletViewProps> = ({
       const newTx = await createLiveTransaction(telegramId, username, 'WITHDRAW', numAmount);
 
       setLocalTxs((prev) => [newTx, ...prev]);
-      setCurrentPage(1); // Jump to page 1 to see newly created transaction
+      setCurrentPage(1);
 
       setNotification(`Đã gửi yêu cầu Rút $${withdrawBreakdown.netAmount.toFixed(2)} USDT Net về ví ${withdrawAddress.slice(0, 8)}...! Đang chờ duyệt.`);
       setTimeout(() => setNotification(null), 6000);
@@ -197,10 +196,8 @@ export const WalletView: React.FC<WalletViewProps> = ({
     }
   };
 
-  // QR Code URL based on selected mode
+  // Pure USDT TRC20 Master Wallet Address QR Code
   const pureQrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${walletAddress}`;
-  const embeddedQrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${walletAddress}?memo=${activeMemo}`;
-  const currentQrUrl = qrMode === 'pure' ? pureQrUrl : embeddedQrUrl;
 
   return (
     <div className="w-full space-y-4 pb-20">
@@ -367,7 +364,7 @@ export const WalletView: React.FC<WalletViewProps> = ({
               <span>🚀 BẤM TẠO LỆNH NẠP & XUẤT MÃ QR (Net +${depositBreakdown.netAmount.toFixed(2)})</span>
             </button>
           ) : (
-            /* ON-CHAIN AUTO-APPROVE QR CODE & FIXED MEMO CARD */
+            /* ON-CHAIN AUTO-APPROVE CLEAN QR CODE & FIXED MEMO CARD */
             <div className="bg-[#0b0e17] border border-[#ff5500] rounded-2xl p-4 space-y-3 animate-in fade-in slide-in-from-top-3 duration-500 shadow-[0_0_20px_rgba(255,85,0,0.2)]">
               <div className="flex items-center justify-between border-b border-[#1f293d] pb-2">
                 <div>
@@ -386,39 +383,15 @@ export const WalletView: React.FC<WalletViewProps> = ({
                 </button>
               </div>
 
-              {/* QR Format Selector Toggle */}
-              <div className="grid grid-cols-2 gap-1.5 p-1 bg-[#131927] rounded-xl text-[10px] font-extrabold">
-                <button
-                  onClick={() => setQrMode('pure')}
-                  className={`py-1.5 rounded-lg transition-all ${
-                    qrMode === 'pure' 
-                      ? 'bg-[#ff5500] text-white shadow-sm' 
-                      : 'text-gray-400 hover:text-white'
-                  }`}
-                >
-                  Ví Chuẩn TRC20 (Binance/Trust)
-                </button>
-                <button
-                  onClick={() => setQrMode('embedded')}
-                  className={`py-1.5 rounded-lg transition-all ${
-                    qrMode === 'embedded' 
-                      ? 'bg-[#facc15] text-black shadow-sm' 
-                      : 'text-gray-400 hover:text-white'
-                  }`}
-                >
-                  Ví + Chèn Mã Băm Memo
-                </button>
-              </div>
-
-              {/* QR Image Display */}
-              <div className="flex flex-col items-center justify-center p-3 bg-white rounded-2xl border border-gray-200">
+              {/* Pure USDT TRC20 Wallet QR Image Display */}
+              <div className="flex flex-col items-center justify-center p-4 bg-white rounded-2xl border border-gray-200">
                 <img
-                  src={currentQrUrl}
+                  src={pureQrUrl}
                   alt="USDT TRC20 Master Deposit QR Code"
-                  className="w-40 h-40 object-contain"
+                  className="w-44 h-44 object-contain"
                 />
-                <span className="text-[10px] font-black text-gray-800 mt-1 uppercase tracking-wider">
-                  {qrMode === 'pure' ? 'QR Chứa Địa Chỉ Ví TRC20 Nguyên Bản' : 'QR Chèn Sẵn Mã Băm Memo'}
+                <span className="text-[10px] font-black text-gray-800 mt-2 uppercase tracking-wider">
+                  MÃ QR CHUẨN VÍ MASTER USDT TRC20
                 </span>
               </div>
 
@@ -444,7 +417,7 @@ export const WalletView: React.FC<WalletViewProps> = ({
               {/* Mandatory Fixed Memo Code Box */}
               <div>
                 <label className="text-[10px] text-[#facc15] font-black block mb-1 uppercase tracking-wider flex items-center gap-1">
-                  <ShieldCheck className="w-3.5 h-3.5" /> 2. MÃ MEMO CỐ ĐỊNH (Dán vào phần Ghi Chú)
+                  <ShieldCheck className="w-3.5 h-3.5" /> 2. MÃ MEMO CỐ ĐỊNH (Dán vào phần Ghi Chú khi chuyển)
                 </label>
                 <div className="flex items-center gap-2 bg-[#131927] border border-[#facc15]/60 p-2.5 rounded-xl">
                   <span className="text-sm text-[#facc15] font-mono font-black truncate flex-1 tracking-wider">
@@ -461,7 +434,7 @@ export const WalletView: React.FC<WalletViewProps> = ({
               </div>
 
               <div className="text-[10px] text-gray-400 leading-relaxed bg-[#131927] p-2.5 rounded-xl border border-[#1f293d]">
-                💡 <strong>CƠ CHẾ NẠP LINH HOẠT THỰC TẾ:</strong> Bạn có thể bấm chuyển BẤT KỲ SỐ TIỀN NÀO trên ví crypto (VD: $500, $750, $2,000...). Hệ thống sẽ tự động quét số tiền thực tế chuyển trên Blockchain TRON, tự động tính phí 9% + $3.00 và cộng đúng số tiền Net thực nhận vào ví của bạn!
+                💡 <strong>CƠ CHẾ NẠP LINH HOẠT THỰC TẾ:</strong> Bạn có thể chuyển BẤT KỲ SỐ TIỀN NÀO từ ví crypto (Binance/Trust). Hệ thống sẽ tự động quét số tiền thực tế nhận được trên Blockchain TRON, tự động tính lại phí 9% + $3.00 và cộng số tiền Net vào ví!
               </div>
             </div>
           )}
@@ -584,7 +557,7 @@ export const WalletView: React.FC<WalletViewProps> = ({
         </div>
       )}
 
-      {/* LỊCH SƯ GIAO DỊCH NẠP & RÚT (PHÂN TRANG 5 LỆNH/TRANG) */}
+      {/* LỊCH SỬ GIAO DỊCH NẠP & RÚT (PHÂN TRANG 5 LỆNH/TRANG) */}
       <div className="spartan-card rounded-3xl p-4 border border-[#1f293d] space-y-3 shadow-lg">
         <div className="flex items-center justify-between border-b border-[#1f293d] pb-2.5">
           <h3 className="text-xs font-black text-white uppercase tracking-wider flex items-center gap-1.5">
