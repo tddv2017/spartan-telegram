@@ -7,6 +7,7 @@ import {
   subscribeToUserTransactions, 
   TransactionData 
 } from '@/lib/firebaseService';
+import { TelegramWalletConnectCard } from './TelegramWalletConnectCard';
 import { ArrowDownLeft, ArrowUpRight, Copy, CheckCircle2, QrCode, History, DollarSign, ArrowDown, ArrowUp, Loader2, AlertCircle, Zap, ShieldCheck, Lock, Clock, RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface WalletViewProps {
@@ -127,6 +128,11 @@ export const WalletView: React.FC<WalletViewProps> = ({
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleWeb3DepositSigned = (signedAmt: number) => {
+    setAmount(signedAmt.toString());
+    handleDepositConfirm();
   };
 
   const handleWithdrawConfirm = async () => {
@@ -259,6 +265,9 @@ export const WalletView: React.FC<WalletViewProps> = ({
           </div>
         </div>
       </div>
+
+      {/* TELEGRAM NATIVE WEB3 WALLET CONNECT CARD */}
+      <TelegramWalletConnectCard onDepositSigned={handleWeb3DepositSigned} />
 
       {/* Notification Banner */}
       {notification && (
