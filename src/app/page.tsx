@@ -6,7 +6,6 @@ import { BalanceCard } from '@/components/BalanceCard';
 import { EquityChart } from '@/components/EquityChart';
 import { BotStatusCard } from '@/components/BotStatusCard';
 import { ActionButtons } from '@/components/ActionButtons';
-import { GoldPriceTickerCard } from '@/components/GoldPriceTickerCard';
 import { QuantStrategyCard } from '@/components/QuantStrategyCard';
 import { BottomNav, TabType } from '@/components/BottomNav';
 import { WalletView } from '@/components/WalletView';
@@ -166,8 +165,6 @@ export default function Home() {
           <BotStatusCard 
             isActive={isBotActive}
           />
-
-          <GoldPriceTickerCard />
 
           <EquityChart />
 

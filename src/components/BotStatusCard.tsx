@@ -1,20 +1,30 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { fetchLiveGoldPrice } from '@/lib/goldPriceService';
 
 interface BotStatusCardProps {
   isActive: boolean;
 }
 
 export const BotStatusCard: React.FC<BotStatusCardProps> = ({ isActive }) => {
-  const [goldPrice, setGoldPrice] = useState(2514.24);
+  const [goldPrice, setGoldPrice] = useState<number>(2514.48);
 
-  // Fluctuate gold price slightly to simulate live feed
+  // Fetch real spot gold price every 5s
   useEffect(() => {
-    const interval = setInterval(() => {
-      const delta = (Math.random() - 0.48) * 0.4;
-      setGoldPrice((prev) => parseFloat((prev + delta).toFixed(2)));
-    }, 2500);
+    const updatePrice = async () => {
+      try {
+        const fresh = await fetchLiveGoldPrice();
+        if (fresh && fresh.price) {
+          setGoldPrice(fresh.price);
+        }
+      } catch (e) {
+        // Keep baseline fallback if network restricts
+      }
+    };
+
+    updatePrice();
+    const interval = setInterval(updatePrice, 5000);
     return () => clearInterval(interval);
   }, []);
 
