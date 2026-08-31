@@ -1,50 +1,51 @@
-/**
- * Fee Engine for Telegram Quant Trading Bot
- * Deposit Fee: 9% percentage fee + $3.00 USD fixed fee
- * Withdrawal Fee: 9% percentage fee + $5.00 USD fixed fee
- */
-
 export interface FeeBreakdown {
   grossAmount: number;
   percentageFee: number;
   fixedFee: number;
   totalFee: number;
   netAmount: number;
-  feePercentageEffective: number;
+  effectiveRetainedFee?: number; // 10% effective retained fee allocation
 }
 
-export function calculateDepositFee(amount: number): FeeBreakdown {
-  const validAmount = Math.max(0, amount || 0);
-  const percentageFee = validAmount * 0.09;
-  const fixedFee = validAmount > 0 ? 3.0 : 0.0;
+/**
+ * DEPOSIT FEE CALCULATOR (Mô Hình Phí Nạp)
+ * Formula: 9% percentage fee + $3.00 USD fixed fee
+ */
+export function calculateDepositFee(grossAmount: number): FeeBreakdown {
+  const cleanGross = Math.max(0, grossAmount);
+  const percentageFee = cleanGross * 0.09;
+  const fixedFee = 3.00;
   const totalFee = percentageFee + fixedFee;
-  const netAmount = Math.max(0, validAmount - totalFee);
-  const feePercentageEffective = validAmount > 0 ? (totalFee / validAmount) * 100 : 0;
+  const netAmount = Math.max(0, cleanGross - totalFee);
 
   return {
-    grossAmount: validAmount,
+    grossAmount: cleanGross,
     percentageFee,
     fixedFee,
     totalFee,
-    netAmount,
-    feePercentageEffective,
+    netAmount
   };
 }
 
-export function calculateWithdrawFee(amount: number): FeeBreakdown {
-  const validAmount = Math.max(0, amount || 0);
-  const percentageFee = validAmount * 0.09;
-  const fixedFee = validAmount > 0 ? 5.0 : 0.0;
+/**
+ * WITHDRAWAL FEE CALCULATOR (Mô Hình Phí Rút Chiến Lược Mới)
+ * Formula: 19% percentage fee + $5.00 USD fixed fee
+ * Effective Retained Fee: 10% allocated for Treasury / Operational Reserve
+ */
+export function calculateWithdrawFee(grossAmount: number): FeeBreakdown {
+  const cleanGross = Math.max(0, grossAmount);
+  const percentageFee = cleanGross * 0.19; // 19% strategic withdrawal fee
+  const fixedFee = 5.00;                   // $5.00 USD fixed fee
   const totalFee = percentageFee + fixedFee;
-  const netAmount = Math.max(0, validAmount - totalFee);
-  const feePercentageEffective = validAmount > 0 ? (totalFee / validAmount) * 100 : 0;
+  const netAmount = Math.max(0, cleanGross - totalFee);
+  const effectiveRetainedFee = cleanGross * 0.10; // 10% effective retained fee
 
   return {
-    grossAmount: validAmount,
+    grossAmount: cleanGross,
     percentageFee,
     fixedFee,
     totalFee,
     netAmount,
-    feePercentageEffective,
+    effectiveRetainedFee
   };
 }

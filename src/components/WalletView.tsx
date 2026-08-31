@@ -106,7 +106,6 @@ export const WalletView: React.FC<WalletViewProps> = ({
     setLoading(true);
 
     try {
-      // Create live pending deposit in Firestore / RTDB
       const newTx = await createLiveTransaction(telegramId, username, 'DEPOSIT', numAmount);
 
       setActiveDepositTx(newTx);
@@ -133,7 +132,7 @@ export const WalletView: React.FC<WalletViewProps> = ({
     }
 
     if (withdrawBreakdown.netAmount <= 0) {
-      setErrorMessage(`⛔ KHÔNG THỂ RÚT: Số tiền rút ($${numAmount.toFixed(2)}) nhỏ hơn tổng phí giao dịch ($${withdrawBreakdown.totalFee.toFixed(2)} USD). Vui lòng nhập số tiền lớn hơn!`);
+      setErrorMessage(`⛔ KHÔNG THỂ RÚT: Số tiền rút ($${numAmount.toFixed(2)}) nhỏ hơn tổng phí giao dịch ($${withdrawBreakdown.totalFee.toFixed(2)} USD). Vui lòng nhập số tiền lớn hơn $6.50 USD!`);
       return;
     }
 
@@ -348,7 +347,7 @@ export const WalletView: React.FC<WalletViewProps> = ({
             </div>
           </div>
 
-          {/* CREATE ORDER BUTTON (Shown when no active deposit QR is generated) */}
+          {/* CREATE ORDER BUTTON */}
           {!activeDepositTx ? (
             <button
               onClick={handleDepositConfirm}
@@ -359,7 +358,7 @@ export const WalletView: React.FC<WalletViewProps> = ({
               <span>🚀 BẤM TẠO LỆNH NẠP & XUẤT MÃ QR (Net +${depositBreakdown.netAmount.toFixed(2)})</span>
             </button>
           ) : (
-            /* ON-CHAIN AUTO-APPROVE QR CODE & FIXED MEMO CARD (ONLY SHOWN AFTER CREATING ORDER) */
+            /* ON-CHAIN AUTO-APPROVE QR CODE & FIXED MEMO CARD */
             <div className="bg-[#0b0e17] border border-[#ff5500] rounded-2xl p-4 space-y-3 animate-in fade-in slide-in-from-top-3 duration-500 shadow-[0_0_20px_rgba(255,85,0,0.2)]">
               <div className="flex items-center justify-between border-b border-[#1f293d] pb-2">
                 <div>
@@ -453,18 +452,18 @@ export const WalletView: React.FC<WalletViewProps> = ({
               </div>
 
               <div className="text-[10px] text-gray-400 leading-relaxed bg-[#131927] p-2.5 rounded-xl border border-[#1f293d]">
-                💡 <strong>CƠ CHẾ DUYỆT TỰ ĐỘNG ON-CHAIN:</strong> Khi chuyển USDT TRC20 từ ví của bạn (Trust Wallet, Binance, OKX...), hãy DÁN MÃ MEMO <strong className="text-[#facc15]">{activeMemo}</strong> ở trên vào mục Ghi Chú (Note/Memo). Bot TronGrid sẽ quét giao dịch khớp Mã Memo và tự động duyệt cộng tiền vào ví trong 3 giây!
+                💡 <strong>CƠ CHẾ NẠP LINH HOẠT THỰC TẾ:</strong> Bạn có thể bấm chuyển BẤT KỲ SỐ TIỀN NÀO trên ví crypto (VD: $500, $750, $2,000...). Hệ thống sẽ tự động quét số tiền thực tế chuyển trên Blockchain TRON, tự động tính phí 9% + $3.00 và cộng đúng số tiền Net thực nhận vào ví của bạn!
               </div>
             </div>
           )}
         </div>
       ) : (
-        /* Withdraw Mode */
+        /* Withdraw Mode (Strategic Fee Model 19% + $5.00 USD) */
         <div className="spartan-card rounded-3xl p-5 border border-[#1f293d] space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-xs font-black text-white uppercase tracking-wider">RÚT TIỀN USDT (DOUBLE-WITHDRAW LOCK ACTIVE)</h3>
+            <h3 className="text-xs font-black text-white uppercase tracking-wider">RÚT TIỀN USDT (MÔ HÌNH PHÍ CHIẾN LƯỢC)</h3>
             <span className="text-[10px] font-bold text-[#ff2d55] bg-[#ff2d55]/10 px-2.5 py-0.5 rounded-full border border-[#ff2d55]/20">
-              Phí: 9% + $5.00 USD
+              Phí: 19% + $5.00 USD
             </span>
           </div>
 
@@ -513,20 +512,32 @@ export const WalletView: React.FC<WalletViewProps> = ({
             />
           </div>
 
-          {/* Fee Engine Realtime Breakdown Card */}
+          {/* Fee Engine Realtime Breakdown Card (Strategic 19% + $5.00 Model) */}
           <div className="bg-[#0b0e17] rounded-2xl p-4 border border-[#1f293d] text-xs space-y-2">
             <div className="flex justify-between text-gray-400">
               <span>Tổng Số Tiền Rút (Gross):</span>
               <span className="font-bold text-gray-200">${withdrawBreakdown.grossAmount.toFixed(2)} USDT</span>
             </div>
             <div className="flex justify-between text-gray-400">
-              <span>Phí Phần Trăm (9%):</span>
+              <span>Phí Phần Trăm (19%):</span>
               <span className="font-bold text-[#ff2d55]">-${withdrawBreakdown.percentageFee.toFixed(2)} USDT</span>
             </div>
             <div className="flex justify-between text-gray-400">
               <span>Phí Cố Định ($5.00 USD):</span>
               <span className="font-bold text-[#ff2d55]">-$5.00 USDT</span>
             </div>
+
+            {/* Effective Retained Fee Breakdown (10%) */}
+            <div className="bg-[#131927] p-2.5 rounded-xl border border-[#1f293d] space-y-1 my-1">
+              <div className="flex justify-between text-amber-400 font-bold text-[11px]">
+                <span>Phí Hiệu Quả Giữ Lại (10% Treasury):</span>
+                <span className="font-mono">${withdrawBreakdown.effectiveRetainedFee?.toFixed(2)} USDT</span>
+              </div>
+              <span className="text-[9px] text-gray-500 block leading-tight">
+                (Dùng cho quỹ dự phòng thanh khoản & cơ chế chi trả đối tác)
+              </span>
+            </div>
+
             <div className="border-t border-[#1f293d] pt-2 flex justify-between font-black text-sm text-white">
               <span className="text-[#ff2d55]">Thực Nhận Về Ví (Net):</span>
               <span className={withdrawBreakdown.netAmount <= 0 ? "text-red-500 font-black" : "text-[#ff2d55]"}>
@@ -539,7 +550,7 @@ export const WalletView: React.FC<WalletViewProps> = ({
           {withdrawBreakdown.netAmount <= 0 && (
             <div className="bg-red-500/20 border border-red-500 p-3 rounded-2xl text-xs font-bold text-red-400 flex items-center gap-2">
               <AlertCircle className="w-4 h-4 flex-shrink-0" />
-              <span>⛔ Số tiền thực nhận âm! Vui lòng nhập số tiền lớn hơn $5.50 USD để rút.</span>
+              <span>⛔ Số tiền thực nhận âm! Vui lòng nhập số tiền lớn hơn $6.50 USD để rút.</span>
             </div>
           )}
 
