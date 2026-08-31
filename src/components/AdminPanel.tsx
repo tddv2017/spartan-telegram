@@ -83,13 +83,14 @@ export const AdminPanel: React.FC = () => {
     }
   };
 
-  // 1-CLICK END-TO-END TEST SIMULATOR
+  // 1-CLICK END-TO-END TEST SIMULATOR (Uses Real Admin Telegram ID 494232782)
   const handleRunFullDepositTest = async () => {
     setTestSimulating(true);
+    const realAdminId = '494232782'; // Real Telegram ID of @tddv2017
     setNotification('🧪 1. Đang khởi tạo đơn nạp $1,000 USDT và ký mã băm HMAC-SHA256...');
 
     try {
-      const newTx = await createLiveTransaction('1788035393', 'tddv2017', 'DEPOSIT', 1000.00);
+      const newTx = await createLiveTransaction(realAdminId, 'tddv2017', 'DEPOSIT', 1000.00);
 
       setNotification(`🧪 2. Đã tạo Đơn Nạp ${newTx.id}! Đang giả lập Bot TronGrid quét TxHash & đối chiếu chữ ký SHA-256...`);
 
@@ -97,7 +98,7 @@ export const AdminPanel: React.FC = () => {
 
       await approveLiveTransaction(newTx.id || '', 'BOT_TRONGRID_AUTOMATION');
 
-      setNotification(`🎉 TEST THÀNH CÔNG! Đã khởi tạo ${newTx.id}, mã băm SHA-256 đối chiếu KHỚP 100%, cộng Net +$907.00 USDT vào tài khoản @tddv2017!`);
+      setNotification(`🎉 TEST THÀNH CÔNG! Đã khởi tạo ${newTx.id}, mã băm SHA-256 đối chiếu KHỚP 100%, cộng Net +$907.00 USDT vào tài khoản @tddv2017 (ID: ${realAdminId})!`);
       setTimeout(() => setNotification(null), 8000);
     } catch (err) {
       console.error('Test simulation error:', err);
