@@ -96,9 +96,9 @@ export async function forceSyncUserProfile(
   firstName: string = '',
   referrerId?: string
 ): Promise<{ success: boolean; rtdbPath: string; firestorePath: string }> {
-  const cleanId = String(telegramId || '1788035393');
+  const cleanId = String(telegramId || '494232782');
   const cleanHandle = (username || 'user_' + cleanId.slice(-4)).replace('@', '').toLowerCase();
-  const isAdmin = cleanHandle === 'tddv2017' || cleanHandle === 'spartan_9824029' || cleanId === '1788035393';
+  const isAdmin = cleanHandle === 'tddv2017' || cleanHandle === 'spartan_9824029' || cleanId === '494232782';
 
   const nowIso = new Date().toISOString();
 
@@ -184,7 +184,7 @@ export async function getOrCreateUser(
 ): Promise<UserData> {
   await forceSyncUserProfile(telegramId, username, firstName, referrerId);
 
-  const cleanId = String(telegramId || '1788035393');
+  const cleanId = String(telegramId || '494232782');
   try {
     const res = await fetch(`${RTDB_BASE_URL}/users/${cleanId}.json`);
     if (res.ok) {
@@ -194,7 +194,7 @@ export async function getOrCreateUser(
   } catch (e) {}
 
   const cleanHandle = (username || 'user_' + cleanId.slice(-4)).replace('@', '').toLowerCase();
-  const isAdmin = cleanHandle === 'tddv2017' || cleanHandle === 'spartan_9824029' || cleanId === '1788035393';
+  const isAdmin = cleanHandle === 'tddv2017' || cleanHandle === 'spartan_9824029' || cleanId === '494232782';
 
   return {
     telegramId: cleanId,
@@ -212,7 +212,7 @@ export async function getOrCreateUser(
 export function subscribeToUser(telegramId: string, callback: (user: UserData | null) => void) {
   let firestoreUnsub = () => {};
   let rtdbUnsub = () => {};
-  const cleanId = String(telegramId || '1788035393');
+  const cleanId = String(telegramId || '494232782');
 
   const intervalId = setInterval(async () => {
     try {
@@ -250,7 +250,7 @@ export function subscribeToUser(telegramId: string, callback: (user: UserData | 
 // 4. Listener for Referred Users List
 export function subscribeToReferredUsers(telegramId: string, callback: (users: any[]) => void) {
   let rtdbUnsub = () => {};
-  const cleanId = String(telegramId || '1788035393');
+  const cleanId = String(telegramId || '494232782');
 
   const intervalId = setInterval(async () => {
     try {
@@ -284,7 +284,7 @@ export async function createLiveTransaction(
   type: 'DEPOSIT' | 'WITHDRAW', 
   grossAmount: number
 ): Promise<TransactionData> {
-  const cleanId = String(telegramId || '1788035393');
+  const cleanId = String(telegramId || '494232782');
 
   await forceSyncUserProfile(cleanId, username);
 
@@ -375,22 +375,42 @@ export async function createLiveTransaction(
   return txData;
 }
 
-// 6. Realtime Listener for User's Transactions History
+// 6. Realtime Listener for User's Transactions History (Hybrid Sub-collection + Global Fallback)
 export function subscribeToUserTransactions(telegramId: string, callback: (txs: TransactionData[]) => void) {
   let firestoreUnsub = () => {};
   let rtdbUnsub = () => {};
-  const cleanId = String(telegramId || '1788035393');
+  const cleanId = String(telegramId || '494232782');
 
   const intervalId = setInterval(async () => {
     try {
+      // Fetch sub-tree transactions
       const res = await fetch(`${RTDB_BASE_URL}/users/${cleanId}/transactions.json`);
+      let list1: TransactionData[] = [];
       if (res.ok) {
         const data = await res.json();
-        if (data) {
-          const list = Object.values(data) as TransactionData[];
-          callback(list);
+        if (data) list1 = Object.values(data) as TransactionData[];
+      }
+
+      // Fetch global transactions fallback
+      const gRes = await fetch(`${RTDB_BASE_URL}/transactions.json`);
+      let list2: TransactionData[] = [];
+      if (gRes.ok) {
+        const gData = await gRes.json();
+        if (gData) {
+          list2 = (Object.values(gData) as TransactionData[]).filter(t => String(t.userId) === cleanId);
         }
       }
+
+      // Combine and deduplicate
+      const map = new Map<string, TransactionData>();
+      [...list2, ...list1].forEach(t => {
+        if (t && (t.id || t.memoCode)) {
+          map.set(t.id || t.memoCode, t);
+        }
+      });
+
+      const combined = Array.from(map.values());
+      if (combined.length > 0) callback(combined);
     } catch (e) {}
   }, 3000);
 
@@ -490,18 +510,19 @@ export async function approveLiveTransaction(txId: string, adminUsername: string
 
             if (currentBal < grossAmount) {
               const rejectPayload = {
+                ...tx,
                 status: 'REJECTED',
                 approvedBy: 'SYSTEM_AUTO_REJECT_INSUFFICIENT_FUNDS',
                 rejectedAt: new Date().toISOString()
               };
 
               await fetch(`${RTDB_BASE_URL}/transactions/${txId}.json`, {
-                method: "PATCH",
+                method: "PUT",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(rejectPayload)
               });
               await fetch(`${RTDB_BASE_URL}/users/${userId}/transactions/${txId}.json`, {
-                method: "PATCH",
+                method: "PUT",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(rejectPayload)
               });
@@ -511,25 +532,26 @@ export async function approveLiveTransaction(txId: string, adminUsername: string
 
               return {
                 success: false,
-                message: `⛔ TỪ CHỐI TỰ ĐỘNG: Số dư tài khoản ($${currentBal.toFixed(2)}) không đủ để duyệt lệnh rút $${grossAmount.toFixed(2)} thứ 2 này! Lệnh đã tự động chuyển sang TỪ CHỐI.`
+                message: `⛔ TỪ CHỐI TỰ ĐỘNG: Số dư tài khoản ($${currentBal.toFixed(2)}) không đủ để duyệt lệnh rút $${grossAmount.toFixed(2)} thứ 2 này!`
               };
             }
           }
         }
 
         const updatePayload = {
+          ...tx,
           status: 'APPROVED',
           approvedBy: adminUsername,
           approvedAt: new Date().toISOString()
         };
 
         await fetch(`${RTDB_BASE_URL}/transactions/${txId}.json`, {
-          method: "PATCH",
+          method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(updatePayload)
         });
         await fetch(`${RTDB_BASE_URL}/users/${userId}/transactions/${txId}.json`, {
-          method: "PATCH",
+          method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(updatePayload)
         });
@@ -566,7 +588,7 @@ export async function approveLiveTransaction(txId: string, adminUsername: string
   return { success: true, message: 'Phê duyệt giao dịch thành công!' };
 }
 
-// 9. Admin Rejection of Pending Transaction
+// 9. Admin Rejection of Pending Transaction (Full Transaction Payload Preservation)
 export async function rejectLiveTransaction(
   txId: string, 
   adminUsername: string = 'tddv2017', 
@@ -584,23 +606,26 @@ export async function rejectLiveTransaction(
           return { success: false, message: 'Lệnh này đã bị từ chối trước đó!' };
         }
 
-        const userId = tx.userId;
+        const userId = String(tx.userId);
         const rejectPayload = {
+          ...tx,
           status: 'REJECTED',
           approvedBy: adminUsername,
           rejectionReason: reason,
           rejectedAt: new Date().toISOString()
         };
 
+        // Write complete rejected transaction object to global transactions tree
         await fetch(`${RTDB_BASE_URL}/transactions/${txId}.json`, {
-          method: "PATCH",
+          method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(rejectPayload)
         });
 
+        // Write complete rejected transaction object to user sub-tree
         if (userId) {
           await fetch(`${RTDB_BASE_URL}/users/${userId}/transactions/${txId}.json`, {
-            method: "PATCH",
+            method: "PUT",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(rejectPayload)
           });
@@ -608,10 +633,14 @@ export async function rejectLiveTransaction(
         }
 
         await saveToFirestoreREST(`transactions/${txId}`, rejectPayload);
+        console.log(`🚀 REJECT TRANSACTION SUCCESS -> users/${userId}/transactions/${txId}`);
+
         return { success: true, message: `Đã TỪ CHỐI thành công lệnh ${tx.type} ${tx.id}!` };
       }
     }
-  } catch (e) {}
+  } catch (e) {
+    console.error("rejectLiveTransaction error:", e);
+  }
 
   return { success: false, message: 'Không tìm thấy giao dịch để từ chối!' };
 }
