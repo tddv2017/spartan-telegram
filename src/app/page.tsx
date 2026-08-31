@@ -192,8 +192,7 @@ export default function Home() {
           <ProfileView 
             telegramId={currentTelegramId}
             username={currentTelegramUser}
-            firstName={userFirstName}
-            isAdmin={isAdmin}
+            referralBalance={referralsIncome}
           />
         </div>
       )}
