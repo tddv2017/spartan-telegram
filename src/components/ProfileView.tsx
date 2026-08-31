@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { User, Share2, Copy, CheckCircle2, ShieldCheck, Users, Trophy, DollarSign, ArrowUpRight, Crown, Swords, Zap, Award } from 'lucide-react';
+import { User, Share2, Copy, CheckCircle2, ShieldCheck, Users, Trophy, DollarSign, ArrowUpRight, Crown, Award, ChevronRight } from 'lucide-react';
 import { subscribeToReferredUsers } from '@/lib/firebaseService';
 import { getUserRankInfo } from './Header';
 import { checkIsAdmin } from '@/lib/adminAuth';
@@ -10,20 +10,20 @@ interface ProfileViewProps {
   telegramId?: string;
   username?: string;
   referralBalance?: number;
-  tradingBalance?: number;
+  resellerTier?: number;
 }
 
 export const ProfileView: React.FC<ProfileViewProps> = ({
   telegramId = '494232782',
   username = 'tddv2017',
   referralBalance = 0.00,
-  tradingBalance = 0.00,
+  resellerTier = 1,
 }) => {
   const [copied, setCopied] = useState(false);
   const [referredUsers, setReferredUsers] = useState<any[]>([]);
 
   const isAdmin = checkIsAdmin(username) || checkIsAdmin(telegramId);
-  const rank = getUserRankInfo(isAdmin, username, tradingBalance);
+  const rank = getUserRankInfo(isAdmin, username, resellerTier);
 
   // Realtime subscription for Referred Users under this Reseller's account
   useEffect(() => {
@@ -42,12 +42,18 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const ranksList = [
-    { title: 'SUPREME LEADER', icon: '👑', req: 'Admin / Vốn >$5,000U', style: 'text-amber-400 bg-amber-500/10 border-amber-500/30' },
-    { title: 'ELITE WARRIOR', icon: '⚔️', req: 'Vốn >$2,500U hoặc 10 F1', style: 'text-purple-400 bg-purple-500/10 border-purple-500/30' },
-    { title: 'SPARTAN COMMANDER', icon: '🛡️', req: 'Vốn >$1,000U hoặc 5 F1', style: 'text-blue-400 bg-blue-500/10 border-blue-500/30' },
-    { title: 'VANGUARD TITAN', icon: '⚡', req: 'Vốn >$500U', style: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30' },
-    { title: 'SPARTAN RECRUIT', icon: '🔰', req: 'Vốn Mới Tạo (<$500U)', style: 'text-gray-400 bg-gray-800 border-gray-700' },
+  // 10-LEVEL RESELLER SYSTEM SPECIFICATION (Cấp 1 đến Cấp 10 Đại Lý)
+  const resellerLevelsList = [
+    { level: 1, title: 'LEVEL 1 (CẤP 1)', share: '20% HOA HỒNG PHÍ', req: 'Đại lý Master', badge: 'bg-[#ff5500]/20 text-[#ff5500] border-[#ff5500]/40' },
+    { level: 2, title: 'LEVEL 2 (CẤP 2)', share: '18% HOA HỒNG PHÍ', req: 'Đã tuyển 5 F1', badge: 'bg-amber-500/20 text-amber-300 border-amber-500/40' },
+    { level: 3, title: 'LEVEL 3 (CẤP 3)', share: '16% HOA HỒNG PHÍ', req: 'Đã tuyển 10 F1', badge: 'bg-purple-500/20 text-purple-300 border-purple-500/40' },
+    { level: 4, title: 'LEVEL 4 (CẤP 4)', share: '14% HOA HỒNG PHÍ', req: 'Doanh số $5,000U', badge: 'bg-blue-500/20 text-blue-300 border-blue-500/40' },
+    { level: 5, title: 'LEVEL 5 (CẤP 5)', share: '12% HOA HỒNG PHÍ', req: 'Doanh số $10,000U', badge: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' },
+    { level: 6, title: 'LEVEL 6 (CẤP 6)', share: '10% HOA HỒNG PHÍ', req: 'Doanh số $20,000U', badge: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40' },
+    { level: 7, title: 'LEVEL 7 (CẤP 7)', share: '8% HOA HỒNG PHÍ', req: 'Doanh số $35,000U', badge: 'bg-teal-500/20 text-teal-300 border-teal-500/40' },
+    { level: 8, title: 'LEVEL 8 (CẤP 8)', share: '6% HOA HỒNG PHÍ', req: 'Doanh số $50,000U', badge: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40' },
+    { level: 9, title: 'LEVEL 9 (CẤP 9)', share: '4% HOA HỒNG PHÍ', req: 'Doanh số $75,000U', badge: 'bg-rose-500/20 text-rose-300 border-rose-500/40' },
+    { level: 10, title: 'LEVEL 10 (CẤP 10)', share: '2% HOA HỒNG PHÍ', req: 'Doanh số $100,000U', badge: 'bg-gray-800 text-gray-300 border-gray-700' },
   ];
 
   return (
@@ -62,7 +68,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
             <h2 className="text-base font-black text-white tracking-tight">Tài Khoản @{username}</h2>
             <p className="text-xs text-gray-400 font-mono">Telegram ID: {telegramId}</p>
 
-            {/* DYNAMIC LEADER LEVEL BADGE */}
+            {/* DYNAMIC LEVEL BADGE (👑 SUPREME LEADER for Admin / 🎖️ RESELLER LEVEL 1-10 for Resellers) */}
             <span className={`inline-flex items-center gap-1.5 mt-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${rank.badgeStyle}`}>
               <span>{rank.icon}</span>
               <span>{rank.rankName}</span>
@@ -71,44 +77,50 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
         </div>
       </div>
 
-      {/* DYNAMIC LEADER RANK HIERARCHY TIER SYSTEM CARD */}
+      {/* 10 RESELLER TIERS SYSTEM SPECIFICATION CARD */}
       <div className="spartan-card rounded-3xl p-5 border border-[#1f293d] space-y-3 shadow-lg">
         <div className="flex items-center justify-between border-b border-[#1f293d] pb-2.5">
           <h3 className="text-xs font-black text-white uppercase tracking-wider flex items-center gap-1.5">
-            <Trophy className="w-4 h-4 text-[#facc15]" /> BẢNG PHÂN CẤP ĐẠI LÝ LEADER RANK (SYSTEM TIERS)
+            <Trophy className="w-4 h-4 text-[#ff5500]" /> BẢNG 10 CẤP ĐỘ ĐẠI LÝ RESELLER (SYSTEM TIERS)
           </h3>
-          <span className="text-[9px] font-black text-[#facc15] bg-[#facc15]/10 px-2 py-0.5 rounded-full border border-[#facc15]/30">
-            Cấp Hiện Tại: {rank.rankName}
+          <span className="text-[9px] font-black text-[#ff5500] bg-[#ff5500]/10 px-2 py-0.5 rounded-full border border-[#ff5500]/30">
+            {isAdmin ? '👑 SUPREME LEADER' : `Cấp Hiện Tại: LEVEL ${resellerTier}`}
           </span>
         </div>
 
         <div className="space-y-2">
-          {ranksList.map((item) => {
-            const isCurrent = rank.rankName === item.title;
+          {resellerLevelsList.map((item) => {
+            const isCurrent = !isAdmin && resellerTier === item.level;
             return (
               <div
-                key={item.title}
+                key={item.level}
                 className={`p-3 rounded-2xl border flex items-center justify-between transition-all ${
                   isCurrent
-                    ? 'bg-[#131927] border-[#facc15] shadow-[0_0_15px_rgba(250,204,21,0.2)]'
+                    ? 'bg-[#131927] border-[#ff5500] shadow-[0_0_15px_rgba(255,85,0,0.3)]'
                     : 'bg-[#0b0e17] border-[#1f293d]'
                 }`}
               >
                 <div className="flex items-center gap-2.5">
-                  <span className="text-base">{item.icon}</span>
+                  <span className="text-sm font-black text-[#ff5500]">🎖️</span>
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className={`text-xs font-black uppercase tracking-wider ${item.style.split(' ')[0]}`}>
+                      <span className={`text-xs font-black uppercase tracking-wider ${item.badge.split(' ')[1]}`}>
                         {item.title}
                       </span>
                       {isCurrent && (
-                        <span className="text-[9px] font-black px-1.5 py-0.2 bg-[#facc15] text-black rounded uppercase">
-                          Đang Đạt
+                        <span className="text-[9px] font-black px-1.5 py-0.2 bg-[#ff5500] text-white rounded uppercase">
+                          CẤP HIỆN TẠI
                         </span>
                       )}
                     </div>
-                    <span className="text-[10px] text-gray-400 block mt-0.5">Yêu cầu: {item.req}</span>
+                    <span className="text-[10px] text-gray-400 block mt-0.5">{item.req}</span>
                   </div>
+                </div>
+
+                <div className="text-right">
+                  <span className="text-xs font-mono font-black text-[#00df89] block">
+                    {item.share}
+                  </span>
                 </div>
               </div>
             );
@@ -126,7 +138,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
             </h3>
           </div>
           <span className="text-[10px] font-extrabold text-[#00df89] bg-[#00df89]/10 px-2.5 py-0.5 rounded-full border border-[#00df89]/20">
-            Hoa Hồng 20%
+            Hoa Hồng Tới 20%
           </span>
         </div>
 

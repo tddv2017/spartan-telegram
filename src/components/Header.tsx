@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Crown, Activity, MoreHorizontal, ShieldCheck, Swords, Zap, Award } from 'lucide-react';
+import { Crown, Activity, MoreHorizontal, Shield, Award } from 'lucide-react';
 
 export interface UserRankInfo {
   rankName: string;
@@ -12,12 +12,13 @@ export interface UserRankInfo {
 export function getUserRankInfo(
   isAdmin: boolean = false,
   username: string = '',
-  tradingBalance: number = 0
+  resellerTier: number = 1,
+  role: 'ADMIN' | 'RESELLER' | 'CLIENT' = 'CLIENT'
 ): UserRankInfo {
   const cleanHandle = username.replace('@', '').toLowerCase();
 
-  // 1. SUPREME LEADER (Admin or Top Account $5,000+)
-  if (isAdmin || cleanHandle === 'tddv2017' || cleanHandle === 'spartan_9824029' || tradingBalance >= 5000) {
+  // 1. SUPREME LEADER (Exclusive ONLY for Admin @tddv2017 / 494232782)
+  if (isAdmin || cleanHandle === 'tddv2017' || cleanHandle === 'spartan_9824029') {
     return {
       rankName: 'SUPREME LEADER',
       badgeStyle: 'bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-[0_0_10px_rgba(245,158,11,0.3)]',
@@ -25,38 +26,21 @@ export function getUserRankInfo(
     };
   }
 
-  // 2. ELITE WARRIOR ($2,500+ balance)
-  if (tradingBalance >= 2500) {
+  // 2. RESELLER LEVELS 1 TO 10 (Chỉ phân biệt 10 Cấp Đại Lý Reseller)
+  if (role === 'RESELLER' || resellerTier > 0) {
+    const tierNum = Math.min(10, Math.max(1, resellerTier));
     return {
-      rankName: 'ELITE WARRIOR',
-      badgeStyle: 'bg-purple-500/20 text-purple-300 border border-purple-500/40 shadow-[0_0_10px_rgba(168,85,247,0.3)]',
-      icon: '⚔️'
+      rankName: `RESELLER LEVEL ${tierNum}`,
+      badgeStyle: 'bg-[#ff5500]/20 text-[#ff5500] border border-[#ff5500]/40 shadow-[0_0_10px_rgba(255,85,0,0.3)]',
+      icon: '🎖️'
     };
   }
 
-  // 3. SPARTAN COMMANDER ($1,000+ balance)
-  if (tradingBalance >= 1000) {
-    return {
-      rankName: 'SPARTAN COMMANDER',
-      badgeStyle: 'bg-blue-500/20 text-blue-300 border border-blue-500/40 shadow-[0_0_10px_rgba(59,130,246,0.3)]',
-      icon: '🛡️'
-    };
-  }
-
-  // 4. VANGUARD TITAN ($500+ balance)
-  if (tradingBalance >= 500) {
-    return {
-      rankName: 'VANGUARD TITAN',
-      badgeStyle: 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-[0_0_10px_rgba(16,185,129,0.3)]',
-      icon: '⚡'
-    };
-  }
-
-  // 5. SPARTAN RECRUIT (Base tier < $500)
+  // 3. SPARTAN TRADER (Khách hàng thông thường)
   return {
-    rankName: 'SPARTAN RECRUIT',
-    badgeStyle: 'bg-gray-800 text-gray-300 border border-gray-700',
-    icon: '🔰'
+    rankName: 'SPARTAN TRADER',
+    badgeStyle: 'bg-[#131927] text-gray-300 border border-[#1f293d]',
+    icon: '🛡️'
   };
 }
 
@@ -64,16 +48,16 @@ interface HeaderProps {
   onClose?: () => void;
   username?: string;
   isAdmin?: boolean;
-  tradingBalance?: number;
+  resellerTier?: number;
 }
 
 export const Header: React.FC<HeaderProps> = ({ 
   onClose,
   username = 'tddv2017',
   isAdmin = true,
-  tradingBalance = 0
+  resellerTier = 1
 }) => {
-  const rank = getUserRankInfo(isAdmin, username, tradingBalance);
+  const rank = getUserRankInfo(isAdmin, username, resellerTier);
 
   return (
     <header className="w-full bg-[#0b0e17] sticky top-0 z-50 pt-2 pb-3 px-4 border-b border-[#1f293d]">
@@ -94,7 +78,7 @@ export const Header: React.FC<HeaderProps> = ({
         </button>
       </div>
 
-      {/* Brand Header & Dynamic Leader Level Badge */}
+      {/* Brand Header & Supreme Leader / 10-Level Reseller Badge */}
       <div className="flex items-center justify-between pt-1">
         <div className="flex items-center gap-3">
           {/* Prominent Spartan High-Tech Helmet Logo Avatar */}
@@ -113,7 +97,7 @@ export const Header: React.FC<HeaderProps> = ({
               <span className="text-[10px] font-extrabold text-gray-400 tracking-wider">TRADING SYSTEM</span>
             </div>
 
-            {/* DYNAMIC LEADER LEVEL BADGE (👑 SUPREME LEADER / ⚔️ ELITE WARRIOR / etc.) */}
+            {/* DYNAMIC LEVEL BADGE (👑 SUPREME LEADER for Admin, 🎖️ RESELLER LEVEL 1-10 for Resellers) */}
             <span className={`inline-flex items-center gap-1 text-[9px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider mt-1 ${rank.badgeStyle}`}>
               <span>{rank.icon}</span>
               <span>{rank.rankName}</span>
