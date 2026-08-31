@@ -44,18 +44,18 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // 10-LEVEL RESELLER SYSTEM SPECIFICATION (Cấp 1 đến Cấp 10 Đại Lý)
+  // 10-LEVEL RESELLER SYSTEM SPECIFICATION (CẤP 1 LÀ THẤP NHẤT -> CẤP 10 LÀ CAO NHẤT MASTER 20%)
   const resellerLevelsList = [
-    { level: 1, title: 'LEVEL 1 (CẤP 1)', share: '20% HOA HỒNG PHÍ', req: 'Đại lý Master', badge: 'bg-[#ff5500]/20 text-[#ff5500] border-[#ff5500]/40' },
-    { level: 2, title: 'LEVEL 2 (CẤP 2)', share: '18% HOA HỒNG PHÍ', req: 'Đã tuyển 5 F1', badge: 'bg-amber-500/20 text-amber-300 border-amber-500/40' },
-    { level: 3, title: 'LEVEL 3 (CẤP 3)', share: '16% HOA HỒNG PHÍ', req: 'Đã tuyển 10 F1', badge: 'bg-purple-500/20 text-purple-300 border-purple-500/40' },
-    { level: 4, title: 'LEVEL 4 (CẤP 4)', share: '14% HOA HỒNG PHÍ', req: 'Doanh số $5,000U', badge: 'bg-blue-500/20 text-blue-300 border-blue-500/40' },
-    { level: 5, title: 'LEVEL 5 (CẤP 5)', share: '12% HOA HỒNG PHÍ', req: 'Doanh số $10,000U', badge: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' },
-    { level: 6, title: 'LEVEL 6 (CẤP 6)', share: '10% HOA HỒNG PHÍ', req: 'Doanh số $20,000U', badge: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40' },
-    { level: 7, title: 'LEVEL 7 (CẤP 7)', share: '8% HOA HỒNG PHÍ', req: 'Doanh số $35,000U', badge: 'bg-teal-500/20 text-teal-300 border-teal-500/40' },
-    { level: 8, title: 'LEVEL 8 (CẤP 8)', share: '6% HOA HỒNG PHÍ', req: 'Doanh số $50,000U', badge: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40' },
-    { level: 9, title: 'LEVEL 9 (CẤP 9)', share: '4% HOA HỒNG PHÍ', req: 'Doanh số $75,000U', badge: 'bg-rose-500/20 text-rose-300 border-rose-500/40' },
-    { level: 10, title: 'LEVEL 10 (CẤP 10)', share: '2% HOA HỒNG PHÍ', req: 'Doanh số $100,000U', badge: 'bg-gray-800 text-gray-300 border-gray-700' },
+    { level: 10, title: 'LEVEL 10 (CẤP 10)', share: '20% HOA HỒNG PHÍ', req: 'Đại lý Master Tối Cao ($100kU)', badge: 'bg-[#ff5500]/20 text-[#ff5500] border-[#ff5500]/40' },
+    { level: 9, title: 'LEVEL 9 (CẤP 9)', share: '18% HOA HỒNG PHÍ', req: 'Doanh số $75,000U', badge: 'bg-amber-500/20 text-amber-300 border-amber-500/40' },
+    { level: 8, title: 'LEVEL 8 (CẤP 8)', share: '16% HOA HỒNG PHÍ', req: 'Doanh số $50,000U', badge: 'bg-purple-500/20 text-purple-300 border-purple-500/40' },
+    { level: 7, title: 'LEVEL 7 (CẤP 7)', share: '14% HOA HỒNG PHÍ', req: 'Doanh số $35,000U', badge: 'bg-blue-500/20 text-blue-300 border-blue-500/40' },
+    { level: 6, title: 'LEVEL 6 (CẤP 6)', share: '12% HOA HỒNG PHÍ', req: 'Doanh số $20,000U', badge: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' },
+    { level: 5, title: 'LEVEL 5 (CẤP 5)', share: '10% HOA HỒNG PHÍ', req: 'Doanh số $10,000U', badge: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40' },
+    { level: 4, title: 'LEVEL 4 (CẤP 4)', share: '8% HOA HỒNG PHÍ', req: 'Doanh số $5,000U', badge: 'bg-teal-500/20 text-teal-300 border-teal-500/40' },
+    { level: 3, title: 'LEVEL 3 (CẤP 3)', share: '6% HOA HỒNG PHÍ', req: 'Tuyển 10 F1 hoặc $2,500U', badge: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40' },
+    { level: 2, title: 'LEVEL 2 (CẤP 2)', share: '4% HOA HỒNG PHÍ', req: 'Tuyển 5 F1 hoặc $1,000U', badge: 'bg-rose-500/20 text-rose-300 border-rose-500/40' },
+    { level: 1, title: 'LEVEL 1 (CẤP 1)', share: '2% HOA HỒNG PHÍ', req: 'Cấp Khởi Đầu (Mới Đăng Ký)', badge: 'bg-gray-800 text-gray-300 border-gray-700' },
   ];
 
   return (
