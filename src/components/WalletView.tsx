@@ -7,7 +7,7 @@ import {
   subscribeToUserTransactions, 
   TransactionData 
 } from '@/lib/firebaseService';
-import { ArrowDownLeft, ArrowUpRight, Copy, CheckCircle2, QrCode, History, DollarSign, ArrowDown, ArrowUp, Loader2, AlertCircle, Zap, ShieldCheck, Lock, Clock } from 'lucide-react';
+import { ArrowDownLeft, ArrowUpRight, Copy, CheckCircle2, QrCode, History, DollarSign, ArrowDown, ArrowUp, Loader2, AlertCircle, Zap, ShieldCheck, Lock, Clock, RefreshCw } from 'lucide-react';
 
 interface WalletViewProps {
   currentBalance: number;
@@ -51,7 +51,7 @@ export const WalletView: React.FC<WalletViewProps> = ({
     combinedTxsMap.set(key, tx);
   });
 
-  // Sort Chronologically: Newest Transactions On Top (Mới nhất nằm ở trên)
+  // Sort Chronologically: Newest Transactions On Top
   const allTransactions = Array.from(combinedTxsMap.values()).sort((a, b) => {
     const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
     const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
@@ -68,7 +68,7 @@ export const WalletView: React.FC<WalletViewProps> = ({
   const totalWithdrawnNet = approvedWithdrawals.reduce((acc, t) => acc + t.netAmount, 0);
   const withdrawCount = approvedWithdrawals.length;
 
-  // Calculate Pending Withdrawals to Lock Available Balance (Anti-Double-Withdrawal Safeguard)
+  // Calculate Pending Withdrawals to Lock Available Balance
   const pendingWithdrawalTotal = allTransactions
     .filter(t => t.type === 'WITHDRAW' && t.status === 'PENDING')
     .reduce((acc, t) => acc + t.grossAmount, 0);
@@ -81,7 +81,7 @@ export const WalletView: React.FC<WalletViewProps> = ({
 
   // Official Master USDT TRC20 Wallet Address
   const walletAddress = 'TBGvPZsuqKH5CrSbYLEi8q2BCQ6CXyKmAu';
-  const activeMemo = activeDepositTx?.memoCode || `SPARTAN_${Math.floor(100000 + Math.random() * 900000)}`;
+  const activeMemo = activeDepositTx?.memoCode || '';
 
   const handleCopyAddress = () => {
     navigator.clipboard.writeText(walletAddress);
@@ -90,13 +90,14 @@ export const WalletView: React.FC<WalletViewProps> = ({
   };
 
   const handleCopyMemo = () => {
+    if (!activeMemo) return;
     navigator.clipboard.writeText(activeMemo);
     setCopiedMemo(true);
     setTimeout(() => setCopiedMemo(false), 2000);
   };
 
   const handleDepositConfirm = async () => {
-    if (loading) return; // Immediate Debounce Lock
+    if (loading) return;
     setErrorMessage(null);
     if (numAmount <= 0) {
       setErrorMessage('Số tiền nạp phải lớn hơn $0.00 USD!');
@@ -111,8 +112,8 @@ export const WalletView: React.FC<WalletViewProps> = ({
       setActiveDepositTx(newTx);
       setLocalTxs((prev) => [newTx, ...prev]);
 
-      setNotification(`Đã khởi tạo QR Nạp $${numAmount.toFixed(2)} USDT! Mã Memo: ${newTx.memoCode}. Bot TronGrid sẽ quét On-Chain và tự động duyệt khi nhận tiền.`);
-      setTimeout(() => setNotification(null), 7000);
+      setNotification(`🎉 ĐÃ KHỞI TẠO ĐƠN NẠP $${numAmount.toFixed(2)} USDT! Mã Memo: ${newTx.memoCode}. Hãy chuyển tiền theo QR Code ở dưới!`);
+      setTimeout(() => setNotification(null), 8000);
     } catch (err) {
       console.error('Deposit error:', err);
       setNotification(`Đã ghi nhận lệnh nạp $${numAmount.toFixed(2)} USDT! Đang chờ duyệt.`);
@@ -123,22 +124,19 @@ export const WalletView: React.FC<WalletViewProps> = ({
   };
 
   const handleWithdrawConfirm = async () => {
-    if (loading) return; // Immediate Debounce Lock
+    if (loading) return;
     setErrorMessage(null);
 
-    // Safeguard 1: Block zero or negative input
     if (numAmount <= 0) {
       setErrorMessage('Số tiền rút phải lớn hơn $0.00 USD!');
       return;
     }
 
-    // Safeguard 2: Block negative net output
     if (withdrawBreakdown.netAmount <= 0) {
       setErrorMessage(`⛔ KHÔNG THỂ RÚT: Số tiền rút ($${numAmount.toFixed(2)}) nhỏ hơn tổng phí giao dịch ($${withdrawBreakdown.totalFee.toFixed(2)} USD). Vui lòng nhập số tiền lớn hơn!`);
       return;
     }
 
-    // Safeguard 3: Lock-in Pending Withdrawals to Block Double-Clicks & Over-Withdrawals
     if (numAmount > availableForWithdraw) {
       if (pendingWithdrawalTotal > 0) {
         setErrorMessage(`⛔ BỊ KHÓA LỆNH: Bạn đang có $${pendingWithdrawalTotal.toFixed(2)} USD lệnh rút CHỜ DUYỆT. Số dư khả dụng rút còn lại là $${availableForWithdraw.toFixed(2)} USD!`);
@@ -156,7 +154,6 @@ export const WalletView: React.FC<WalletViewProps> = ({
     setLoading(true);
 
     try {
-      // Create live pending withdrawal in Firestore / RTDB
       const newTx = await createLiveTransaction(telegramId, username, 'WITHDRAW', numAmount);
 
       setLocalTxs((prev) => [newTx, ...prev]);
@@ -223,7 +220,7 @@ export const WalletView: React.FC<WalletViewProps> = ({
         )}
       </div>
 
-      {/* Dynamic Total Deposited (Net) & Total Withdrawn (Net) Summary Banner */}
+      {/* Summary Banner */}
       <div className="grid grid-cols-2 gap-3">
         {/* Total Deposited */}
         <div className="spartan-card rounded-2xl p-4 border border-[#1f293d] flex items-center justify-between transition-all">
@@ -314,7 +311,7 @@ export const WalletView: React.FC<WalletViewProps> = ({
           {/* Amount Input */}
           <div>
             <label className="text-xs text-gray-400 font-bold block mb-1.5">
-              Nhập Số Tiền Nạp ($ USD)
+              Nhập Số Tiền Muốn Nạp ($ USD)
             </label>
             <div className="relative">
               <input
@@ -351,104 +348,115 @@ export const WalletView: React.FC<WalletViewProps> = ({
             </div>
           </div>
 
-          {/* ON-CHAIN AUTO-APPROVE QR CODE & MEMO CARD */}
-          <div className="bg-[#0b0e17] border border-[#ff5500]/40 rounded-2xl p-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-black text-white uppercase tracking-wider flex items-center gap-1.5">
-                <Zap className="w-4 h-4 text-[#facc15]" /> MÃ QR & MEMO XÁC MINH AUTOMATION
-              </span>
-              <span className="text-[9px] font-black text-[#00df89] bg-[#00df89]/10 px-2 py-0.5 rounded-full border border-[#00df89]/20">
-                TronGrid Auto-Detect
-              </span>
-            </div>
-
-            {/* QR Format Selector Toggle */}
-            <div className="grid grid-cols-2 gap-1.5 p-1 bg-[#131927] rounded-xl text-[10px] font-extrabold">
-              <button
-                onClick={() => setQrMode('pure')}
-                className={`py-1.5 rounded-lg transition-all ${
-                  qrMode === 'pure' 
-                    ? 'bg-[#ff5500] text-white shadow-sm' 
-                    : 'text-gray-400 hover:text-white'
-                }`}
-              >
-                Ví Chuẩn TRC20 (Binance/Trust)
-              </button>
-              <button
-                onClick={() => setQrMode('embedded')}
-                className={`py-1.5 rounded-lg transition-all ${
-                  qrMode === 'embedded' 
-                    ? 'bg-[#facc15] text-black shadow-sm' 
-                    : 'text-gray-400 hover:text-white'
-                }`}
-              >
-                Ví + Chèn Mã Băm Memo
-              </button>
-            </div>
-
-            {/* QR Image Display */}
-            <div className="flex flex-col items-center justify-center p-3 bg-white rounded-2xl border border-gray-200">
-              <img
-                src={currentQrUrl}
-                alt="USDT TRC20 Master Deposit QR Code"
-                className="w-40 h-40 object-contain"
-              />
-              <span className="text-[10px] font-black text-gray-800 mt-1 uppercase tracking-wider">
-                {qrMode === 'pure' ? 'QR Chứa Địa Chỉ Ví TRC20 Nguyên Bản' : 'QR Chèn Sẵn Mã Băm Memo'}
-              </span>
-            </div>
-
-            {/* Wallet Address Box */}
-            <div>
-              <label className="text-[10px] text-gray-400 font-bold block mb-1">
-                1. Địa Chỉ Ví Nạp USDT Master Chính Thức (Mạng TRC20)
-              </label>
-              <div className="flex items-center gap-2 bg-[#131927] border border-[#1f293d] p-2.5 rounded-xl">
-                <span className="text-xs text-[#00df89] font-mono font-bold truncate flex-1">
-                  {walletAddress}
-                </span>
+          {/* CREATE ORDER BUTTON (Shown when no active deposit QR is generated) */}
+          {!activeDepositTx ? (
+            <button
+              onClick={handleDepositConfirm}
+              disabled={loading}
+              className="w-full py-3.5 rounded-2xl spartan-orange-btn font-black text-sm uppercase tracking-wider hover:opacity-95 transition-opacity flex items-center justify-center gap-2"
+            >
+              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
+              <span>🚀 BẤM TẠO LỆNH NẠP & XUẤT MÃ QR (Net +${depositBreakdown.netAmount.toFixed(2)})</span>
+            </button>
+          ) : (
+            /* ON-CHAIN AUTO-APPROVE QR CODE & FIXED MEMO CARD (ONLY SHOWN AFTER CREATING ORDER) */
+            <div className="bg-[#0b0e17] border border-[#ff5500] rounded-2xl p-4 space-y-3 animate-in fade-in slide-in-from-top-3 duration-500 shadow-[0_0_20px_rgba(255,85,0,0.2)]">
+              <div className="flex items-center justify-between border-b border-[#1f293d] pb-2">
+                <div>
+                  <span className="text-xs font-black text-white uppercase tracking-wider flex items-center gap-1.5">
+                    <CheckCircle2 className="w-4 h-4 text-[#00df89]" /> MÃ QR & MEMO ĐÃ CỐ ĐỊNH CHO ĐƠN {activeDepositTx.id}
+                  </span>
+                  <span className="text-[10px] text-gray-400 font-bold block mt-0.5">
+                    Số tiền nạp: <strong className="text-white">${activeDepositTx.grossAmount.toFixed(2)} USDT</strong>
+                  </span>
+                </div>
                 <button
-                  onClick={handleCopyAddress}
-                  className="px-2.5 py-1 rounded-lg bg-[#ff5500] text-white text-xs font-black flex items-center gap-1 hover:opacity-90"
+                  onClick={() => setActiveDepositTx(null)}
+                  className="px-2.5 py-1 rounded-xl bg-[#131927] text-gray-400 hover:text-white text-[10px] font-bold border border-[#1f293d] flex items-center gap-1"
                 >
-                  {copied ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                  <span>Ví</span>
+                  <RefreshCw className="w-3 h-3" /> Đổi Số Tiền
                 </button>
               </div>
-            </div>
 
-            {/* Mandatory Memo Code Box */}
-            <div>
-              <label className="text-[10px] text-[#facc15] font-black block mb-1 uppercase tracking-wider flex items-center gap-1">
-                <ShieldCheck className="w-3.5 h-3.5" /> 2. Mã Băm MEMO BẮT BUỘC (Dán vào phần Ghi Chú)
-              </label>
-              <div className="flex items-center gap-2 bg-[#131927] border border-[#facc15]/40 p-2.5 rounded-xl">
-                <span className="text-sm text-[#facc15] font-mono font-black truncate flex-1 tracking-wider">
-                  {activeMemo}
-                </span>
+              {/* QR Format Selector Toggle */}
+              <div className="grid grid-cols-2 gap-1.5 p-1 bg-[#131927] rounded-xl text-[10px] font-extrabold">
                 <button
-                  onClick={handleCopyMemo}
-                  className="px-2.5 py-1 rounded-lg bg-[#facc15] text-black text-xs font-black flex items-center gap-1 hover:opacity-90"
+                  onClick={() => setQrMode('pure')}
+                  className={`py-1.5 rounded-lg transition-all ${
+                    qrMode === 'pure' 
+                      ? 'bg-[#ff5500] text-white shadow-sm' 
+                      : 'text-gray-400 hover:text-white'
+                  }`}
                 >
-                  {copiedMemo ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                  <span>Memo</span>
+                  Ví Chuẩn TRC20 (Binance/Trust)
+                </button>
+                <button
+                  onClick={() => setQrMode('embedded')}
+                  className={`py-1.5 rounded-lg transition-all ${
+                    qrMode === 'embedded' 
+                      ? 'bg-[#facc15] text-black shadow-sm' 
+                      : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  Ví + Chèn Mã Băm Memo
                 </button>
               </div>
-            </div>
 
-            <div className="text-[10px] text-gray-400 leading-relaxed bg-[#131927] p-2.5 rounded-xl border border-[#1f293d]">
-              💡 <strong>CƠ CHẾ DUYỆT TỰ ĐỘNG ON-CHAIN:</strong> Khi chuyển USDT TRC20 từ ví của bạn (Trust Wallet, Binance, OKX...), hãy DÁN MÃ MEMO ở trên vào mục Ghi Chú (Note/Memo). Bot TronGrid sẽ quét giao dịch khớp Mã Memo và tự động duyệt cộng tiền vào ví trong 3 giây!
-            </div>
-          </div>
+              {/* QR Image Display */}
+              <div className="flex flex-col items-center justify-center p-3 bg-white rounded-2xl border border-gray-200">
+                <img
+                  src={currentQrUrl}
+                  alt="USDT TRC20 Master Deposit QR Code"
+                  className="w-40 h-40 object-contain"
+                />
+                <span className="text-[10px] font-black text-gray-800 mt-1 uppercase tracking-wider">
+                  {qrMode === 'pure' ? 'QR Chứa Địa Chỉ Ví TRC20 Nguyên Bản' : 'QR Chèn Sẵn Mã Băm Memo'}
+                </span>
+              </div>
 
-          <button
-            onClick={handleDepositConfirm}
-            disabled={loading}
-            className="w-full py-3.5 rounded-2xl spartan-orange-btn font-black text-sm uppercase tracking-wider hover:opacity-95 transition-opacity flex items-center justify-center gap-2"
-          >
-            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-            <span>TẠO LỆNH NẠP & THEO DÕI ON-CHAIN (${depositBreakdown.netAmount.toFixed(2)} Net)</span>
-          </button>
+              {/* Wallet Address Box */}
+              <div>
+                <label className="text-[10px] text-gray-400 font-bold block mb-1">
+                  1. Địa Chỉ Ví Nạp USDT Master Chính Thức (Mạng TRC20)
+                </label>
+                <div className="flex items-center gap-2 bg-[#131927] border border-[#1f293d] p-2.5 rounded-xl">
+                  <span className="text-xs text-[#00df89] font-mono font-bold truncate flex-1">
+                    {walletAddress}
+                  </span>
+                  <button
+                    onClick={handleCopyAddress}
+                    className="px-2.5 py-1 rounded-lg bg-[#ff5500] text-white text-xs font-black flex items-center gap-1 hover:opacity-90"
+                  >
+                    {copied ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                    <span>Ví</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Mandatory Fixed Memo Code Box */}
+              <div>
+                <label className="text-[10px] text-[#facc15] font-black block mb-1 uppercase tracking-wider flex items-center gap-1">
+                  <ShieldCheck className="w-3.5 h-3.5" /> 2. MÃ MEMO CỐ ĐỊNH (Dán vào phần Ghi Chú)
+                </label>
+                <div className="flex items-center gap-2 bg-[#131927] border border-[#facc15]/60 p-2.5 rounded-xl">
+                  <span className="text-sm text-[#facc15] font-mono font-black truncate flex-1 tracking-wider">
+                    {activeMemo}
+                  </span>
+                  <button
+                    onClick={handleCopyMemo}
+                    className="px-2.5 py-1 rounded-lg bg-[#facc15] text-black text-xs font-black flex items-center gap-1 hover:opacity-90"
+                  >
+                    {copiedMemo ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                    <span>Memo</span>
+                  </button>
+                </div>
+              </div>
+
+              <div className="text-[10px] text-gray-400 leading-relaxed bg-[#131927] p-2.5 rounded-xl border border-[#1f293d]">
+                💡 <strong>CƠ CHẾ DUYỆT TỰ ĐỘNG ON-CHAIN:</strong> Khi chuyển USDT TRC20 từ ví của bạn (Trust Wallet, Binance, OKX...), hãy DÁN MÃ MEMO <strong className="text-[#facc15]">{activeMemo}</strong> ở trên vào mục Ghi Chú (Note/Memo). Bot TronGrid sẽ quét giao dịch khớp Mã Memo và tự động duyệt cộng tiền vào ví trong 3 giây!
+              </div>
+            </div>
+          )}
         </div>
       ) : (
         /* Withdraw Mode */
@@ -556,7 +564,7 @@ export const WalletView: React.FC<WalletViewProps> = ({
         </div>
       )}
 
-      {/* LỊCH SỬ NẠP VÀ RÚT (MỚI NHẤT TRÊN CÙNG - CHRONOLOGICAL REVERSE ORDER) */}
+      {/* LỊCH SỬ NẠP VÀ RÚT (MỚI NHẤT TRÊN CÙNG) */}
       <div className="spartan-card rounded-3xl p-4 border border-[#1f293d] space-y-3 shadow-lg">
         <div className="flex items-center justify-between border-b border-[#1f293d] pb-2.5">
           <h3 className="text-xs font-black text-white uppercase tracking-wider flex items-center gap-1.5">
