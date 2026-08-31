@@ -8,7 +8,8 @@ import {
   createLiveTransaction,
   TransactionData 
 } from '@/lib/firebaseService';
-import { fetchTronGridTRC20Transfers, scanAndVerifyOnChainDeposit } from '@/lib/tronService';
+import { fetchTronGridTRC20Transfers } from '@/lib/tronService';
+import { checkIsAdmin } from '@/lib/adminAuth';
 import { ShieldAlert, CheckCircle2, XCircle, Users, DollarSign, ArrowUpRight, Radio, AlertTriangle, Send, Search, Eye, Edit3, Filter, X, ArrowDown, Clock, ShieldCheck, Loader2, PlayCircle, Zap, Ban, RefreshCw, Globe } from 'lucide-react';
 
 interface ClientUser {
@@ -49,9 +50,7 @@ export const AdminPanel: React.FC = () => {
     setProcessingId(tx.id);
 
     try {
-      console.log(`\n========================================================================`);
-      console.log(`⚡ ADMIN BẤM PHÊ DUYỆT LỆNH: ${tx.id} (@${tx.username})`);
-      console.log(`========================================================================`);
+      console.log(`⚡ ADMIN PHÊ DUYỆT LỆNH: ${tx.id} (@${tx.username})`);
 
       const res = await approveLiveTransaction(tx.id, 'tddv2017');
       if (res.success) {
@@ -73,9 +72,7 @@ export const AdminPanel: React.FC = () => {
     setProcessingId(tx.id);
 
     try {
-      console.log(`\n========================================================================`);
-      console.log(`🔴 ADMIN BẤM TỪ CHỐI LỆNH: ${tx.id} (@${tx.username})`);
-      console.log(`========================================================================`);
+      console.log(`🔴 ADMIN TỪ CHỐI LỆNH: ${tx.id} (@${tx.username})`);
 
       const res = await rejectLiveTransaction(tx.id, 'tddv2017', 'Từ chối bởi Admin @tddv2017');
       if (res.success) {
@@ -92,7 +89,7 @@ export const AdminPanel: React.FC = () => {
     }
   };
 
-  // REALTIME TRONGRID / TRONSCAN NETWORK LIVE SCANNER
+  // REALTIME TRONGRID / TRONSCAN NETWORK LIVE SCANNER (Admin Only Logs)
   const handleLiveTronScan = async () => {
     setTestSimulating(true);
     console.clear();
@@ -263,7 +260,7 @@ export const AdminPanel: React.FC = () => {
             </div>
             <div>
               <span className="text-[10px] font-black text-amber-300 uppercase tracking-widest block leading-none">
-                BẢNG QUẢN TRỊ ADMIN (FIREBASE REALTIME)
+                BẢNG QUẢN TRỊ ADMIN (FIREBASE REALTIME & SECURITY LAYER 1-2-3)
               </span>
               <h2 className="text-base font-black text-white tracking-tight flex items-center gap-1.5 mt-0.5">
                 ADMIN ACCESS: <span className="text-[#facc15] font-mono">@tddv2017</span>
@@ -288,12 +285,12 @@ export const AdminPanel: React.FC = () => {
             <Globe className="w-4 h-4 text-[#3b82f6]" /> TRONGRID & TRONSCAN BLOCKCHAIN AUTOMATION
           </h3>
           <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-[#3b82f6]/15 text-[#3b82f6] border border-[#3b82f6]/30">
-            TRON API Connected
+            3-Layer Security Active
           </span>
         </div>
 
         <p className="text-[11px] text-gray-400 leading-relaxed">
-          Hệ thống đã kết nối trực tiếp với API TronGrid & TronScan. Bạn có thể nhấn nút Quét Live TRONSCAN để kiểm tra các giao dịch USDT TRC20 thực tế trên Blockchain TRON!
+          Hệ thống đã kết nối trực tiếp với API TronGrid & TronScan và được bảo vệ bởi 3 Lớp An Ninh Bảo Mật Server. Nhấn nút dưới đây để chạy quét và diễn giải Console Logs!
         </p>
 
         {/* TRONSCAN LIVE SCANNER BUTTON */}
@@ -313,7 +310,7 @@ export const AdminPanel: React.FC = () => {
             className="w-full py-3 rounded-2xl bg-[#00df89] text-black font-black text-xs uppercase tracking-wider shadow-[0_4px_14px_rgba(0,223,137,0.4)] hover:opacity-95 transition-opacity flex items-center justify-center gap-2"
           >
             {testSimulating ? <Loader2 className="w-4 h-4 animate-spin" /> : <PlayCircle className="w-4 h-4" />}
-            <span>🧪 TEST NẠP ĐÚNG $1,000 (TRON API)</span>
+            <span>🧪 TEST NẠP ĐÚNG $1,000 (ADMIN LOGS)</span>
           </button>
 
           <button
