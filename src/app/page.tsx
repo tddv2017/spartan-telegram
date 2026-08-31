@@ -15,6 +15,8 @@ import { TradeHistoryCard } from '@/components/TradeHistoryCard';
 import { AdminPanel } from '@/components/AdminPanel';
 import { checkIsAdmin } from '@/lib/adminAuth';
 import { forceSyncUserProfile, subscribeToUser, UserData } from '@/lib/firebaseService';
+import { startAutoScanWorker } from '@/lib/tronService';
+import { CheckCircle2 } from 'lucide-react';
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<TabType>('home');
@@ -90,14 +92,23 @@ export default function Home() {
     });
 
     // Instant Realtime Listener for Balance Updates from Firebase
-    const unsub = subscribeToUser(id, (userData) => {
+    const unsubUser = subscribeToUser(id, (userData) => {
       if (userData) {
         if (typeof userData.tradingBalance === 'number') setTradingBalance(userData.tradingBalance);
         if (typeof userData.referralBalance === 'number') setReferralsIncome(userData.referralBalance);
       }
     });
 
-    return () => unsub();
+    // START AUTOMATED BACKGROUND TRONSCAN / TRONGRID SCANNER WORKER
+    const unsubWorker = startAutoScanWorker((tx, actualAmount) => {
+      setSyncStatus(`🎉 BOT AUTOMATION: Đã tự động phát hiện giao dịch $${actualAmount.toFixed(2)} USDT On-Chain TRON và tự động duyệt đơn ${tx.id} cho @${tx.username}!`);
+      setTimeout(() => setSyncStatus(null), 10000);
+    });
+
+    return () => {
+      unsubUser();
+      unsubWorker();
+    };
   }, []);
 
   const handleTabChange = (newTab: TabType) => {
@@ -129,65 +140,79 @@ export default function Home() {
 
       {/* Sync Diagnostic Status Toast */}
       {syncStatus && (
-        <div className="mx-4 mt-2 p-2 bg-[#00df89]/20 border border-[#00df89] rounded-xl text-[11px] font-bold text-[#00df89] text-center animate-pulse">
-          {syncStatus}
+        <div className="mx-4 my-2 p-3 rounded-2xl bg-[#00df89]/20 border border-[#00df89] text-[#00df89] text-xs font-bold flex items-center gap-2 animate-in fade-in slide-in-from-top-2 duration-300">
+          <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+          <span>{syncStatus}</span>
         </div>
       )}
 
-      {/* Dynamic Content based on Active Tab */}
-      <div className="flex-1 px-4 pt-3">
-        {/* CHIẾN TRƯỜNG (HOME) TAB */}
-        {activeTab === 'home' && (
-          <div className="space-y-1">
-            <BalanceCard
-              tradingBalance={tradingBalance}
-              referralsIncome={referralsIncome}
-              genBadge="SPARTAN 300 AI"
-            />
-            <EquityChart />
-            <BotStatusCard isActive={isBotActive} />
-            <ActionButtons
-              isActive={isBotActive}
-              onStart={handleStart}
-              onStop={handleStop}
-            />
-            <QuantStrategyCard />
-          </div>
-        )}
+      {/* Dynamic View Router based on active bottom tab */}
+      {activeTab === 'home' && (
+        <div className="p-4 space-y-4">
+          <BalanceCard 
+            balance={tradingBalance} 
+            referralsIncome={referralsIncome} 
+          />
 
-        {/* ĐẦU TƯ (WALLET) TAB */}
-        {activeTab === 'wallet' && (
-          <WalletView
-            currentBalance={totalCombinedBalance}
-            onUpdateBalance={handleUpdateBalance}
+          <ActionButtons 
+            onDepositClick={() => setActiveTab('wallet')} 
+            onWithdrawClick={() => setActiveTab('wallet')} 
+          />
+
+          <BotStatusCard 
+            isActive={isBotActive} 
+            onStart={handleStart} 
+            onStop={handleStop} 
+          />
+
+          <EquityChart />
+
+          <QuantStrategyCard />
+
+          <TradeHistoryCard />
+        </div>
+      )}
+
+      {activeTab === 'wallet' && (
+        <div className="p-4">
+          <WalletView 
+            currentBalance={tradingBalance} 
+            onUpdateBalance={handleUpdateBalance} 
             telegramId={currentTelegramId}
             username={currentTelegramUser}
           />
-        )}
+        </div>
+      )}
 
-        {/* TỔNG QUAN (ANALYTICS & TRADE HISTORY) TAB */}
-        {activeTab === 'analytics' && (
-          <div className="space-y-3">
-            <AnalyticsView />
-            <TradeHistoryCard />
-          </div>
-        )}
+      {activeTab === 'analytics' && (
+        <div className="p-4">
+          <AnalyticsView />
+        </div>
+      )}
 
-        {/* ĐẠI LÝ (PROFILE) TAB */}
-        {activeTab === 'profile' && (
+      {activeTab === 'profile' && (
+        <div className="p-4">
           <ProfileView 
             telegramId={currentTelegramId}
             username={currentTelegramUser}
-            referralBalance={referralsIncome}
+            firstName={userFirstName}
+            isAdmin={isAdmin}
           />
-        )}
+        </div>
+      )}
 
-        {/* ADMIN CONTROL PANEL TAB (RESTRICTED FOR @tddv2017 ONLY) */}
-        {activeTab === 'admin' && isAdmin && <AdminPanel />}
-      </div>
+      {activeTab === 'admin' && isAdmin && (
+        <div className="p-4">
+          <AdminPanel />
+        </div>
+      )}
 
-      {/* Bottom Navigation */}
-      <BottomNav activeTab={activeTab} onChangeTab={handleTabChange} isAdmin={isAdmin} />
+      {/* Bottom Navigation Toolbar */}
+      <BottomNav 
+        activeTab={activeTab} 
+        onTabChange={handleTabChange} 
+        isAdmin={isAdmin}
+      />
     </main>
   );
 }

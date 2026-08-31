@@ -1,3 +1,5 @@
+import { approveLiveTransaction, TransactionData } from "./firebaseService";
+
 /**
  * TRON / TRONGRID / TRONSCAN REALTIME BLOCKCHAIN INTEGRATION SERVICE
  * Master Wallet USDT TRC20: TBGvPZsuqKH5CrSbYLEi8q2BCQ6CXyKmAu
@@ -21,6 +23,7 @@ export interface TronTRC20Transfer {
 
 const MASTER_WALLET = 'TBGvPZsuqKH5CrSbYLEi8q2BCQ6CXyKmAu';
 const USDT_CONTRACT = 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t';
+const RTDB_BASE_URL = "https://decisive-mapper-216306-default-rtdb.asia-southeast1.firebasedatabase.app";
 
 /**
  * Fetch recent incoming USDT TRC20 transactions from TronGrid API
@@ -28,12 +31,11 @@ const USDT_CONTRACT = 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t';
 export async function fetchTronGridTRC20Transfers(): Promise<TronTRC20Transfer[]> {
   try {
     const url = `https://api.trongrid.io/v1/accounts/${MASTER_WALLET}/transactions/trc20?only_confirmed=true&limit=20`;
-    console.log(`📡 [TRONGRID API] Đang quét giao dịch USDT TRC20 tại ví: ${MASTER_WALLET}...`);
 
     const res = await fetch(url, {
       method: 'GET',
       headers: { 'Accept': 'application/json' },
-      next: { revalidate: 5 } // Cache for 5 seconds
+      next: { revalidate: 5 }
     });
 
     if (res.ok) {
@@ -56,7 +58,6 @@ export async function fetchTronGridTRC20Transfers(): Promise<TronTRC20Transfer[]
             };
           });
 
-        console.log(`🟢 [TRONGRID] Quét thành công ${transfers.length} giao dịch TRC20 nhận vào ví Master.`);
         return transfers;
       }
     }
@@ -74,7 +75,6 @@ export async function fetchTronGridTRC20Transfers(): Promise<TronTRC20Transfer[]
 export async function fetchTronScanTRC20Transfers(): Promise<TronTRC20Transfer[]> {
   try {
     const url = `https://apilist.tronscanapi.com/api/token_trc20/transfers?limit=20&start=0&toAddress=${MASTER_WALLET}&tokenAddress=${USDT_CONTRACT}`;
-    console.log(`📡 [TRONSCAN API BACKUP] Quét dữ liệu giao dịch On-Chain tại TronScan...`);
 
     const res = await fetch(url, { method: 'GET', headers: { 'Accept': 'application/json' } });
     if (res.ok) {
@@ -118,8 +118,6 @@ export async function scanAndVerifyOnChainDeposit(memoCode: string, expectedGros
   fromAddress?: string;
   timestamp?: number;
 }> {
-  console.log(`🔍 [ON-CHAIN VERIFIER] Đang đối chiếu Memo: ${memoCode} trên Blockchain TRON...`);
-
   const transfers = await fetchTronGridTRC20Transfers();
   
   if (transfers.length === 0) {
@@ -158,4 +156,61 @@ export async function scanAndVerifyOnChainDeposit(memoCode: string, expectedGros
   }
 
   return { found: false };
+}
+
+/**
+ * BACKGROUND AUTO-SCANNER WORKER (Bot tự động quét TronScan/TronGrid & Phê duyệt tự động)
+ */
+export function startAutoScanWorker(onTxApproved?: (tx: TransactionData, actualAmount: number) => void) {
+  console.log(`🚀 [BOT AUTO-SCANNER WORKER] Đã kích hoạt Bot tự động quét TronGrid & TronScan (Tần suất: 8 giây/lần)...`);
+
+  const intervalId = setInterval(async () => {
+    try {
+      // 1. Fetch pending deposit transactions from Firebase
+      const res = await fetch(`${RTDB_BASE_URL}/transactions.json`);
+      if (!res.ok) return;
+
+      const data = await res.json();
+      if (!data) return;
+
+      const pendingDeposits = Object.values(data).filter(
+        (t: any) => t.type === 'DEPOSIT' && t.status === 'PENDING'
+      ) as TransactionData[];
+
+      if (pendingDeposits.length === 0) return;
+
+      console.log(`🤖 [BOT AUTO-SCANNER] Đang có ${pendingDeposits.length} đơn nạp PENDING. Đang quét On-Chain TRON...`);
+
+      // 2. Fetch recent TRON TRC20 transfers
+      const transfers = await fetchTronGridTRC20Transfers();
+      if (transfers.length === 0) return;
+
+      // 3. Match pending deposits against TRON transfers
+      for (const tx of pendingDeposits) {
+        if (!tx.id || !tx.memoCode) continue;
+
+        // Check if any transfer matches memoCode OR amount
+        const match = transfers.find(tr => 
+          (tr.memo && tr.memo === tx.memoCode) ||
+          Math.abs(tr.amount - tx.grossAmount) < 0.01 ||
+          tr.transaction_id.includes(tx.memoCode)
+        );
+
+        if (match) {
+          console.log(`🎉 [BOT AUTO-SCANNER SUCCESS] Tìm thấy TxHash On-Chain ${match.transaction_id} cho đơn nạp ${tx.id}!`);
+          console.log(`  • Số tiền thực tế chuyển On-Chain: $${match.amount.toFixed(2)} USDT`);
+          console.log(`  • Tiến hành tự động duyệt đơn và cộng vốn Net...`);
+
+          const result = await approveLiveTransaction(tx.id, 'BOT_TRONGRID_AUTOMATION', match.amount);
+          if (result.success && onTxApproved) {
+            onTxApproved(tx, match.amount);
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('AutoScan worker loop notice:', err);
+    }
+  }, 8000); // Poll every 8 seconds
+
+  return () => clearInterval(intervalId);
 }
