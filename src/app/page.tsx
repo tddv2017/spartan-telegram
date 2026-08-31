@@ -65,26 +65,26 @@ export default function Home() {
 
       if (!id && !handle) {
         handle = localStorage.getItem('spartan_username') || 'tddv2017';
-        id = localStorage.getItem('spartan_userid') || '1788035393';
-        firstName = 'Admin';
+        id = localStorage.getItem('spartan_userid') || '494232782';
+        firstName = 'Dung';
       }
     }
 
     if (!handle) handle = 'user_' + id.slice(-4);
-    if (!id) id = '1788035393';
-    if (!firstName) firstName = 'Warrior';
+    if (!id) id = '494232782';
+    if (!firstName) firstName = 'Dung';
 
     setCurrentTelegramUser(handle);
     setCurrentTelegramId(id);
     setUserFirstName(firstName);
 
-    const adminStatus = checkIsAdmin(handle);
+    const adminStatus = checkIsAdmin(handle) || checkIsAdmin(id);
     setIsAdmin(adminStatus);
 
     // FORCE IMMEDIATE UNCONDITIONAL WRITE TO FIREBASE (users/<id>)
     forceSyncUserProfile(id, handle, firstName, referrerId).then((res) => {
       if (res.success) {
-        setSyncStatus(`🔥 Đã ghi nhận Profile User -> users/${id} trên Firebase!`);
+        setSyncStatus(`🔥 Đã ghi nhận Profile User -> users/${id} (@${handle}) trên Firebase!`);
         setTimeout(() => setSyncStatus(null), 5000);
       }
     });
