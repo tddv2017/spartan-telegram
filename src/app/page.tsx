@@ -119,8 +119,6 @@ export default function Home() {
     }
   };
 
-  const totalCombinedBalance = tradingBalance + referralsIncome;
-
   const handleUpdateBalance = (newBal: number) => {
     setTradingBalance(newBal);
   };
@@ -150,7 +148,7 @@ export default function Home() {
       {activeTab === 'home' && (
         <div className="p-4 space-y-4">
           <BalanceCard 
-            balance={tradingBalance} 
+            tradingBalance={tradingBalance} 
             referralsIncome={referralsIncome} 
           />
 
