@@ -153,8 +153,9 @@ export default function Home() {
           />
 
           <ActionButtons 
-            onDepositClick={() => setActiveTab('wallet')} 
-            onWithdrawClick={() => setActiveTab('wallet')} 
+            isActive={isBotActive}
+            onStart={handleStart}
+            onStop={handleStop}
           />
 
           <BotStatusCard 
