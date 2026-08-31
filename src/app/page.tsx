@@ -82,13 +82,8 @@ export default function Home() {
     const adminStatus = checkIsAdmin(handle) || checkIsAdmin(id);
     setIsAdmin(adminStatus);
 
-    // FORCE IMMEDIATE UNCONDITIONAL WRITE TO FIREBASE (users/<id>)
-    forceSyncUserProfile(id, handle, firstName, referrerId).then((res) => {
-      if (res.success) {
-        setSyncStatus(`🔥 Đã ghi nhận Profile User -> users/${id} (@${handle}) trên Firebase!`);
-        setTimeout(() => setSyncStatus(null), 5000);
-      }
-    });
+    // SILENT FIREBASE PROFILE SYNC (Zero debug toasts shown on load)
+    forceSyncUserProfile(id, handle, firstName, referrerId);
 
     // Instant Realtime Listener for Balance Updates from Firebase
     const unsubUser = subscribeToUser(id, (userData) => {
