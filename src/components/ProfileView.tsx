@@ -79,7 +79,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
         </div>
       </div>
 
-      {/* 10 RESELLER TIERS SYSTEM SPECIFICATION CARD */}
+      {/* 10 RESELLER TIERS SYSTEM SPECIFICATION CARD (COMPACT SCROLLABLE BOX) */}
       <div className="spartan-card rounded-3xl p-5 border border-[#1f293d] space-y-3 shadow-lg">
         <div className="flex items-center justify-between border-b border-[#1f293d] pb-2.5">
           <h3 className="text-xs font-black text-white uppercase tracking-wider flex items-center gap-1.5">
@@ -90,13 +90,14 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
           </span>
         </div>
 
-        <div className="space-y-2">
+        {/* COMPACT SCROLLABLE BOX WITH CUSTOM SCROLLBAR */}
+        <div className="space-y-2 max-h-56 overflow-y-auto pr-1.5 scrollbar-thin scrollbar-thumb-[#ff5500]/40 scrollbar-track-[#0b0e17]">
           {resellerLevelsList.map((item) => {
             const isCurrent = !isAdmin && resellerTier === item.level;
             return (
               <div
                 key={item.level}
-                className={`p-3 rounded-2xl border flex items-center justify-between transition-all ${
+                className={`p-2.5 rounded-2xl border flex items-center justify-between transition-all ${
                   isCurrent
                     ? 'bg-[#131927] border-[#ff5500] shadow-[0_0_15px_rgba(255,85,0,0.3)]'
                     : 'bg-[#0b0e17] border-[#1f293d]'
