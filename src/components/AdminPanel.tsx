@@ -4,10 +4,11 @@ import React, { useState, useEffect } from 'react';
 import { 
   subscribeToPendingTransactions, 
   approveLiveTransaction, 
+  rejectLiveTransaction,
   createLiveTransaction,
   TransactionData 
 } from '@/lib/firebaseService';
-import { ShieldAlert, CheckCircle2, XCircle, Users, DollarSign, ArrowUpRight, Radio, AlertTriangle, Send, Search, Eye, Edit3, Filter, X, ArrowDown, Clock, ShieldCheck, Loader2, PlayCircle, Zap } from 'lucide-react';
+import { ShieldAlert, CheckCircle2, XCircle, Users, DollarSign, ArrowUpRight, Radio, AlertTriangle, Send, Search, Eye, Edit3, Filter, X, ArrowDown, Clock, ShieldCheck, Loader2, PlayCircle, Zap, Ban } from 'lucide-react';
 
 interface ClientUser {
   id: number;
@@ -47,10 +48,12 @@ export const AdminPanel: React.FC = () => {
     setProcessingId(tx.id);
 
     try {
-      // Execute live approval in Firestore and RTDB
-      await approveLiveTransaction(tx.id, 'tddv2017');
-
-      setNotification(`Đã PHÊ DUYỆT thành công lệnh ${tx.type} $${tx.netAmount.toFixed(2)} USDT cho user ${tx.username}! Số dư đã được cập nhật tự động!`);
+      const res = await approveLiveTransaction(tx.id, 'tddv2017');
+      if (res.success) {
+        setNotification(`Đã PHÊ DUYỆT thành công lệnh ${tx.type} $${tx.netAmount.toFixed(2)} USDT cho user ${tx.username}!`);
+      } else {
+        setNotification(res.message);
+      }
       setTimeout(() => setNotification(null), 5000);
     } catch (err) {
       console.error('Approval error:', err);
@@ -60,21 +63,38 @@ export const AdminPanel: React.FC = () => {
     }
   };
 
-  // 1-CLICK END-TO-END TEST SIMULATOR (Tự tạo lệnh -> Tự mã hóa SHA256 -> Tự đối chiếu TronGrid -> Tự cộng tiền)
+  const handleRejectLive = async (tx: TransactionData) => {
+    if (!tx.id) return;
+    setProcessingId(tx.id);
+
+    try {
+      const res = await rejectLiveTransaction(tx.id, 'tddv2017', 'Từ chối bởi Admin @tddv2017');
+      if (res.success) {
+        setNotification(`🔴 Đã TỪ CHỐI thành công lệnh ${tx.type} $${tx.grossAmount.toFixed(2)} USDT của @${tx.username}!`);
+      } else {
+        setNotification(res.message);
+      }
+      setTimeout(() => setNotification(null), 5000);
+    } catch (err) {
+      console.error('Rejection error:', err);
+      alert('Lỗi từ chối giao dịch trên Firebase!');
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  // 1-CLICK END-TO-END TEST SIMULATOR
   const handleRunFullDepositTest = async () => {
     setTestSimulating(true);
     setNotification('🧪 1. Đang khởi tạo đơn nạp $1,000 USDT và ký mã băm HMAC-SHA256...');
 
     try {
-      // 1. Create live deposit with HMAC-SHA256 Signature
       const newTx = await createLiveTransaction('1788035393', 'tddv2017', 'DEPOSIT', 1000.00);
 
       setNotification(`🧪 2. Đã tạo Đơn Nạp ${newTx.id}! Đang giả lập Bot TronGrid quét TxHash & đối chiếu chữ ký SHA-256...`);
 
-      // Wait 1.5s to simulate block confirmation
       await new Promise((r) => setTimeout(r, 1500));
 
-      // 2. Approve transaction & credit balance
       await approveLiveTransaction(newTx.id || '', 'BOT_TRONGRID_AUTOMATION');
 
       setNotification(`🎉 TEST THÀNH CÔNG! Đã khởi tạo ${newTx.id}, mã băm SHA-256 đối chiếu KHỚP 100%, cộng Net +$907.00 USDT vào tài khoản @tddv2017!`);
@@ -178,7 +198,9 @@ export const AdminPanel: React.FC = () => {
                       Memo: {item.memoCode}
                     </span>
                   </div>
-                  <span className="text-[10px] font-black text-[#00df89]">
+                  <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${
+                    item.type === 'DEPOSIT' ? 'text-[#00df89] bg-[#00df89]/10' : 'text-[#ff2d55] bg-[#ff2d55]/10'
+                  }`}>
                     {item.type === 'DEPOSIT' ? 'YÊU CẦU NẠP TIỀN' : 'YÊU CẦU RÚT TIỀN'}
                   </span>
                 </div>
@@ -198,19 +220,34 @@ export const AdminPanel: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Approve Action Button */}
-                <div className="pt-1">
+                {/* Approve & Reject Dual Action Buttons */}
+                <div className="grid grid-cols-2 gap-2 pt-1">
+                  {/* Approve Button */}
                   <button
                     onClick={() => handleApproveLive(item)}
                     disabled={processingId === item.id}
-                    className="w-full py-2.5 rounded-xl bg-[#00df89] text-black font-black text-xs flex items-center justify-center gap-1.5 hover:opacity-90 transition-opacity"
+                    className="py-2.5 rounded-xl bg-[#00df89] text-black font-black text-xs flex items-center justify-center gap-1 hover:opacity-90 transition-opacity"
                   >
                     {processingId === item.id ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
                     ) : (
-                      <CheckCircle2 className="w-4 h-4" />
+                      <CheckCircle2 className="w-3.5 h-3.5" />
                     )}
-                    <span>XÁC NHẬN PHÊ DUYỆT & CỘNG VỐN FIREBASE</span>
+                    <span>DUYỆT LỆNH</span>
+                  </button>
+
+                  {/* Reject Button */}
+                  <button
+                    onClick={() => handleRejectLive(item)}
+                    disabled={processingId === item.id}
+                    className="py-2.5 rounded-xl bg-[#ff2d55] text-white font-black text-xs flex items-center justify-center gap-1 hover:opacity-90 transition-opacity shadow-[0_2px_10px_rgba(255,45,85,0.3)]"
+                  >
+                    {processingId === item.id ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Ban className="w-3.5 h-3.5" />
+                    )}
+                    <span>TỪ CHỐI LỆNH</span>
                   </button>
                 </div>
               </div>

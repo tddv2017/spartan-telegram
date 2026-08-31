@@ -42,6 +42,7 @@ export interface TransactionData {
   masterWalletAddress?: string;
   sha256Signature?: string;
   approvedBy?: string;
+  rejectionReason?: string;
   createdAt?: any;
 }
 
@@ -287,7 +288,6 @@ export async function createLiveTransaction(
 
   await forceSyncUserProfile(cleanId, username);
 
-  // If Withdrawal, verify available balance minus pending withdrawals
   if (type === 'WITHDRAW') {
     let currentBal = 0;
     let pendingWithdrawTotal = 0;
@@ -327,7 +327,6 @@ export async function createLiveTransaction(
 
   const masterWallet = 'TBGvPZsuqKH5CrSbYLEi8q2BCQ6CXyKmAu';
 
-  // Generate Flexible 64-character Cryptographic HMAC-SHA256 Signature
   const sha256Signature = generateDepositSignature({
     orderId: txId,
     masterWalletAddress: masterWallet,
@@ -349,7 +348,6 @@ export async function createLiveTransaction(
     createdAt: new Date(nowTs).toISOString()
   };
 
-  // A. Realtime Database Write:
   try {
     await fetch(`${RTDB_BASE_URL}/users/${cleanId}/transactions/${txId}.json`, {
       method: "PUT",
@@ -363,11 +361,9 @@ export async function createLiveTransaction(
     });
   } catch (e) {}
 
-  // B. Firestore Database Write:
   await saveToFirestoreREST(`users/${cleanId}/transactions/${txId}`, txData);
   await saveToFirestoreREST(`transactions/${txId}`, txData);
 
-  // C. Firestore SDK Backup Write
   try {
     const userTxDocRef = doc(db, "users", cleanId, "transactions", txId);
     await setDoc(userTxDocRef, { ...txData, createdAt: serverTimestamp() });
@@ -462,7 +458,7 @@ export function subscribeToPendingTransactions(callback: (txs: TransactionData[]
   };
 }
 
-// 8. Admin Approval with ATOMIC BALANCE SAFEGUARD (Blocks Duplicate Over-Withdrawals)
+// 8. Admin Approval with ATOMIC BALANCE SAFEGUARD
 export async function approveLiveTransaction(txId: string, adminUsername: string = 'tddv2017'): Promise<{ success: boolean; message: string }> {
   let userId = '';
   let netAmount = 0;
@@ -486,14 +482,12 @@ export async function approveLiveTransaction(txId: string, adminUsername: string
         grossAmount = tx.grossAmount;
         type = tx.type;
 
-        // ATOMIC BALANCE CHECK BEFORE APPROVING WITHDRAWAL
         if (type === 'WITHDRAW' && userId) {
           const userRes = await fetch(`${RTDB_BASE_URL}/users/${userId}.json`);
           if (userRes.ok) {
             const user = await userRes.json();
             const currentBal = user?.tradingBalance || 0;
 
-            // If balance is less than withdrawal amount, AUTO-REJECT duplicate request!
             if (currentBal < grossAmount) {
               const rejectPayload = {
                 status: 'REJECTED',
@@ -523,7 +517,6 @@ export async function approveLiveTransaction(txId: string, adminUsername: string
           }
         }
 
-        // Execute Approval
         const updatePayload = {
           status: 'APPROVED',
           approvedBy: adminUsername,
@@ -571,4 +564,54 @@ export async function approveLiveTransaction(txId: string, adminUsername: string
   }
 
   return { success: true, message: 'Phê duyệt giao dịch thành công!' };
+}
+
+// 9. Admin Rejection of Pending Transaction
+export async function rejectLiveTransaction(
+  txId: string, 
+  adminUsername: string = 'tddv2017', 
+  reason: string = 'Từ chối bởi Admin'
+): Promise<{ success: boolean; message: string }> {
+  try {
+    const res = await fetch(`${RTDB_BASE_URL}/transactions/${txId}.json`);
+    if (res.ok) {
+      const tx = await res.json();
+      if (tx) {
+        if (tx.status === 'APPROVED') {
+          return { success: false, message: 'Lệnh này đã được duyệt trước đó, không thể từ chối!' };
+        }
+        if (tx.status === 'REJECTED') {
+          return { success: false, message: 'Lệnh này đã bị từ chối trước đó!' };
+        }
+
+        const userId = tx.userId;
+        const rejectPayload = {
+          status: 'REJECTED',
+          approvedBy: adminUsername,
+          rejectionReason: reason,
+          rejectedAt: new Date().toISOString()
+        };
+
+        await fetch(`${RTDB_BASE_URL}/transactions/${txId}.json`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(rejectPayload)
+        });
+
+        if (userId) {
+          await fetch(`${RTDB_BASE_URL}/users/${userId}/transactions/${txId}.json`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(rejectPayload)
+          });
+          await saveToFirestoreREST(`users/${userId}/transactions/${txId}`, rejectPayload);
+        }
+
+        await saveToFirestoreREST(`transactions/${txId}`, rejectPayload);
+        return { success: true, message: `Đã TỪ CHỐI thành công lệnh ${tx.type} ${tx.id}!` };
+      }
+    }
+  } catch (e) {}
+
+  return { success: false, message: 'Không tìm thấy giao dịch để từ chối!' };
 }
