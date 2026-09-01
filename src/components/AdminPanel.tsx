@@ -18,6 +18,7 @@ import { AdminOverviewTab } from './admin/AdminOverviewTab';
 import { AccountingAuditTab } from './admin/AccountingAuditTab';
 import { PersonnelHrTab } from './admin/PersonnelHrTab';
 import { TechOpsTab } from './admin/TechOpsTab';
+import { AiAgentsCommandCenter } from './admin/AiAgentsCommandCenter';
 import { 
   ShieldCheck, 
   Layers, 
@@ -25,10 +26,11 @@ import {
   Users, 
   Cpu, 
   RefreshCw,
-  Crown
+  Crown,
+  Bot
 } from 'lucide-react';
 
-type AdminDepartment = 'overview' | 'accounting' | 'personnel' | 'techops';
+type AdminDepartment = 'overview' | 'accounting' | 'personnel' | 'techops' | 'agents';
 
 export const AdminPanel: React.FC = () => {
   const [activeDept, setActiveDept] = useState<AdminDepartment>('overview');
@@ -122,8 +124,9 @@ export const AdminPanel: React.FC = () => {
   const departments = [
     { id: 'overview' as AdminDepartment, label: 'OVERVIEW', icon: Layers },
     { id: 'accounting' as AdminDepartment, label: 'ACCOUNTING', icon: Receipt },
-    { id: 'personnel' as AdminDepartment, label: 'HR & RESELLER', icon: Users },
+    { id: 'personnel' as AdminDepartment, label: 'HR', icon: Users },
     { id: 'techops' as AdminDepartment, label: 'TECH OPS', icon: Cpu },
+    { id: 'agents' as AdminDepartment, label: 'AI AGENTS', icon: Bot },
   ];
 
   return (
@@ -163,8 +166,8 @@ export const AdminPanel: React.FC = () => {
         </div>
       )}
 
-      {/* 4 Administrative Departments Sub-Nav Bar */}
-      <div className="grid grid-cols-4 p-1 bg-[#0b0e17] rounded-2xl border border-[#1f293d]">
+      {/* 5 Administrative Departments Sub-Nav Bar */}
+      <div className="grid grid-cols-5 p-1 bg-[#0b0e17] rounded-2xl border border-[#1f293d]">
         {departments.map((dept) => {
           const Icon = dept.icon;
           const isActive = activeDept === dept.id;
@@ -172,7 +175,7 @@ export const AdminPanel: React.FC = () => {
             <button
               key={dept.id}
               onClick={() => setActiveDept(dept.id)}
-              className={`py-2 px-1 rounded-xl text-[10px] font-black uppercase flex flex-col items-center justify-center gap-1 transition-all ${
+              className={`py-2 px-1 rounded-xl text-[9px] font-black uppercase flex flex-col items-center justify-center gap-1 transition-all ${
                 isActive
                   ? 'bg-amber-500 text-black shadow-md font-black'
                   : 'text-gray-400 hover:text-white'
@@ -220,6 +223,10 @@ export const AdminPanel: React.FC = () => {
           systemConfig={systemConfig}
           onRefresh={loadSystemData}
         />
+      )}
+
+      {activeDept === 'agents' && (
+        <AiAgentsCommandCenter />
       )}
     </div>
   );
