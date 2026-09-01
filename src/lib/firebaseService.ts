@@ -19,12 +19,15 @@ export interface UserData {
   telegramId: string;
   username: string;
   firstName: string;
-  role: 'CLIENT' | 'RESELLER' | 'ADMIN';
+  role: 'CLIENT' | 'RESELLER' | 'ADMIN' | 'ACCOUNTANT' | 'TECH_OPS';
   tradingBalance: number;
   referralBalance: number;
   referralCode: string;
   referrerId?: string;
   resellerTier: number;
+  botActive?: boolean;
+  isFrozen?: boolean;
+  freezeReason?: string;
   createdAt?: any;
   updatedAt?: any;
 }
@@ -768,3 +771,33 @@ export function subscribeToLiveTrades(callback: (trades: any[]) => void) {
     clearInterval(intervalId);
   };
 }
+
+// 11. REALTIME LISTENER FOR SYSTEM CONFIGURATION (MAINTENANCE MODE & GLOBAL BOT)
+export function subscribeToSystemConfig(callback: (config: { maintenanceMode: boolean; globalBotActive: boolean; broadcastNotice?: string }) => void) {
+  let isSubscribed = true;
+
+  const fetchConfig = async () => {
+    try {
+      const res = await fetch(`${RTDB_BASE_URL}/system_config.json`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data && isSubscribed) {
+          callback({
+            maintenanceMode: data.maintenanceMode === true,
+            globalBotActive: data.globalBotActive !== false,
+            broadcastNotice: data.broadcastNotice || ''
+          });
+        }
+      }
+    } catch (e) {}
+  };
+
+  fetchConfig();
+  const intervalId = setInterval(fetchConfig, 4000);
+
+  return () => {
+    isSubscribed = false;
+    clearInterval(intervalId);
+  };
+}
+
