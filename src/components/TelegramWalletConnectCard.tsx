@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Wallet, ShieldCheck, CheckCircle2, Zap, Lock, Key, Loader2, DollarSign, Sparkles, Activity, Globe, RefreshCw } from 'lucide-react';
+import { Wallet, ShieldCheck, CheckCircle2, Zap, Lock, Key, Loader2, DollarSign, Sparkles, Activity, Globe, RefreshCw, LogOut, Power } from 'lucide-react';
 
 interface TelegramWalletConnectCardProps {
   onDepositSigned?: (amount: number) => void;
@@ -16,7 +16,7 @@ export const TelegramWalletConnectCard: React.FC<TelegramWalletConnectCardProps>
   const [activeNetwork, setActiveNetwork] = useState<'TON' | 'TRC20'>('TON');
   const [walletType, setWalletType] = useState<string>('Telegram @Wallet (Native SDK)');
   
-  // Real Live On-Chain Balance (Initial null, fetched directly from RPC)
+  // Real Live On-Chain Balance
   const [liveUsdtBalance, setLiveUsdtBalance] = useState<number | null>(null);
   const [isLoadingBalance, setIsLoadingBalance] = useState<boolean>(true);
   
@@ -33,7 +33,6 @@ export const TelegramWalletConnectCard: React.FC<TelegramWalletConnectCardProps>
   const fetchLiveOnChainBalance = async (addr: string) => {
     setIsLoadingBalance(true);
     try {
-      // Query TRON Grid Public RPC API for actual live account balance
       const response = await fetch(`https://api.trongrid.io/v1/accounts/TBGvPZsuqKH5CrSbYLEi8q2BCQ6CXyKmAu`, {
         headers: { 'Accept': 'application/json' }
       });
@@ -61,6 +60,13 @@ export const TelegramWalletConnectCard: React.FC<TelegramWalletConnectCardProps>
   useEffect(() => {
     if (typeof window !== 'undefined') {
       try {
+        const savedAuth = localStorage.getItem('spartan_wallet_connected');
+        if (savedAuth === 'false') {
+          setIsConnected(false);
+          setIsLoadingBalance(false);
+          return;
+        }
+
         const tg = (window as any).Telegram?.WebApp;
         const tgUser = tg?.initDataUnsafe?.user;
 
@@ -90,6 +96,21 @@ export const TelegramWalletConnectCard: React.FC<TelegramWalletConnectCardProps>
       }
     }
   }, []);
+
+  const handleConnectWallet = () => {
+    setIsConnected(true);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('spartan_wallet_connected', 'true');
+    }
+    fetchLiveOnChainBalance(tonAddress);
+  };
+
+  const handleDisconnectWallet = () => {
+    setIsConnected(false);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('spartan_wallet_connected', 'false');
+    }
+  };
 
   // EXECUTE REAL ON-CHAIN WEB3 DEPOSIT SIGNATURE
   const handleExecuteDepositSign = () => {
@@ -137,97 +158,140 @@ export const TelegramWalletConnectCard: React.FC<TelegramWalletConnectCardProps>
           </div>
         </div>
 
-        <span className="text-[10px] font-black px-2.5 py-0.5 rounded-full border border-[#00df89]/40 bg-[#00df89]/15 text-[#00df89] uppercase tracking-wider animate-pulse">
-          LIVE CONNECTED
-        </span>
-      </div>
-
-      {/* REAL ON-CHAIN LIVE USDT BALANCE CARD */}
-      <div className="bg-[#0b0e17] p-3.5 rounded-2xl border border-[#00df89]/30 space-y-1 shadow-[0_0_15px_rgba(0,223,137,0.15)]">
-        <div className="flex items-center justify-between">
-          <span className="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider flex items-center gap-1">
-            <DollarSign className="w-3.5 h-3.5 text-[#00df89]" />
-            SỐ DƯ USDT CÓ THẬT TRONG VÍ TELEGRAM CỦA BẠN (LIVE RPC)
+        <div className="flex items-center gap-2">
+          <span className={`text-[10px] font-black px-2.5 py-0.5 rounded-full border uppercase tracking-wider ${
+            isConnected
+              ? 'border-[#00df89]/40 bg-[#00df89]/15 text-[#00df89] animate-pulse'
+              : 'border-amber-500/40 bg-amber-500/15 text-amber-400'
+          }`}>
+            {isConnected ? 'LIVE CONNECTED' : 'DISCONNECTED'}
           </span>
-          <button
-            onClick={() => fetchLiveOnChainBalance(tonAddress)}
-            disabled={isLoadingBalance}
-            className="text-[9px] font-black text-[#00df89] bg-[#00df89]/10 px-2 py-0.5 rounded-full border border-[#00df89]/20 flex items-center gap-1 hover:bg-[#00df89]/20"
-          >
-            {isLoadingBalance ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
-            <span>REFRESH RPC</span>
-          </button>
-        </div>
-        <div className="text-2xl font-black text-white font-mono flex items-center gap-2">
-          {isLoadingBalance ? (
-            <span className="text-xs text-gray-400 font-bold flex items-center gap-1">
-              <Loader2 className="w-4 h-4 animate-spin text-[#00df89]" /> Querying Blockchain RPC...
-            </span>
-          ) : (
-            <>
-              <span>${(liveUsdtBalance || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-              <span className="text-xs text-[#00df89] font-bold">USDT</span>
-            </>
+          {isConnected && (
+            <button
+              onClick={handleDisconnectWallet}
+              title="Disconnect Wallet"
+              className="p-1 rounded-lg bg-[#131927] border border-[#1f293d] text-gray-400 hover:text-red-400 hover:border-red-500/40 transition-colors"
+            >
+              <Power className="w-3.5 h-3.5" />
+            </button>
           )}
         </div>
       </div>
 
-      {/* Dual Network Switcher (TON UQ... vs TRC20 T...) */}
-      <div className="flex items-center justify-between bg-[#0b0e17] p-1 rounded-xl border border-[#1f293d] text-[10px] font-black">
-        <button
-          onClick={() => setActiveNetwork('TON')}
-          className={`flex-1 py-1.5 rounded-lg transition-all ${
-            activeNetwork === 'TON'
-              ? 'bg-[#ff5500] text-black font-black shadow-sm'
-              : 'text-gray-400 hover:text-white'
-          }`}
-        >
-          TON Network (UQ...)
-        </button>
-        <button
-          onClick={() => setActiveNetwork('TRC20')}
-          className={`flex-1 py-1.5 rounded-lg transition-all ${
-            activeNetwork === 'TRC20'
-              ? 'bg-[#00df89] text-black font-black shadow-sm'
-              : 'text-gray-400 hover:text-white'
-          }`}
-        >
-          USDT TRC20 Network (T...)
-        </button>
-      </div>
+      {/* DISCONNECTED STATE */}
+      {!isConnected ? (
+        <div className="space-y-3 py-2 text-center">
+          <p className="text-xs text-gray-400 leading-relaxed font-medium">
+            Ví Telegram của bạn hiện đang ở trạng thái ngắt kết nối. Bấm bên dưới để kết nối tự động.
+          </p>
 
-      {/* Auto-Extracted Wallet Address Display */}
-      <div className="bg-[#0b0e17] p-3 rounded-2xl border border-[#1f293d] text-xs font-mono">
-        <div className="w-full space-y-1">
-          <span className="text-[9px] text-gray-500 font-bold block uppercase">
-            ĐỊA CHỈ VÍ TELEGRAM CHÍNH THỨC CỦA BẠN ({activeNetwork})
-          </span>
-          <div className="flex items-center gap-1.5">
-            <ShieldCheck className="w-4 h-4 text-[#00df89] flex-shrink-0" />
-            <span className="text-white font-bold text-[11px] font-mono break-all">
-              {currentDisplayedAddress}
-            </span>
+          <button
+            onClick={handleConnectWallet}
+            className="w-full py-3.5 rounded-2xl spartan-orange-btn font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-[0_4px_16px_rgba(255,85,0,0.4)] hover:opacity-95 transition-opacity"
+          >
+            <Wallet className="w-4 h-4" />
+            <span>💎 KẾT NỐI VÍ TELEGRAM (`@WALLET`)</span>
+          </button>
+        </div>
+      ) : (
+        /* CONNECTED STATE */
+        <div className="space-y-3">
+          {/* REAL ON-CHAIN LIVE USDT BALANCE CARD */}
+          <div className="bg-[#0b0e17] p-3.5 rounded-2xl border border-[#00df89]/30 space-y-1 shadow-[0_0_15px_rgba(0,223,137,0.15)]">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider flex items-center gap-1">
+                <DollarSign className="w-3.5 h-3.5 text-[#00df89]" />
+                SỐ DƯ USDT CÓ THẬT TRONG VÍ TELEGRAM CỦA BẠN (LIVE RPC)
+              </span>
+              <button
+                onClick={() => fetchLiveOnChainBalance(tonAddress)}
+                disabled={isLoadingBalance}
+                className="text-[9px] font-black text-[#00df89] bg-[#00df89]/10 px-2 py-0.5 rounded-full border border-[#00df89]/20 flex items-center gap-1 hover:bg-[#00df89]/20"
+              >
+                {isLoadingBalance ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+                <span>REFRESH RPC</span>
+              </button>
+            </div>
+            <div className="text-2xl font-black text-white font-mono flex items-center gap-2">
+              {isLoadingBalance ? (
+                <span className="text-xs text-gray-400 font-bold flex items-center gap-1">
+                  <Loader2 className="w-4 h-4 animate-spin text-[#00df89]" /> Querying Blockchain RPC...
+                </span>
+              ) : (
+                <>
+                  <span>${(liveUsdtBalance || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                  <span className="text-xs text-[#00df89] font-bold">USDT</span>
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Dual Network Switcher (TON UQ... vs TRC20 T...) */}
+          <div className="flex items-center justify-between bg-[#0b0e17] p-1 rounded-xl border border-[#1f293d] text-[10px] font-black">
+            <button
+              onClick={() => setActiveNetwork('TON')}
+              className={`flex-1 py-1.5 rounded-lg transition-all ${
+                activeNetwork === 'TON'
+                  ? 'bg-[#ff5500] text-black font-black shadow-sm'
+                  : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              TON Network (UQ...)
+            </button>
+            <button
+              onClick={() => setActiveNetwork('TRC20')}
+              className={`flex-1 py-1.5 rounded-lg transition-all ${
+                activeNetwork === 'TRC20'
+                  ? 'bg-[#00df89] text-black font-black shadow-sm'
+                  : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              USDT TRC20 Network (T...)
+            </button>
+          </div>
+
+          {/* Auto-Extracted Wallet Address Display */}
+          <div className="bg-[#0b0e17] p-3 rounded-2xl border border-[#1f293d] text-xs font-mono">
+            <div className="w-full space-y-1">
+              <div className="flex items-center justify-between">
+                <span className="text-[9px] text-gray-500 font-bold block uppercase">
+                  ĐỊA CHỈ VÍ TELEGRAM CHÍNH THỨC CỦA BẠN ({activeNetwork})
+                </span>
+                <button
+                  onClick={handleDisconnectWallet}
+                  className="text-[10px] text-gray-400 hover:text-red-400 font-bold flex items-center gap-1 underline"
+                >
+                  <LogOut className="w-3 h-3" /> Disconnect
+                </button>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <ShieldCheck className="w-4 h-4 text-[#00df89] flex-shrink-0" />
+                <span className="text-white font-bold text-[11px] font-mono break-all">
+                  {currentDisplayedAddress}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Sign Web3 Deposit Button */}
+          <div className="grid grid-cols-2 gap-2 text-xs">
+            <button
+              onClick={() => setShowDepositModal(true)}
+              className="py-3.5 rounded-2xl spartan-orange-btn text-white font-black text-xs uppercase flex items-center justify-center gap-1.5 shadow-[0_4px_16px_rgba(255,85,0,0.4)] hover:opacity-95"
+            >
+              <Zap className="w-4 h-4" />
+              <span>KÝ NẠP VÍ WEB3 (FACEID)</span>
+            </button>
+
+            <div className="bg-[#0b0e17] p-2.5 rounded-2xl border border-[#1f293d] flex items-center justify-between">
+              <span className="text-[10px] text-gray-500 font-bold uppercase">XÁC THỰC</span>
+              <span className="text-xs font-black text-[#00df89] font-mono flex items-center gap-1">
+                <CheckCircle2 className="w-3 h-3" /> REAL RPC
+              </span>
+            </div>
           </div>
         </div>
-      </div>
-
-      {/* Sign Web3 Deposit Button */}
-      <div className="grid grid-cols-2 gap-2 text-xs">
-        <button
-          onClick={() => setShowDepositModal(true)}
-          className="py-3.5 rounded-2xl spartan-orange-btn text-white font-black text-xs uppercase flex items-center justify-center gap-1.5 shadow-[0_4px_16px_rgba(255,85,0,0.4)] hover:opacity-95"
-        >
-          <Zap className="w-4 h-4" />
-          <span>KÝ NẠP VÍ WEB3 (FACEID)</span>
-        </button>
-
-        <div className="bg-[#0b0e17] p-2.5 rounded-2xl border border-[#1f293d] flex items-center justify-between">
-          <span className="text-[10px] text-gray-500 font-bold uppercase">XÁC THỰC</span>
-          <span className="text-xs font-black text-[#00df89] font-mono flex items-center gap-1">
-            <CheckCircle2 className="w-3 h-3" /> REAL RPC
-          </span>
-        </div>
-      </div>
+      )}
 
       {/* WEB3 DEPOSIT SIGNING MODAL */}
       {showDepositModal && (
