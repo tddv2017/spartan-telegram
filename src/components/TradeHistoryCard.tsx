@@ -43,7 +43,7 @@ export const TradeHistoryCard: React.FC = () => {
         <div className="flex items-center gap-2">
           <History className="w-4 h-4 text-[#ff5500]" />
           <h3 className="text-xs font-black text-white uppercase tracking-wider">
-            LỊCH SỬ LỆNH KHỚP (EXNESS MT5 LIVE)
+            EXECUTED ORDER HISTORY (EXNESS MT5 LIVE)
           </h3>
         </div>
         <div className="flex items-center gap-1 text-[10px] font-black text-[#00df89] bg-[#00df89]/10 px-2 py-0.5 rounded-full border border-[#00df89]/20 font-mono">
@@ -56,7 +56,7 @@ export const TradeHistoryCard: React.FC = () => {
       {isLoading ? (
         <div className="py-8 text-center text-xs text-gray-500 font-bold flex items-center justify-center gap-2">
           <Activity className="w-4 h-4 animate-spin text-[#ff5500]" />
-          <span>Đang đồng bộ luồng lệnh thời gian thực từ Exness...</span>
+          <span>Syncing real-time order execution stream from Exness...</span>
         </div>
       ) : trades.length === 0 ? (
         <div className="py-8 px-4 text-center rounded-2xl bg-[#0b0e17] border border-[#1f293d] space-y-2">
@@ -64,10 +64,10 @@ export const TradeHistoryCard: React.FC = () => {
             <Activity className="w-5 h-5 animate-pulse" />
           </div>
           <h4 className="text-xs font-black text-white uppercase tracking-wider">
-            CHƯA CÓ LỆNH GIAO DỊCH MỚI
+            NO NEW TRADES EXECUTED
           </h4>
           <p className="text-[11px] text-gray-400 max-w-xs mx-auto leading-relaxed">
-            Hệ thống Quant AI đang quét thị trường Vàng (XAU/USD). Lệnh thực tế khớp từ tài khoản Master Exness sẽ hiển thị tự động tại đây khi bot mở vị thế.
+            Quant AI is scanning Gold (XAU/USD) markets. Live filled orders from Master Exness accounts will automatically appear here upon position trigger.
           </p>
         </div>
       ) : (

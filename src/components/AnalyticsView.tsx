@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { TradeHistoryCard, TradeOrder } from '@/components/TradeHistoryCard';
-import { BarChart3, TrendingUp, PieChart, Activity, DollarSign, Percent, ShieldCheck } from 'lucide-react';
+import { BarChart3 } from 'lucide-react';
 import { subscribeToLiveTrades } from '@/lib/firebaseService';
 
 export const AnalyticsView: React.FC = () => {
@@ -33,7 +33,7 @@ export const AnalyticsView: React.FC = () => {
           <div className="flex items-center gap-2">
             <BarChart3 className="w-4 h-4 text-[#ff5500]" />
             <h2 className="text-xs font-black text-white uppercase tracking-wider">
-              HIỆU SUẤT GIAO DỊCH QUANT AI (LIVE REALTIME)
+              QUANT AI TRADING PERFORMANCE (LIVE REALTIME)
             </h2>
           </div>
           <span className="text-[10px] font-black text-[#00df89] bg-[#00df89]/10 px-2.5 py-0.5 rounded-full border border-[#00df89]/20 uppercase">
@@ -50,7 +50,7 @@ export const AnalyticsView: React.FC = () => {
               {winRate}%
             </div>
             <span className="text-[9px] text-gray-500 font-bold block mt-0.5">
-              {totalTrades} Lệnh ({winningTrades.length} Thắng / {losingTrades.length} Thua)
+              {totalTrades} Trades ({winningTrades.length} Won / {losingTrades.length} Lost)
             </span>
           </div>
 
@@ -60,7 +60,7 @@ export const AnalyticsView: React.FC = () => {
             <div className="text-xl font-black text-amber-400 font-mono">
               {profitFactor}
             </div>
-            <span className="text-[9px] text-gray-500 font-bold block mt-0.5">Tỷ lệ Lãi / Lỗ</span>
+            <span className="text-[9px] text-gray-500 font-bold block mt-0.5">Profit / Loss Ratio</span>
           </div>
 
           {/* Sharpe Ratio */}
@@ -69,7 +69,7 @@ export const AnalyticsView: React.FC = () => {
             <div className="text-xl font-black text-[#ff5500] font-mono">
               {totalTrades > 0 ? '2.18' : '0.00'}
             </div>
-            <span className="text-[9px] text-gray-500 font-bold block mt-0.5">Kiểm soát rủi ro</span>
+            <span className="text-[9px] text-gray-500 font-bold block mt-0.5">Risk-Adjusted Return</span>
           </div>
 
           {/* Max Drawdown */}
@@ -78,26 +78,26 @@ export const AnalyticsView: React.FC = () => {
             <div className="text-xl font-black text-emerald-400 font-mono">
               {totalTrades > 0 ? '-3.8%' : '0.0%'}
             </div>
-            <span className="text-[9px] text-gray-500 font-bold block mt-0.5">Sụt giảm vốn tối đa</span>
+            <span className="text-[9px] text-gray-500 font-bold block mt-0.5">Peak Capital Drawdown</span>
           </div>
         </div>
 
         {/* Detailed Financial Stats Grid */}
         <div className="bg-[#0b0e17] rounded-2xl p-3.5 border border-[#1f293d] space-y-2 text-xs">
           <div className="flex justify-between text-gray-400">
-            <span>Tổng Lãi (Gross Profit):</span>
+            <span>Gross Profit:</span>
             <span className="font-mono font-bold text-[#00df89]">+${grossProfit.toFixed(2)} USD</span>
           </div>
           <div className="flex justify-between text-gray-400">
-            <span>Tổng Lỗ (Gross Loss):</span>
+            <span>Gross Loss:</span>
             <span className="font-mono font-bold text-[#ff2d55]">-${grossLoss.toFixed(2)} USD</span>
           </div>
           <div className="flex justify-between text-gray-400">
-            <span>Lợi Nhuận Trung Bình Lệnh Thắng:</span>
+            <span>Average Winning Trade:</span>
             <span className="font-mono font-bold text-[#00df89]">+${avgWin} USD</span>
           </div>
           <div className="flex justify-between text-gray-400">
-            <span>Thua Lỗ Trung Bình Lệnh Thua:</span>
+            <span>Average Losing Trade:</span>
             <span className="font-mono font-bold text-[#ff2d55]">-${avgLoss} USD</span>
           </div>
         </div>
