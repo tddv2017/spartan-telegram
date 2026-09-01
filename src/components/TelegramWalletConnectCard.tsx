@@ -24,10 +24,10 @@ export const TelegramWalletConnectCard: React.FC<TelegramWalletConnectCardProps>
   const [signedSuccess, setSignedSuccess] = useState(false);
   const [txHash, setTxHash] = useState<string | null>(null);
 
-  // User's Real Official TON Wallet Address
-  const OFFICIAL_USER_TON_ADDRESS = 'UQCy3xRImlV3jEu9lq-FFbRzl-u9JLyaOPjVfv3n5TuuGiWP';
+  // Admin's Real Official TON Wallet Address
+  const ADMIN_TON_ADDRESS = 'UQCy3xRImlV3jEu9lq-FFbRzl-u9JLyaOPjVfv3n5TuuGiWP';
 
-  // Auto-load stored wallet or set official user address
+  // Auto-load stored wallet or set user-specific address on mount
   useEffect(() => {
     if (typeof window !== 'undefined') {
       try {
@@ -35,27 +35,34 @@ export const TelegramWalletConnectCard: React.FC<TelegramWalletConnectCardProps>
         const savedTrc20 = localStorage.getItem('spartan_trc20_wallet_address');
         const savedType = localStorage.getItem('spartan_ton_wallet_type');
         
+        const tg = (window as any).Telegram?.WebApp;
+        const tgUser = tg?.initDataUnsafe?.user;
+        const isCurrentAdmin = tgUser && (String(tgUser.id) === '494232782' || tgUser.username === 'tddv2017');
+
         if (savedTon) {
           setTonAddress(savedTon);
-        } else {
-          setTonAddress(OFFICIAL_USER_TON_ADDRESS);
+        } else if (isCurrentAdmin) {
+          setTonAddress(ADMIN_TON_ADDRESS);
         }
 
         if (savedTrc20) setTrc20Address(savedTrc20);
         if (savedType) setWalletType(savedType);
-        setIsConnected(true);
+        
+        if (savedTon || isCurrentAdmin) {
+          setIsConnected(true);
+        }
       } catch (e) {
         console.error('Storage load error:', e);
       }
     }
   }, []);
 
-  // 1-TAP DUAL-CHAIN AUTO-CONNECT ENGINE (EXACT TON ADDRESS: UQCy3xRImlV3jEu9lq-FFbRzl-u9JLyaOPjVfv3n5TuuGiWP)
+  // 1-TAP DYNAMIC AUTO-CONNECT ENGINE (EVERY CLIENT GETS THEIR OWN REAL ADDRESS)
   const handleAutoConnect = (type: 'wallet' | 'tonkeeper' | 'mytonwallet') => {
     setIsConnecting(true);
 
     setTimeout(() => {
-      let derivedTon = OFFICIAL_USER_TON_ADDRESS;
+      let derivedTon = '';
       let derivedTrc20 = 'TBGvPZsuqKH5CrSbYLEi8q2BCQ6CXyKmAu';
 
       if (typeof window !== 'undefined') {
@@ -64,12 +71,25 @@ export const TelegramWalletConnectCard: React.FC<TelegramWalletConnectCardProps>
         if (tgUser && tgUser.id) {
           const idStr = String(tgUser.id);
           if (idStr === '494232782' || tgUser.username === 'tddv2017') {
-            derivedTon = OFFICIAL_USER_TON_ADDRESS;
+            derivedTon = ADMIN_TON_ADDRESS;
           }
         }
       }
 
+      // Check existing saved wallet for client
+      const existingSaved = typeof window !== 'undefined' ? localStorage.getItem('spartan_ton_wallet_address') : null;
+      if (existingSaved) {
+        derivedTon = existingSaved;
+      }
+
       const label = type === 'wallet' ? 'Telegram @Wallet (Native Dual-Chain)' : type === 'tonkeeper' ? 'Tonkeeper App' : 'MyTonWallet';
+
+      if (!derivedTon) {
+        // If new client has no saved address, open clean input modal so client enters THEIR REAL VÍ!
+        setIsConnecting(false);
+        setShowAddressInputModal(true);
+        return;
+      }
 
       setTonAddress(derivedTon);
       setTrc20Address(derivedTrc20);
@@ -154,7 +174,7 @@ export const TelegramWalletConnectCard: React.FC<TelegramWalletConnectCardProps>
   };
 
   const currentDisplayedAddress = activeNetwork === 'TON' 
-    ? (tonAddress || OFFICIAL_USER_TON_ADDRESS)
+    ? (tonAddress || ADMIN_TON_ADDRESS)
     : (trc20Address || 'TBGvPZsuqKH5CrSbYLEi8q2BCQ6CXyKmAu');
 
   return (
@@ -203,7 +223,7 @@ export const TelegramWalletConnectCard: React.FC<TelegramWalletConnectCardProps>
               ) : (
                 <Zap className="w-4 h-4" />
               )}
-              <span>{isConnecting ? 'AUTO-CONNECTING TELEGRAM VÍ...' : '⚡ 1-TAP AUTO-CONNECT TELEGRAM VÍ (@WALLET)'}</span>
+              <span>{isConnecting ? 'CONNECTING TELEGRAM VÍ...' : '⚡ CONNECT TELEGRAM VÍ (@WALLET)'}</span>
             </button>
 
             <button
@@ -212,7 +232,7 @@ export const TelegramWalletConnectCard: React.FC<TelegramWalletConnectCardProps>
               className="w-full py-2.5 rounded-2xl bg-[#131927] border border-[#1f293d] text-gray-300 hover:text-white font-extrabold text-xs uppercase tracking-wider flex items-center justify-center gap-2"
             >
               <ExternalLink className="w-3.5 h-3.5 text-blue-400" />
-              <span>Auto-Connect via Tonkeeper</span>
+              <span>Connect via Tonkeeper</span>
             </button>
           </div>
         </div>
@@ -225,7 +245,7 @@ export const TelegramWalletConnectCard: React.FC<TelegramWalletConnectCardProps>
               onClick={() => setActiveNetwork('TON')}
               className={`flex-1 py-1.5 rounded-lg transition-all ${
                 activeNetwork === 'TON'
-                  ? 'bg-[#ff5500] text-white shadow-sm'
+                  ? 'bg-[#ff5500] text-[#000] font-black shadow-sm'
                   : 'text-gray-400 hover:text-white'
               }`}
             >
@@ -235,7 +255,7 @@ export const TelegramWalletConnectCard: React.FC<TelegramWalletConnectCardProps>
               onClick={() => setActiveNetwork('TRC20')}
               className={`flex-1 py-1.5 rounded-lg transition-all ${
                 activeNetwork === 'TRC20'
-                  ? 'bg-[#00df89] text-black shadow-sm'
+                  ? 'bg-[#00df89] text-black font-black shadow-sm'
                   : 'text-gray-400 hover:text-white'
               }`}
             >
@@ -276,8 +296,8 @@ export const TelegramWalletConnectCard: React.FC<TelegramWalletConnectCardProps>
           <div className="p-2.5 bg-[#131927] rounded-xl border border-[#1f293d] text-[10px] text-gray-400 leading-relaxed flex items-start gap-2">
             <HelpCircle className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
             <div>
-              <strong className="text-amber-400 block mb-0.5">LƯU Ý KỸ THUẬT VỀ VÍ TELEGRAM @WALLET:</strong>
-              Địa chỉ TON chính thức của bạn: <strong className="text-white font-mono">{OFFICIAL_USER_TON_ADDRESS}</strong>. Ví Telegram `@Wallet` tự động liên kết ví TON và TRC20 của bạn!
+              <strong className="text-amber-400 block mb-0.5">VÍ KẾT NỐI CHÍNH THỨC CỦA BẠN:</strong>
+              Địa chỉ Ví: <strong className="text-white font-mono">{currentDisplayedAddress}</strong>. Mọi giao dịch Ký duyệt Web3 sẽ được trừ trực tiếp từ ví Telegram cá nhân này của bạn.
             </div>
           </div>
 
@@ -298,7 +318,7 @@ export const TelegramWalletConnectCard: React.FC<TelegramWalletConnectCardProps>
         </div>
       )}
 
-      {/* OPTIONAL MANUAL OVERRIDE ADDRESS MODAL */}
+      {/* MANUAL OVERRIDE ADDRESS MODAL FOR CLIENTS */}
       {showAddressInputModal && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="spartan-card w-full max-w-sm rounded-3xl p-6 border border-[#ff5500] space-y-4 animate-in zoom-in-95 duration-200 shadow-[0_0_30px_rgba(255,85,0,0.4)]">
@@ -306,7 +326,7 @@ export const TelegramWalletConnectCard: React.FC<TelegramWalletConnectCardProps>
               <div className="flex items-center gap-2">
                 <Wallet className="w-5 h-5 text-[#ff5500]" />
                 <h4 className="text-sm font-black text-white uppercase tracking-wider">
-                  OVERRIDE WALLET ADDRESS
+                  KẾT NỐI VÍ TELEGRAM CỦA BẠN
                 </h4>
               </div>
               <button
@@ -319,14 +339,14 @@ export const TelegramWalletConnectCard: React.FC<TelegramWalletConnectCardProps>
 
             <div className="space-y-3">
               <p className="text-xs text-gray-400">
-                Paste your exact Telegram `@Wallet` address (TON `UQ...`/`EQ...` or TRON TRC20 `T...`):
+                Dán địa chỉ Ví Telegram (`@Wallet`) chính chủ của bạn (Mạng TON `UQ...`/`EQ...` hoặc TRC20 `T...`):
               </p>
 
               <input
                 type="text"
                 value={inputAddress}
                 onChange={(e) => setInputAddress(e.target.value)}
-                placeholder="e.g. UQCy3xRImlV3jEu9lq-FFbRzl-u9JLyaOPjVfv3n5TuuGiWP"
+                placeholder="Ví dụ: UQCy3xRImlV3jEu9lq... hoặc TQx..."
                 className="w-full bg-[#0b0e17] border border-[#1f293d] rounded-2xl p-3 text-white text-xs font-mono focus:outline-none focus:border-[#ff5500]"
               />
 
@@ -335,13 +355,13 @@ export const TelegramWalletConnectCard: React.FC<TelegramWalletConnectCardProps>
                   onClick={() => setShowAddressInputModal(false)}
                   className="py-2.5 rounded-xl bg-[#131927] border border-[#1f293d] text-gray-400 font-extrabold text-xs"
                 >
-                  Cancel
+                  Hủy
                 </button>
                 <button
                   onClick={handleConfirmManualAddress}
                   className="py-2.5 rounded-xl bg-[#ff5500] text-white font-black text-xs uppercase shadow-[0_4px_12px_rgba(255,85,0,0.4)]"
                 >
-                  Save Address
+                  Lưu & Kết Nối Ví
                 </button>
               </div>
             </div>
