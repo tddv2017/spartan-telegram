@@ -139,7 +139,7 @@ export async function forceSyncUserProfile(
   // A. Realtime Database Write (users/<cleanId>)
   try {
     const restRes = await fetch(`${RTDB_BASE_URL}/users/${cleanId}.json`, {
-      method: "PUT",
+      method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(userPayload)
     });
@@ -251,20 +251,27 @@ export function subscribeToUser(telegramId: string, callback: (user: UserData | 
   };
 }
 
-// 4. Listener for Referred Users List
+// 4. Listener for Referred Users List (Immediate Fetch + Polling + Realtime Listener)
 export function subscribeToReferredUsers(telegramId: string, callback: (users: any[]) => void) {
   let rtdbUnsub = () => {};
   const cleanId = String(telegramId || '494232782');
 
-  const intervalId = setInterval(async () => {
+  const fetchRefs = async () => {
     try {
       const res = await fetch(`${RTDB_BASE_URL}/users/${cleanId}/referrals.json`);
       if (res.ok) {
         const data = await res.json();
-        if (data) callback(Object.values(data));
+        if (data && typeof data === 'object') {
+          callback(Object.values(data));
+        } else {
+          callback([]);
+        }
       }
     } catch (e) {}
-  }, 5000);
+  };
+
+  fetchRefs();
+  const intervalId = setInterval(fetchRefs, 3000);
 
   try {
     const refsRef = ref(rtdb, `users/${cleanId}/referrals`);
@@ -379,26 +386,26 @@ export async function createLiveTransaction(
   return txData;
 }
 
-// 6. Realtime Listener for User's Transactions History (Hybrid Sub-collection + Global Fallback)
+// 6. Realtime Listener for User's Transactions History (Immediate Fetch + Polling + Realtime Listener)
 export function subscribeToUserTransactions(telegramId: string, callback: (txs: TransactionData[]) => void) {
   let firestoreUnsub = () => {};
   let rtdbUnsub = () => {};
   const cleanId = String(telegramId || '494232782');
 
-  const intervalId = setInterval(async () => {
+  const fetchTxs = async () => {
     try {
       const res = await fetch(`${RTDB_BASE_URL}/users/${cleanId}/transactions.json`);
       let list1: TransactionData[] = [];
       if (res.ok) {
         const data = await res.json();
-        if (data) list1 = Object.values(data) as TransactionData[];
+        if (data && typeof data === 'object') list1 = Object.values(data) as TransactionData[];
       }
 
       const gRes = await fetch(`${RTDB_BASE_URL}/transactions.json`);
       let list2: TransactionData[] = [];
       if (gRes.ok) {
         const gData = await gRes.json();
-        if (gData) {
+        if (gData && typeof gData === 'object') {
           list2 = (Object.values(gData) as TransactionData[]).filter(t => String(t.userId) === cleanId);
         }
       }
@@ -411,9 +418,12 @@ export function subscribeToUserTransactions(telegramId: string, callback: (txs: 
       });
 
       const combined = Array.from(map.values());
-      if (combined.length > 0) callback(combined);
+      callback(combined);
     } catch (e) {}
-  }, 3000);
+  };
+
+  fetchTxs();
+  const intervalId = setInterval(fetchTxs, 3000);
 
   try {
     const userTxsRef = ref(rtdb, `users/${cleanId}/transactions`);

@@ -26,7 +26,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
   const [referredUsers, setReferredUsers] = useState<any[]>([]);
 
   const dynamicTier = calculateResellerTier(referredUsers.length, 0);
-  const effectiveTier = Math.max(resellerTier, dynamicTier.tier);
+  const effectiveTier = referredUsers.length > 0 ? dynamicTier.tier : (resellerTier || 1);
 
   const isAdmin = checkIsAdmin(username) || checkIsAdmin(telegramId);
   const rank = getUserRankInfo(isAdmin, username, effectiveTier);

@@ -21,6 +21,7 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState<TabType>('home');
   const [tradingBalance, setTradingBalance] = useState<number>(0.00);
   const [referralsIncome, setReferralsIncome] = useState<number>(0.00);
+  const [resellerTier, setResellerTier] = useState<number>(1);
   const [isBotActive, setIsBotActive] = useState<boolean>(true);
   const [currentTelegramUser, setCurrentTelegramUser] = useState<string>('');
   const [currentTelegramId, setCurrentTelegramId] = useState<string>('');
@@ -90,6 +91,7 @@ export default function Home() {
       if (userData) {
         if (typeof userData.tradingBalance === 'number') setTradingBalance(userData.tradingBalance);
         if (typeof userData.referralBalance === 'number') setReferralsIncome(userData.referralBalance);
+        if (typeof userData.resellerTier === 'number') setResellerTier(userData.resellerTier);
       }
     });
 
@@ -132,6 +134,7 @@ export default function Home() {
         username={currentTelegramUser}
         isAdmin={isAdmin}
         tradingBalance={tradingBalance}
+        resellerTier={resellerTier}
         onClose={() => alert('Telegram Mini App Closed')} 
       />
 
@@ -191,6 +194,7 @@ export default function Home() {
             username={currentTelegramUser}
             referralBalance={referralsIncome}
             tradingBalance={tradingBalance}
+            resellerTier={resellerTier}
           />
         </div>
       )}
