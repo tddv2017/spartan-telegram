@@ -7,7 +7,9 @@ interface BotStatusCardProps {
   isActive?: boolean;
 }
 
-export const BotStatusCard: React.FC<BotStatusCardProps> = () => {
+export const BotStatusCard: React.FC<BotStatusCardProps> = ({
+  isActive = true,
+}) => {
   const [goldData, setGoldData] = useState<GoldPriceData>({
     symbol: 'XAUUSD',
     price: 4450.31,
@@ -34,15 +36,24 @@ export const BotStatusCard: React.FC<BotStatusCardProps> = () => {
   }, []);
 
   return (
-    <div className="w-full bg-[#131927] rounded-3xl p-4 border border-[#1f293d] flex items-center justify-between shadow-md">
-      {/* Bot Status */}
+    <div className="w-full bg-[#131927] rounded-3xl p-4 border border-[#1f293d] flex items-center justify-between shadow-md transition-all">
+      {/* Dynamic Bot Status */}
       <div>
         <span className="text-[11px] text-gray-400 font-bold block mb-1">
           Bot status
         </span>
-        <div className="flex items-center gap-1.5 font-black text-xs text-white">
-          <span className="w-2.5 h-2.5 rounded-full bg-[#00df89] inline-block shadow-[0_0_8px_#00df89]" />
-          <span>Active (Hunting M5/H1)</span>
+        <div className="flex items-center gap-1.5 font-black text-xs">
+          {isActive ? (
+            <>
+              <span className="w-2.5 h-2.5 rounded-full bg-[#00df89] inline-block shadow-[0_0_8px_#00df89] animate-pulse" />
+              <span className="text-[#00df89]">Active (Hunting M5/H1)</span>
+            </>
+          ) : (
+            <>
+              <span className="w-2.5 h-2.5 rounded-full bg-amber-400 inline-block shadow-[0_0_8px_rgba(245,158,11,0.6)]" />
+              <span className="text-amber-300">Standby (Idle/Paused)</span>
+            </>
+          )}
         </div>
       </div>
 

@@ -135,16 +135,34 @@ export default function Home() {
     setTradingBalance(newBal);
   };
 
-  const handleStart = () => {
+  const handleStart = async () => {
     if (!isGlobalBotActive) {
       alert('⚠️ Global Bot Engine is currently paused by TechOps administrator.');
       return;
     }
     setIsBotActive(true);
+    setSyncStatus('⚔️ SPARTAN BOT ENGAGED: Actively hunting M5/H1 Gold setups on Exness ECN!');
+    setTimeout(() => setSyncStatus(null), 5000);
+    if (currentTelegramId) {
+      fetch(`https://decisive-mapper-216306-default-rtdb.asia-southeast1.firebasedatabase.app/users/${currentTelegramId}.json`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ botActive: true })
+      }).catch(() => {});
+    }
   };
 
-  const handleStop = () => {
+  const handleStop = async () => {
     setIsBotActive(false);
+    setSyncStatus('🛡️ SPARTAN BOT STANDBY: Trading algorithm paused. Existing capital protected.');
+    setTimeout(() => setSyncStatus(null), 5000);
+    if (currentTelegramId) {
+      fetch(`https://decisive-mapper-216306-default-rtdb.asia-southeast1.firebasedatabase.app/users/${currentTelegramId}.json`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ botActive: false })
+      }).catch(() => {});
+    }
   };
 
   const effectiveBotActive = isBotActive && isGlobalBotActive && !isAccountFrozen;
@@ -158,7 +176,7 @@ export default function Home() {
         tradingBalance={tradingBalance}
         resellerTier={resellerTier}
         isBotActive={effectiveBotActive}
-        isTechOpsPaused={!isGlobalBotActive || !isBotActive}
+        isTechOpsPaused={!isGlobalBotActive}
         onClose={() => alert('Telegram Mini App Closed')} 
       />
 
