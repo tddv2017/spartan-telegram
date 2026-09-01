@@ -35,10 +35,10 @@ export const PersonnelHrTab: React.FC<PersonnelHrTabProps> = ({
     setUpdatingId(userId);
     const success = await updateUserRoleAndTier(userId, { resellerTier: newTier });
     if (success) {
-      setStatusMsg(`✅ Successfully updated user ID ${userId} to RESELLER LEVEL ${newTier}!`);
+      setStatusMsg(`✅ Đã cập nhật thành công người dùng ID ${userId} lên CẤP ĐẠI LÝ ${newTier}!`);
       onRefresh();
     } else {
-      setStatusMsg(`❌ Failed to update tier for user ${userId}!`);
+      setStatusMsg(`❌ Không thể cập nhật cấp bậc cho người dùng ${userId}!`);
     }
     setTimeout(() => setStatusMsg(null), 4000);
     setUpdatingId(null);
@@ -48,10 +48,10 @@ export const PersonnelHrTab: React.FC<PersonnelHrTabProps> = ({
     setUpdatingId(userId);
     const success = await updateUserRoleAndTier(userId, { role: newRole });
     if (success) {
-      setStatusMsg(`✅ Successfully updated role for user ID ${userId} to ${newRole}!`);
+      setStatusMsg(`✅ Đã cập nhật vai trò người dùng ID ${userId} thành ${newRole}!`);
       onRefresh();
     } else {
-      setStatusMsg(`❌ Failed to update role for user ${userId}!`);
+      setStatusMsg(`❌ Không thể cập nhật vai trò cho người dùng ${userId}!`);
     }
     setTimeout(() => setStatusMsg(null), 4000);
     setUpdatingId(null);
@@ -62,10 +62,10 @@ export const PersonnelHrTab: React.FC<PersonnelHrTabProps> = ({
     const newFrozen = !currentFrozen;
     const success = await updateUserRoleAndTier(userId, { isFrozen: newFrozen });
     if (success) {
-      setStatusMsg(newFrozen ? `🔒 Account ${userId} has been FROZEN!` : `🔓 Account ${userId} has been UNFROZEN!`);
+      setStatusMsg(newFrozen ? `🔒 Tài khoản ${userId} ĐÃ BỊ KHÓA / ĐÓNG BĂNG!` : `🔓 Tài khoản ${userId} ĐÃ ĐƯỢC MỞ KHÓA HOẠT ĐỘNG!`);
       onRefresh();
     } else {
-      setStatusMsg(`❌ Error toggling account state for ${userId}!`);
+      setStatusMsg(`❌ Lỗi khi thay đổi trạng thái khóa cho ${userId}!`);
     }
     setTimeout(() => setStatusMsg(null), 4000);
     setUpdatingId(null);
@@ -96,11 +96,11 @@ export const PersonnelHrTab: React.FC<PersonnelHrTabProps> = ({
           <div className="flex items-center gap-2">
             <Users className="w-4 h-4 text-[#ff5500]" />
             <h3 className="text-xs font-black text-white uppercase tracking-wider">
-              PERSONNEL & RESELLER NETWORK DIRECTORY ({filteredUsers.length})
+              DANH BẠ QUẢN LÝ NHÂN SỰ & MẠNG LƯỚI ĐẠI LÝ ({filteredUsers.length})
             </h3>
           </div>
           <span className="text-[10px] font-bold text-gray-400 font-mono">
-            Total {users.length} registered
+            Tổng {users.length} thành viên
           </span>
         </div>
 
@@ -112,23 +112,30 @@ export const PersonnelHrTab: React.FC<PersonnelHrTabProps> = ({
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search by username, name, or Telegram ID..."
+              placeholder="Tìm theo Username, Tên, hoặc Telegram ID..."
               className="w-full bg-[#0b0e17] border border-[#1f293d] rounded-xl py-2 pl-9 pr-3 text-white text-xs font-mono focus:outline-none focus:border-[#ff5500]"
             />
           </div>
 
           <div className="flex items-center gap-1 overflow-x-auto pb-1">
-            {(['ALL', 'ADMIN', 'ACCOUNTANT', 'TECH_OPS', 'RESELLER', 'CLIENT'] as const).map((r) => (
+            {([
+              { id: 'ALL', label: 'TẤT CẢ' },
+              { id: 'ADMIN', label: 'QUẢN TRỊ (ADMIN)' },
+              { id: 'ACCOUNTANT', label: 'KẾ TOÁN' },
+              { id: 'TECH_OPS', label: 'KỸ THUẬT' },
+              { id: 'RESELLER', label: 'ĐẠI LÝ' },
+              { id: 'CLIENT', label: 'NHÀ ĐẦU TƯ' }
+            ] as const).map((r) => (
               <button
-                key={r}
-                onClick={() => setSelectedRole(r)}
+                key={r.id}
+                onClick={() => setSelectedRole(r.id)}
                 className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase whitespace-nowrap transition-all ${
-                  selectedRole === r
+                  selectedRole === r.id
                     ? 'bg-[#ff5500] text-white shadow-sm'
                     : 'bg-[#0b0e17] text-gray-400 hover:text-white border border-[#1f293d]'
                 }`}
               >
-                {r}
+                {r.label}
               </button>
             ))}
           </div>
@@ -138,7 +145,7 @@ export const PersonnelHrTab: React.FC<PersonnelHrTabProps> = ({
         <div className="space-y-3 max-h-[500px] overflow-y-auto pr-1">
           {filteredUsers.length === 0 ? (
             <div className="text-center py-6 text-xs text-gray-500 font-bold bg-[#0b0e17] rounded-xl">
-              No personnel or clients matching criteria
+              Không tìm thấy thành viên nào phù hợp
             </div>
           ) : (
             filteredUsers.map((u) => {
@@ -161,7 +168,7 @@ export const PersonnelHrTab: React.FC<PersonnelHrTabProps> = ({
                           <span className="font-extrabold text-white">@{u.username || 'user'}</span>
                           {u.isFrozen && (
                             <span className="text-[9px] font-black bg-red-500/20 text-red-400 border border-red-500/40 px-1.5 py-0.2 rounded">
-                              FROZEN
+                              ĐÃ KHÓA
                             </span>
                           )}
                         </div>
@@ -186,48 +193,48 @@ export const PersonnelHrTab: React.FC<PersonnelHrTabProps> = ({
                       ) : (
                         <Lock className="w-3 h-3" />
                       )}
-                      <span>{u.isFrozen ? 'Unfreeze' : 'Freeze Account'}</span>
+                      <span>{u.isFrozen ? 'Mở Khóa' : 'Khóa Tài Khoản'}</span>
                     </button>
                   </div>
 
                   {/* Financial Stats & F1 Network Volume */}
                   <div className="grid grid-cols-3 gap-2 bg-[#131927] p-2.5 rounded-xl border border-[#1f293d] font-mono text-[10px]">
                     <div>
-                      <span className="text-gray-400 block text-[8px]">TRADING CAPITAL:</span>
+                      <span className="text-gray-400 block text-[8px]">VỐN ĐẦU TƯ:</span>
                       <span className="font-black text-white">${u.tradingBalance?.toFixed(2) || '0.00'}</span>
                     </div>
                     <div>
-                      <span className="text-gray-400 block text-[8px]">COMMISSION:</span>
+                      <span className="text-gray-400 block text-[8px]">HOA HỒNG:</span>
                       <span className="font-black text-[#00df89]">+${u.referralBalance?.toFixed(2) || '0.00'}</span>
                     </div>
                     <div className="text-right">
-                      <span className="text-gray-400 block text-[8px]">ACTIVE F1s:</span>
-                      <span className="font-black text-amber-300">{u.f1Count || 0} Members</span>
+                      <span className="text-gray-400 block text-[8px]">F1 TRỰC THUỘC:</span>
+                      <span className="font-black text-amber-300">{u.f1Count || 0} Thành viên</span>
                     </div>
                   </div>
 
                   {/* Role & Reseller Tier Selectors */}
-                  <div className="grid grid-cols-2 gap-2 pt-1">
+                  <div className="grid grid-cols-2 gap-2 pt-1 font-sans">
                     {/* Role Selector */}
                     <div>
-                      <label className="text-[9px] text-gray-400 font-bold block mb-1">ASSIGN ROLE</label>
+                      <label className="text-[9px] text-gray-400 font-bold block mb-1">PHÂN QUYỀN VAI TRÒ</label>
                       <select
                         value={u.role || 'CLIENT'}
                         onChange={(e) => handleRoleChange(u.telegramId, e.target.value)}
                         disabled={isUpdating}
                         className="w-full bg-[#131927] border border-[#1f293d] rounded-xl px-2 py-1.5 text-[11px] font-bold text-gray-200 focus:outline-none focus:border-[#ff5500]"
                       >
-                        <option value="CLIENT">CLIENT (Investor)</option>
-                        <option value="RESELLER">RESELLER (Affiliate)</option>
-                        <option value="ACCOUNTANT">ACCOUNTANT (Audit)</option>
-                        <option value="TECH_OPS">TECH_OPS (Engineer)</option>
-                        <option value="ADMIN">ADMIN (Supreme)</option>
+                        <option value="CLIENT">NHÀ ĐẦU TƯ (Client)</option>
+                        <option value="RESELLER">ĐẠI LÝ (Reseller)</option>
+                        <option value="ACCOUNTANT">KẾ TOÁN (Accountant)</option>
+                        <option value="TECH_OPS">KỸ THUẬT (TechOps)</option>
+                        <option value="ADMIN">QUẢN TRỊ TỐI CAO (Admin)</option>
                       </select>
                     </div>
 
                     {/* Tier Selector */}
                     <div>
-                      <label className="text-[9px] text-gray-400 font-bold block mb-1">RESELLER TIER</label>
+                      <label className="text-[9px] text-gray-400 font-bold block mb-1">CẤP BẬC ĐẠI LÝ</label>
                       <select
                         value={u.resellerTier || 1}
                         onChange={(e) => handleTierChange(u.telegramId, parseInt(e.target.value, 10))}
@@ -236,7 +243,7 @@ export const PersonnelHrTab: React.FC<PersonnelHrTabProps> = ({
                       >
                         {Array.from({ length: 10 }, (_, i) => i + 1).map((lvl) => (
                           <option key={lvl} value={lvl}>
-                            LEVEL {lvl} ({lvl * 2}% Rebate)
+                            CẤP ĐỘ {lvl} (Hoàn {lvl * 2}% Phí)
                           </option>
                         ))}
                       </select>

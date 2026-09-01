@@ -59,7 +59,7 @@ export const AdminPanel: React.FC = () => {
       setAllTransactions(tList);
       setSystemConfig(sysCfg);
     } catch (err) {
-      console.error('Error loading admin data:', err);
+      console.error('Lỗi tải dữ liệu quản trị:', err);
     } finally {
       setIsRefreshing(false);
     }
@@ -80,15 +80,15 @@ export const AdminPanel: React.FC = () => {
     try {
       const res = await approveLiveTransaction(txId, 'tddv2017');
       if (res.success) {
-        setAdminStatusMsg(`✅ APPROVED order ${txId} (+${tx.netAmount.toFixed(2)} USDT) for @${tx.username}!`);
+        setAdminStatusMsg(`✅ ĐÃ DUYỆT thành công đơn ${txId} (+${tx.netAmount.toFixed(2)} USDT) cho @${tx.username}!`);
         loadSystemData();
       } else {
         setAdminStatusMsg(`⚠️ ${res.message}`);
       }
       setTimeout(() => setAdminStatusMsg(null), 5000);
     } catch (err) {
-      console.error('Approve error:', err);
-      setAdminStatusMsg(`❌ Error approving order ${txId}!`);
+      console.error('Lỗi duyệt đơn:', err);
+      setAdminStatusMsg(`❌ Lỗi khi duyệt đơn ${txId}!`);
     } finally {
       setLoadingMap(prev => ({ ...prev, [key]: false }));
     }
@@ -99,17 +99,17 @@ export const AdminPanel: React.FC = () => {
     const txId = tx.id || tx.memoCode;
     setLoadingMap(prev => ({ ...prev, [key]: true }));
     try {
-      const res = await rejectLiveTransaction(txId, 'tddv2017', 'Rejected by Admin');
+      const res = await rejectLiveTransaction(txId, 'tddv2017', 'Từ chối bởi Quản trị viên');
       if (res.success) {
-        setAdminStatusMsg(`🚫 REJECTED order ${txId} for user @${tx.username}!`);
+        setAdminStatusMsg(`🚫 ĐÃ TỪ CHỐI đơn ${txId} của người dùng @${tx.username}!`);
         loadSystemData();
       } else {
         setAdminStatusMsg(`⚠️ ${res.message}`);
       }
       setTimeout(() => setAdminStatusMsg(null), 5000);
     } catch (err) {
-      console.error('Reject error:', err);
-      setAdminStatusMsg(`❌ Error rejecting order ${txId}!`);
+      console.error('Lỗi từ chối đơn:', err);
+      setAdminStatusMsg(`❌ Lỗi khi từ chối đơn ${txId}!`);
     } finally {
       setLoadingMap(prev => ({ ...prev, [key]: false }));
     }
@@ -117,16 +117,16 @@ export const AdminPanel: React.FC = () => {
 
   const handleBroadcast = () => {
     if (!broadcastMsg.trim()) return;
-    alert(`📢 DISPATCHED BROADCAST MESSAGE TO ALL USERS:\n\n"${broadcastMsg}"`);
+    alert(`📢 ĐÃ PHÁT THÔNG BÁO TỚI TOÀN BỘ NGƯỜI DÙNG:\n\n"${broadcastMsg}"`);
     setBroadcastMsg('');
   };
 
   const departments = [
-    { id: 'overview' as AdminDepartment, label: 'OVERVIEW', icon: Layers },
-    { id: 'accounting' as AdminDepartment, label: 'ACCOUNTING', icon: Receipt },
-    { id: 'personnel' as AdminDepartment, label: 'HR', icon: Users },
-    { id: 'techops' as AdminDepartment, label: 'TECH OPS', icon: Cpu },
-    { id: 'agents' as AdminDepartment, label: 'AI AGENTS', icon: Bot },
+    { id: 'overview' as AdminDepartment, label: 'TỔNG QUAN', icon: Layers },
+    { id: 'accounting' as AdminDepartment, label: 'KẾ TOÁN', icon: Receipt },
+    { id: 'personnel' as AdminDepartment, label: 'NHÂN SỰ & F1', icon: Users },
+    { id: 'techops' as AdminDepartment, label: 'KỸ THUẬT', icon: Cpu },
+    { id: 'agents' as AdminDepartment, label: 'AI AGENT', icon: Bot },
   ];
 
   return (
@@ -140,10 +140,10 @@ export const AdminPanel: React.FC = () => {
             </div>
             <div>
               <h2 className="text-base font-black text-white uppercase tracking-wider flex items-center gap-1.5">
-                ADMIN MASTER SUITE
+                TRUNG TÂM ĐIỀU HÀNH QUẢN TRỊ
               </h2>
               <span className="text-[10px] text-amber-400 font-mono font-bold block">
-                Supreme Executive: @tddv2017 (ID: 494232782)
+                Ban Quản Trị Tối Cao: @tddv2017 (ID: 494232782)
               </span>
             </div>
           </div>
@@ -152,6 +152,7 @@ export const AdminPanel: React.FC = () => {
             onClick={loadSystemData}
             disabled={isRefreshing}
             className="p-2.5 rounded-2xl bg-[#0b0e17] border border-[#1f293d] text-gray-300 hover:text-white transition-colors"
+            title="Làm mới dữ liệu hệ thống"
           >
             <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin text-amber-400' : ''}`} />
           </button>

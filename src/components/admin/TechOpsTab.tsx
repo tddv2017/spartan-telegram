@@ -41,10 +41,10 @@ export const TechOpsTab: React.FC<TechOpsTabProps> = ({
     const nextState = !systemConfig.globalBotActive;
     const success = await updateSystemConfig({ globalBotActive: nextState });
     if (success) {
-      setStatusMsg(nextState ? '🚀 GLOBAL BOT ENGINE RESUMED!' : '🛑 GLOBAL EMERGENCY KILL-SWITCH ACTIVATED!');
+      setStatusMsg(nextState ? '🚀 ĐÃ KÍCH HOẠT LẠI BOT TỔNG TOÀN HỆ THỐNG!' : '🛑 ĐÃ BẬT CÔNG TẮC NGẮT BOT TỔNG KHẨN CẤP!');
       onRefresh();
     } else {
-      setStatusMsg('❌ Failed to update global bot state!');
+      setStatusMsg('❌ Không thể cập nhật trạng thái bot tổng!');
     }
     setTimeout(() => setStatusMsg(null), 4000);
     setUpdatingSystem(false);
@@ -56,13 +56,13 @@ export const TechOpsTab: React.FC<TechOpsTabProps> = ({
     const nextState = !systemConfig.maintenanceMode;
     const success = await updateSystemConfig({ 
       maintenanceMode: nextState,
-      broadcastNotice: maintenanceNotice || 'System undergoing scheduled institutional maintenance.'
+      broadcastNotice: maintenanceNotice || 'Hệ thống đang tiến hành nâng cấp bảo trì hạ tầng định chế.'
     });
     if (success) {
-      setStatusMsg(nextState ? '⚠️ SYSTEM MAINTENANCE MODE ENGAGED!' : '✅ SYSTEM MAINTENANCE MODE DISENGAGED (ONLINE)!');
+      setStatusMsg(nextState ? '⚠️ ĐÃ BẬT CHẾ ĐỘ BẢO TRÌ TOÀN HỆ THỐNG!' : '✅ ĐÃ TẮT BẢO TRÌ - HỆ THỐNG TRỰC TUYẾN BÌNH THƯỜNG!');
       onRefresh();
     } else {
-      setStatusMsg('❌ Failed to update maintenance mode!');
+      setStatusMsg('❌ Không thể cập nhật chế độ bảo trì!');
     }
     setTimeout(() => setStatusMsg(null), 4000);
     setUpdatingSystem(false);
@@ -74,10 +74,10 @@ export const TechOpsTab: React.FC<TechOpsTabProps> = ({
     const nextState = !currentActive;
     const success = await setUserBotStatus(userId, nextState);
     if (success) {
-      setStatusMsg(nextState ? `🟢 Bot ENABLED for user ${userId}` : `🔴 Bot PAUSED for user ${userId}`);
+      setStatusMsg(nextState ? `🟢 ĐÃ BẬT BOT cho người dùng ID ${userId}` : `🔴 ĐÃ TẠM DỪNG BOT cho người dùng ID ${userId}`);
       onRefresh();
     } else {
-      setStatusMsg(`❌ Failed to toggle bot for user ${userId}`);
+      setStatusMsg(`❌ Lỗi khi đổi trạng thái bot cho người dùng ${userId}`);
     }
     setTimeout(() => setStatusMsg(null), 4000);
     setUpdatingUserId(null);
@@ -105,11 +105,11 @@ export const TechOpsTab: React.FC<TechOpsTabProps> = ({
           <div className="flex items-center gap-2">
             <Cpu className="w-4 h-4 text-[#ff5500]" />
             <h3 className="text-xs font-black text-white uppercase tracking-wider">
-              MASTER SYSTEM & BOT KILL-SWITCHES
+              CÔNG TẮC ĐIỀU KHIỂN & NGẮT KHẨN CẤP
             </h3>
           </div>
           <span className="text-[10px] font-mono font-bold text-[#00df89] flex items-center gap-1">
-            <Radio className="w-3 h-3 animate-pulse" /> CLOUD SYNC
+            <Radio className="w-3 h-3 animate-pulse" /> ĐỒNG BỘ ĐÁM MÂY
           </span>
         </div>
 
@@ -117,10 +117,10 @@ export const TechOpsTab: React.FC<TechOpsTabProps> = ({
         <div className="flex items-center justify-between p-3 rounded-2xl bg-[#0b0e17] border border-[#1f293d]">
           <div>
             <span className="text-xs font-extrabold text-white block">
-              GLOBAL BOT TRADING ENGINE
+              BOT TỔNG TOÀN HỆ THỐNG
             </span>
             <span className="text-[10px] text-gray-400 block mt-0.5">
-              Instantly start or stop automated copytrade for all users.
+              Bật hoặc Dừng khẩn cấp copytrade của toàn bộ người dùng.
             </span>
           </div>
 
@@ -134,7 +134,7 @@ export const TechOpsTab: React.FC<TechOpsTabProps> = ({
             }`}
           >
             {updatingSystem ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Power className="w-3.5 h-3.5" />}
-            <span>{systemConfig.globalBotActive ? 'BOTS ONLINE' : 'STOPPED'}</span>
+            <span>{systemConfig.globalBotActive ? 'BOT ĐANG CHẠY' : 'ĐÃ DỪNG TỔNG'}</span>
           </button>
         </div>
 
@@ -142,10 +142,10 @@ export const TechOpsTab: React.FC<TechOpsTabProps> = ({
         <div className="flex items-center justify-between p-3 rounded-2xl bg-[#0b0e17] border border-[#1f293d]">
           <div>
             <span className="text-xs font-extrabold text-white block">
-              SYSTEM MAINTENANCE MODE
+              CHẾ ĐỘ BẢO TRÌ HỆ THỐNG
             </span>
             <span className="text-[10px] text-gray-400 block mt-0.5">
-              Locks deposit/withdrawals and displays maintenance splash banner.
+              Tạm khóa nạp/rút và hiển thị banner thông báo bảo trì.
             </span>
           </div>
 
@@ -159,7 +159,7 @@ export const TechOpsTab: React.FC<TechOpsTabProps> = ({
             }`}
           >
             {updatingSystem ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Wrench className="w-3.5 h-3.5" />}
-            <span>{systemConfig.maintenanceMode ? 'ENGAGED' : 'OFFLINE'}</span>
+            <span>{systemConfig.maintenanceMode ? 'ĐANG BẢO TRÌ' : 'TRỰC TUYẾN'}</span>
           </button>
         </div>
       </div>
@@ -170,10 +170,10 @@ export const TechOpsTab: React.FC<TechOpsTabProps> = ({
           <div className="flex items-center gap-2">
             <Power className="w-4 h-4 text-[#ff5500]" />
             <h3 className="text-xs font-black text-white uppercase tracking-wider">
-              GRANULAR PER-USER BOT CONTROLLER ({filteredUsers.length})
+              ĐIỀU KHIỂN BOT TỪNG CÁ NHÂN ({filteredUsers.length})
             </h3>
           </div>
-          <span className="text-[10px] text-gray-400 font-mono">Individual Override</span>
+          <span className="text-[10px] text-gray-400 font-mono">Tác chiến riêng lẻ</span>
         </div>
 
         {/* Search */}
@@ -183,7 +183,7 @@ export const TechOpsTab: React.FC<TechOpsTabProps> = ({
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search user to toggle bot state..."
+            placeholder="Tìm tài khoản để bật / tắt bot..."
             className="w-full bg-[#0b0e17] border border-[#1f293d] rounded-xl py-2 pl-9 pr-3 text-white text-xs font-mono focus:outline-none focus:border-[#ff5500]"
           />
         </div>
@@ -204,7 +204,7 @@ export const TechOpsTab: React.FC<TechOpsTabProps> = ({
                     <span className="text-[10px] text-gray-500">ID: {u.telegramId}</span>
                   </div>
                   <span className="text-[10px] text-gray-400">
-                    Capital: ${u.tradingBalance?.toFixed(2) || '0.00'} USDT
+                    Vốn: ${u.tradingBalance?.toFixed(2) || '0.00'} USDT
                   </span>
                 </div>
 
@@ -222,7 +222,7 @@ export const TechOpsTab: React.FC<TechOpsTabProps> = ({
                   ) : (
                     <span className={`w-2 h-2 rounded-full ${isBotActive ? 'bg-[#00df89] shadow-[0_0_6px_#00df89]' : 'bg-red-500'}`} />
                   )}
-                  <span>{isBotActive ? 'BOT ACTIVE' : 'BOT PAUSED'}</span>
+                  <span>{isBotActive ? 'BOT ĐANG CHẠY' : 'BOT ĐÃ TẮT'}</span>
                 </button>
               </div>
             );
@@ -235,7 +235,7 @@ export const TechOpsTab: React.FC<TechOpsTabProps> = ({
         <div className="flex items-center gap-2 border-b border-[#1f293d] pb-2">
           <Server className="w-4 h-4 text-[#ff5500]" />
           <h3 className="text-xs font-black text-white uppercase tracking-wider">
-            SYSTEM INFRASTRUCTURE HEALTH
+            SỨC KHỎE HẠ TẦNG MÁY CHỦ
           </h3>
         </div>
 
@@ -243,21 +243,21 @@ export const TechOpsTab: React.FC<TechOpsTabProps> = ({
           <div className="bg-[#0b0e17] p-2.5 rounded-xl border border-[#1f293d]">
             <span className="text-[9px] text-gray-400 block mb-1">EXNESS MT5 EA</span>
             <span className="text-[10px] font-black text-[#00df89] bg-[#00df89]/10 px-2 py-0.5 rounded border border-[#00df89]/20">
-              CONNECTED
+              KẾT NỐI TỐT
             </span>
           </div>
 
           <div className="bg-[#0b0e17] p-2.5 rounded-xl border border-[#1f293d]">
             <span className="text-[9px] text-gray-400 block mb-1">TRONGRID SCAN</span>
             <span className="text-[10px] font-black text-[#00df89] bg-[#00df89]/10 px-2 py-0.5 rounded border border-[#00df89]/20">
-              POLLING (3s)
+              QUÉT 3S/LẦN
             </span>
           </div>
 
           <div className="bg-[#0b0e17] p-2.5 rounded-xl border border-[#1f293d]">
             <span className="text-[9px] text-gray-400 block mb-1">FIREBASE RTDB</span>
             <span className="text-[10px] font-black text-[#00df89] bg-[#00df89]/10 px-2 py-0.5 rounded border border-[#00df89]/20">
-              ONLINE
+              TRỰC TUYẾN
             </span>
           </div>
         </div>

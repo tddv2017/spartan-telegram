@@ -84,10 +84,10 @@ export const AiAgentsCommandCenter: React.FC = () => {
             </div>
             <div>
               <h2 className="text-base font-black text-white uppercase tracking-wider flex items-center gap-1.5">
-                AI AGENT COMMAND CENTER
+                TRUNG TÂM ĐIỀU HÀNH AI AGENT TỰ HÀNH
               </h2>
               <span className="text-[10px] text-purple-400 font-mono font-bold block">
-                Autonomous Multi-Agent Orchestration Engine
+                Hệ thống 3 Trợ Lý Trí Tuệ Nhân Tạo Chuyên Trách 24/7
               </span>
             </div>
           </div>
@@ -95,10 +95,10 @@ export const AiAgentsCommandCenter: React.FC = () => {
           <button
             onClick={handleRunAllAgents}
             disabled={runningAgent !== null}
-            className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-[#ff5500] text-white text-[11px] font-black uppercase tracking-wider flex items-center gap-1.5 hover:opacity-90 shadow-md transition-all"
+            className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-[#ff5500] text-white text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 hover:opacity-90 shadow-md transition-all"
           >
             {runningAgent === 'all' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
-            <span>RUN ALL AGENTS</span>
+            <span>CHẠY CẢ 3 AGENT</span>
           </button>
         </div>
       </div>
@@ -118,7 +118,7 @@ export const AiAgentsCommandCenter: React.FC = () => {
                   SPARTAN LEDGER AI
                 </h3>
                 <span className="text-[9px] text-cyan-400 font-mono block">
-                  Accounting & 3-Way Reconciliation Specialist
+                  Trợ lý Kế toán & Đối soát Sổ cái 3 Chiều
                 </span>
               </div>
             </div>
@@ -130,7 +130,7 @@ export const AiAgentsCommandCenter: React.FC = () => {
                 className="px-3 py-1.5 rounded-xl bg-cyan-500/20 border border-cyan-500/40 text-cyan-300 hover:bg-cyan-500/30 text-[10px] font-black uppercase flex items-center gap-1 transition-all"
               >
                 {runningAgent === 'ledger' ? <Loader2 className="w-3 h-3 animate-spin" /> : <Play className="w-3 h-3" />}
-                <span>Audit Now</span>
+                <span>Kiểm Toán Ngay</span>
               </button>
             </div>
           </div>
@@ -138,14 +138,14 @@ export const AiAgentsCommandCenter: React.FC = () => {
           {ledgerLog && (
             <div className="p-3 rounded-2xl bg-[#0b0e17] border border-[#1f293d] space-y-2 text-xs font-mono animate-in fade-in duration-300">
               <div className="flex items-center justify-between text-[10px] text-gray-400 border-b border-[#1f293d] pb-1.5">
-                <span className="text-cyan-400 font-bold">STATUS: {ledgerLog.status}</span>
+                <span className="text-cyan-400 font-bold">TRẠNG THÁI: {ledgerLog.status === 'SUCCESS' ? 'HOÀN TẤT' : ledgerLog.status}</span>
                 <span>{ledgerLog.report.timestamp.slice(11, 19)} UTC</span>
               </div>
               <p className="text-[11px] text-gray-200">{ledgerLog.aiCommentary}</p>
               
               {ledgerLog.report.actionsTaken.length > 0 && (
                 <div className="space-y-1 pt-1">
-                  <span className="text-[9px] text-[#00df89] font-black block">ACTIONS TAKEN:</span>
+                  <span className="text-[9px] text-[#00df89] font-black block">HÀNH ĐỘNG ĐÃ THỰC THI:</span>
                   {ledgerLog.report.actionsTaken.map((act, i) => (
                     <div key={i} className="text-[10px] text-gray-300 flex items-start gap-1">
                       <span>•</span>
@@ -170,7 +170,7 @@ export const AiAgentsCommandCenter: React.FC = () => {
                   SPARTAN LEGION AI
                 </h3>
                 <span className="text-[9px] text-purple-400 font-mono block">
-                  HR & Affiliate Tier Progression Specialist
+                  Trợ lý Nhân sự & Rà soát Cấp bậc Đại lý F1
                 </span>
               </div>
             </div>
@@ -182,7 +182,7 @@ export const AiAgentsCommandCenter: React.FC = () => {
                 className="px-3 py-1.5 rounded-xl bg-purple-500/20 border border-purple-500/40 text-purple-300 hover:bg-purple-500/30 text-[10px] font-black uppercase flex items-center gap-1 transition-all"
               >
                 {runningAgent === 'legion' ? <Loader2 className="w-3 h-3 animate-spin" /> : <Play className="w-3 h-3" />}
-                <span>Evaluate F1s</span>
+                <span>Đánh Giá F1</span>
               </button>
             </div>
           </div>
@@ -190,14 +190,14 @@ export const AiAgentsCommandCenter: React.FC = () => {
           {legionLog && (
             <div className="p-3 rounded-2xl bg-[#0b0e17] border border-[#1f293d] space-y-2 text-xs font-mono animate-in fade-in duration-300">
               <div className="flex items-center justify-between text-[10px] text-gray-400 border-b border-[#1f293d] pb-1.5">
-                <span className="text-purple-400 font-bold">STATUS: {legionLog.status}</span>
+                <span className="text-purple-400 font-bold">TRẠNG THÁI: {legionLog.status === 'SUCCESS' ? 'CHUẨN XÁC' : legionLog.status}</span>
                 <span>{legionLog.report.timestamp.slice(11, 19)} UTC</span>
               </div>
               <p className="text-[11px] text-gray-200">{legionLog.aiCommentary}</p>
               
               {legionLog.report.actionsTaken.length > 0 && (
                 <div className="space-y-1 pt-1">
-                  <span className="text-[9px] text-[#00df89] font-black block">PROMOTIONS APPLIED:</span>
+                  <span className="text-[9px] text-[#00df89] font-black block">CẤP BẬC ĐÃ THĂNG HẠNG:</span>
                   {legionLog.report.actionsTaken.map((act, i) => (
                     <div key={i} className="text-[10px] text-gray-300 flex items-start gap-1">
                       <span>•</span>
@@ -222,7 +222,7 @@ export const AiAgentsCommandCenter: React.FC = () => {
                   SPARTAN SENTINEL AI
                 </h3>
                 <span className="text-[9px] text-emerald-400 font-mono block">
-                  TechOps & Gold Volatility Circuit-Breaker
+                  Trợ lý Kỹ thuật & Quét Bão Giá Vàng (Circuit-Breaker)
                 </span>
               </div>
             </div>
@@ -234,7 +234,7 @@ export const AiAgentsCommandCenter: React.FC = () => {
                 className="px-3 py-1.5 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/30 text-[10px] font-black uppercase flex items-center gap-1 transition-all"
               >
                 {runningAgent === 'sentinel' ? <Loader2 className="w-3 h-3 animate-spin" /> : <Play className="w-3 h-3" />}
-                <span>Scan Risk</span>
+                <span>Quét Rủi Ro</span>
               </button>
             </div>
           </div>
@@ -242,14 +242,14 @@ export const AiAgentsCommandCenter: React.FC = () => {
           {sentinelLog && (
             <div className="p-3 rounded-2xl bg-[#0b0e17] border border-[#1f293d] space-y-2 text-xs font-mono animate-in fade-in duration-300">
               <div className="flex items-center justify-between text-[10px] text-gray-400 border-b border-[#1f293d] pb-1.5">
-                <span className="text-emerald-400 font-bold">STATUS: {sentinelLog.status}</span>
+                <span className="text-emerald-400 font-bold">TRẠNG THÁI: {sentinelLog.status === 'OPTIMAL' ? 'HOÀN HẢO' : sentinelLog.status}</span>
                 <span>{sentinelLog.report.timestamp.slice(11, 19)} UTC</span>
               </div>
               <p className="text-[11px] text-gray-200">{sentinelLog.aiCommentary}</p>
               
               {sentinelLog.report.actionsTaken.length > 0 && (
                 <div className="space-y-1 pt-1">
-                  <span className="text-[9px] text-[#00df89] font-black block">DIAGNOSTIC CHECKS:</span>
+                  <span className="text-[9px] text-[#00df89] font-black block">KIỂM TRA HẠ TẦNG:</span>
                   {sentinelLog.report.actionsTaken.map((act, i) => (
                     <div key={i} className="text-[10px] text-gray-300 flex items-start gap-1">
                       <span>•</span>
