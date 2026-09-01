@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { TransactionData } from '@/lib/firebaseService';
 import { UserAuditItem } from '@/lib/adminService';
 import { 
@@ -13,7 +13,11 @@ import {
   DollarSign, 
   Users, 
   Receipt,
-  Loader2
+  Loader2,
+  GitFork,
+  ChevronDown,
+  ChevronUp,
+  Cpu
 } from 'lucide-react';
 
 interface AdminOverviewTabProps {
@@ -39,9 +43,10 @@ export const AdminOverviewTab: React.FC<AdminOverviewTabProps> = ({
   setBroadcastMsg,
   onBroadcast,
 }) => {
+  const [showOrgTree, setShowOrgTree] = useState(true);
+
   // Aggregate Key Metrics
   const totalTVL = users.reduce((sum, u) => sum + (u.tradingBalance || 0), 0);
-  const totalResellerPool = users.reduce((sum, u) => sum + (u.referralBalance || 0), 0);
   const totalApprovedDeposits = transactions.filter(t => t.type === 'DEPOSIT' && t.status === 'APPROVED').length;
 
   return (
@@ -71,6 +76,101 @@ export const AdminOverviewTab: React.FC<AdminOverviewTabProps> = ({
             {totalApprovedDeposits} completed on-chain
           </span>
         </div>
+      </div>
+
+      {/* SƠ ĐỒ CƠ CẤU TỔ CHỨC ĐƠN VỊ HÀNH CHÍNH (ORGANIZATION HIERARCHY TREE) */}
+      <div className="spartan-card rounded-3xl p-5 border border-amber-500/30 space-y-4 shadow-xl">
+        <div className="flex items-center justify-between border-b border-[#1f293d] pb-2.5">
+          <div className="flex items-center gap-2">
+            <GitFork className="w-4 h-4 text-amber-400" />
+            <h3 className="text-xs font-black text-white uppercase tracking-wider">
+              ORGANIZATION HIERARCHY TREE
+            </h3>
+          </div>
+          <button
+            onClick={() => setShowOrgTree(!showOrgTree)}
+            className="text-[10px] font-bold text-amber-400 flex items-center gap-1 hover:opacity-80"
+          >
+            <span>{showOrgTree ? 'Collapse' : 'Expand View'}</span>
+            {showOrgTree ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+          </button>
+        </div>
+
+        {showOrgTree && (
+          <div className="space-y-4 pt-1 animate-in fade-in duration-300">
+            {/* Top Node: Supreme Leader */}
+            <div className="bg-gradient-to-r from-amber-500/20 via-[#131927] to-amber-500/20 border-2 border-amber-400/80 rounded-2xl p-3.5 text-center shadow-[0_0_15px_rgba(245,158,11,0.2)]">
+              <div className="flex items-center justify-center gap-2">
+                <span className="text-lg">👑</span>
+                <div>
+                  <span className="text-[10px] font-black text-amber-300 uppercase tracking-wider block">
+                    SUPREME EXECUTIVE LEADERSHIP
+                  </span>
+                  <span className="text-sm font-black text-white">
+                    @tddv2017 (ID: 494232782)
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Tree Branch Connector */}
+            <div className="flex flex-col items-center -my-2">
+              <div className="w-0.5 h-4 bg-amber-400/80"></div>
+              <div className="w-4/5 h-0.5 bg-gray-700"></div>
+            </div>
+
+            {/* 3 Department Sub-Branches */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5 text-xs">
+              {/* Branch 1: Accounting */}
+              <div className="bg-[#0b0e17] border border-cyan-500/40 rounded-2xl p-3 space-y-1.5 shadow-sm">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm">💰</span>
+                  <span className="text-[11px] font-black text-cyan-400 uppercase">
+                    1. ACCOUNTING & AUDIT
+                  </span>
+                </div>
+                <ul className="text-[10px] text-gray-400 space-y-1 font-medium pl-1">
+                  <li>• 3-Way Invoice Reconciliation</li>
+                  <li>• Deposit (9%+3$) & Withdraw (19%+5$)</li>
+                  <li>• 10% Treasury Retention Fund</li>
+                  <li>• F1 Reseller Commission Ledger</li>
+                </ul>
+              </div>
+
+              {/* Branch 2: HR & Reseller */}
+              <div className="bg-[#0b0e17] border border-purple-500/40 rounded-2xl p-3 space-y-1.5 shadow-sm">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm">👥</span>
+                  <span className="text-[11px] font-black text-purple-400 uppercase">
+                    2. HR & RESELLER NETWORK
+                  </span>
+                </div>
+                <ul className="text-[10px] text-gray-400 space-y-1 font-medium pl-1">
+                  <li>• Personnel Directory (All Users)</li>
+                  <li>• 10-Level Reseller Tier Matrix</li>
+                  <li>• RBAC Role Assignment & Freeze</li>
+                  <li>• F1 Affiliate Hierarchy Downlines</li>
+                </ul>
+              </div>
+
+              {/* Branch 3: TechOps */}
+              <div className="bg-[#0b0e17] border border-emerald-500/40 rounded-2xl p-3 space-y-1.5 shadow-sm">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm">⚡</span>
+                  <span className="text-[11px] font-black text-emerald-400 uppercase">
+                    3. TECHOPS & BOT ENGINE
+                  </span>
+                </div>
+                <ul className="text-[10px] text-gray-400 space-y-1 font-medium pl-1">
+                  <li>• System Maintenance Mode</li>
+                  <li>• Global Emergency Kill-Switch</li>
+                  <li>• Per-User Individual Bot Toggle</li>
+                  <li>• Exness MT5 EA & Cloud Health</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Pending Transactions Realtime Approval Queue */}
