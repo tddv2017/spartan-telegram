@@ -57,8 +57,8 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
     { level: 6, title: 'LEVEL 6', share: '12% FEE REBATE', req: '$20,000U Volume Requirement', badge: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' },
     { level: 5, title: 'LEVEL 5', share: '10% FEE REBATE', req: '$10,000U Volume Requirement', badge: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40' },
     { level: 4, title: 'LEVEL 4', share: '8% FEE REBATE', req: '$5,000U Volume Requirement', badge: 'bg-teal-500/20 text-teal-300 border-teal-500/40' },
-    { level: 3, title: 'LEVEL 3', share: '6% FEE REBATE', req: '10 Active F1s or $2,500U Volume', badge: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40' },
-    { level: 2, title: 'LEVEL 2', share: '4% FEE REBATE', req: '5 Active F1s or $1,000U Volume', badge: 'bg-rose-500/20 text-rose-300 border-rose-500/40' },
+    { level: 3, title: 'LEVEL 3', share: '6% FEE REBATE', req: '10 Active F1s (6% Fee Rebate)', badge: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40' },
+    { level: 2, title: 'LEVEL 2', share: '4% FEE REBATE', req: '5 Active F1s (4% Fee Rebate)', badge: 'bg-rose-500/20 text-rose-300 border-rose-500/40' },
     { level: 1, title: 'LEVEL 1 (STARTING)', share: '2% FEE REBATE', req: 'Starting Reseller Tier', badge: 'bg-gray-800 text-gray-300 border-gray-700' },
   ];
 
