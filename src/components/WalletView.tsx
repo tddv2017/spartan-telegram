@@ -49,13 +49,13 @@ export const WalletView: React.FC<WalletViewProps> = ({
   const [firestoreTxs, setFirestoreTxs] = useState<TransactionData[]>([]);
   const [localTxs, setLocalTxs] = useState<TransactionData[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
-  const [receivingWallet, setReceivingWallet] = useState<string>(DEFAULT_TREASURY_VAULT.receivingWallet);
+  const [receivingWallet, setReceivingWallet] = useState<string>(DEFAULT_TREASURY_VAULT.exnessMasterWallet);
   const ITEMS_PER_PAGE = 5;
 
   // Realtime Listener for User Transactions & Treasury Wallet
   useEffect(() => {
     fetchTreasuryVault().then(cfg => {
-      if (cfg.receivingWallet) setReceivingWallet(cfg.receivingWallet);
+      if (cfg.exnessMasterWallet) setReceivingWallet(cfg.exnessMasterWallet);
     });
 
     if (!telegramId) return;

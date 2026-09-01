@@ -1,46 +1,27 @@
 /**
- * SPARTAN TREASURY VAULT & MULTI-WALLET CONFIGURATION
- * Manages Master Receiving Wallet, Hot Liquidity Wallet, Cold Storage Vault, and Exness Master Deposit Address.
+ * SPARTAN TREASURY VAULT & 2-WALLET CONFIGURATION
+ * Streamlined Architecture:
+ * 1. Master Exness Wallet: Direct deposit & trading capital pool
+ * 2. Treasury Reserve Wallet: 10% retention fund collected upon withdrawals
  */
 
 const RTDB_BASE_URL = "https://decisive-mapper-216306-default-rtdb.asia-southeast1.firebasedatabase.app";
 const USDT_CONTRACT = 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t';
 
 export interface TreasuryVaultConfig {
-  receivingWallet: string;    // 📥 Ví Tiếp Nhận Nạp Tiền (Master Deposit Receiving Wallet)
-  hotWallet: string;          // ⚡ Ví Nóng Thanh Khoản (Hot Wallet for Fast Withdrawals)
-  coldWallet: string;         // 🧊 Ví Lạnh Quản Trị / Lợi Nhuận (Cold Storage & Admin Revenue Vault)
-  exnessMasterWallet: string; // 🏦 Ví Nạp Tài Khoản Master Exness ECN
-  autoSplitRatios: {
-    exnessMasterPct: number;  // 80% to Exness MT5 Master
-    hotLiquidityPct: number;  // 11% to Hot Liquidity Wallet
-    adminProfitPct: number;   // 9% to Admin Cold Vault
-  };
+  exnessMasterWallet: string;   // 🏦 VÍ MASTER EXNESS (Khách nạp thẳng vào đây để EA cào lãi & rút tiền từ đây)
+  treasuryReserveWallet: string;// 🛡️ VÍ QUỸ DỰ PHÒNG (Trích giữ 10% từ mỗi lệnh rút)
   updatedAt?: string;
 }
 
-export interface WalletBalanceInfo {
-  usdt: number;
-  trx: number;
-  allocatedValue: number;
-  status: 'ONLINE' | 'ACTIVE' | 'COLD_SECURE';
-}
-
 export const DEFAULT_TREASURY_VAULT: TreasuryVaultConfig = {
-  receivingWallet: "TBGvPZsuqKH5CrSbYLEi8q2BCQ6CXyKmAu",
-  hotWallet: "TWDpMvY3m3tFwN8XzY9m1Q2W3E4R5T6Y7U",
-  coldWallet: "TL4oP9Kj1Nm2Bv3Cx4Z5a6S7d8F9g0H1J2",
-  exnessMasterWallet: "TXn8Kj9Lm0Pv1Qr2St3Uv4Wx5Yz6Ab7Cd8",
-  autoSplitRatios: {
-    exnessMasterPct: 80,
-    hotLiquidityPct: 11,
-    adminProfitPct: 9,
-  },
+  exnessMasterWallet: "TBGvPZsuqKH5CrSbYLEi8q2BCQ6CXyKmAu",
+  treasuryReserveWallet: "TL4oP9Kj1Nm2Bv3Cx4Z5a6S7d8F9g0H1J2",
   updatedAt: new Date().toISOString()
 };
 
 /**
- * Fetch live Treasury Vault Configuration from Firebase RTDB
+ * Fetch live 2-Wallet Treasury Configuration from Firebase RTDB
  */
 export async function fetchTreasuryVault(): Promise<TreasuryVaultConfig> {
   try {
@@ -50,11 +31,8 @@ export async function fetchTreasuryVault(): Promise<TreasuryVaultConfig> {
     if (!data || typeof data !== 'object') return DEFAULT_TREASURY_VAULT;
 
     return {
-      receivingWallet: data.receivingWallet || DEFAULT_TREASURY_VAULT.receivingWallet,
-      hotWallet: data.hotWallet || DEFAULT_TREASURY_VAULT.hotWallet,
-      coldWallet: data.coldWallet || DEFAULT_TREASURY_VAULT.coldWallet,
-      exnessMasterWallet: data.exnessMasterWallet || DEFAULT_TREASURY_VAULT.exnessMasterWallet,
-      autoSplitRatios: data.autoSplitRatios || DEFAULT_TREASURY_VAULT.autoSplitRatios,
+      exnessMasterWallet: data.exnessMasterWallet || data.receivingWallet || DEFAULT_TREASURY_VAULT.exnessMasterWallet,
+      treasuryReserveWallet: data.treasuryReserveWallet || data.coldWallet || DEFAULT_TREASURY_VAULT.treasuryReserveWallet,
       updatedAt: data.updatedAt || DEFAULT_TREASURY_VAULT.updatedAt
     };
   } catch (err) {
@@ -64,7 +42,7 @@ export async function fetchTreasuryVault(): Promise<TreasuryVaultConfig> {
 }
 
 /**
- * Update Treasury Vault Configuration in Firebase RTDB
+ * Update 2-Wallet Treasury Configuration in Firebase RTDB
  */
 export async function updateTreasuryVault(updates: Partial<TreasuryVaultConfig>): Promise<boolean> {
   try {
@@ -85,7 +63,7 @@ export async function updateTreasuryVault(updates: Partial<TreasuryVaultConfig>)
 }
 
 /**
- * Query On-Chain TRON USDT Balance for a given wallet address
+ * Query On-Chain TRON USDT & TRX Balance
  */
 export async function fetchOnChainWalletBalance(address: string): Promise<{ usdt: number; trx: number }> {
   if (!address || address.length < 20) {

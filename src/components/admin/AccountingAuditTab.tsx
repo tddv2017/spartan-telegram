@@ -34,7 +34,8 @@ import {
   ChevronUp,
   Settings2,
   ExternalLink,
-  RefreshCw
+  RefreshCw,
+  ArrowRight
 } from 'lucide-react';
 
 interface AccountingAuditTabProps {
@@ -49,7 +50,7 @@ export const AccountingAuditTab: React.FC<AccountingAuditTabProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<'ALL' | 'DEPOSIT' | 'WITHDRAW'>('ALL');
   
-  // Treasury Multi-Wallet Vault States
+  // Treasury 2-Wallet Vault States
   const [vaultConfig, setVaultConfig] = useState<TreasuryVaultConfig>(DEFAULT_TREASURY_VAULT);
   const [isEditingWallets, setIsEditingWallets] = useState(false);
   const [isSavingVault, setIsSavingVault] = useState(false);
@@ -59,10 +60,8 @@ export const AccountingAuditTab: React.FC<AccountingAuditTabProps> = ({
 
   // On-Chain Wallet Balances
   const [walletBalances, setWalletBalances] = useState<Record<string, { usdt: number; trx: number }>>({
-    receiving: { usdt: 0, trx: 0 },
-    hot: { usdt: 0, trx: 0 },
-    cold: { usdt: 0, trx: 0 },
-    exness: { usdt: 0, trx: 0 }
+    exness: { usdt: 0, trx: 0 },
+    reserve: { usdt: 0, trx: 0 }
   });
 
   const loadVaultAndBalances = async () => {
@@ -71,21 +70,17 @@ export const AccountingAuditTab: React.FC<AccountingAuditTabProps> = ({
       const cfg = await fetchTreasuryVault();
       setVaultConfig(cfg);
 
-      const [recBal, hotBal, coldBal, exnBal] = await Promise.all([
-        fetchOnChainWalletBalance(cfg.receivingWallet),
-        fetchOnChainWalletBalance(cfg.hotWallet),
-        fetchOnChainWalletBalance(cfg.coldWallet),
+      const [exnBal, resBal] = await Promise.all([
         fetchOnChainWalletBalance(cfg.exnessMasterWallet),
+        fetchOnChainWalletBalance(cfg.treasuryReserveWallet),
       ]);
 
       setWalletBalances({
-        receiving: recBal,
-        hot: hotBal,
-        cold: coldBal,
-        exness: exnBal
+        exness: exnBal,
+        reserve: resBal
       });
     } catch (err) {
-      console.error('Error loading balances:', err);
+      console.error('Error loading 2-wallet balances:', err);
     } finally {
       setIsRefreshingBalances(false);
     }
@@ -106,9 +101,9 @@ export const AccountingAuditTab: React.FC<AccountingAuditTabProps> = ({
     try {
       const success = await updateTreasuryVault(vaultConfig);
       if (success) {
-        setVaultSaveStatus('✅ ĐÃ LƯU & ĐỒNG BỘ BỘ 4 VÍ QUỸ THÀNH CÔNG!');
+        setVaultSaveStatus('✅ ĐÃ LƯU & ĐỒNG BỘ 2 ĐỊA CHỈ VÍ MASTER & DỰ PHÒNG THÀNH CÔNG!');
         loadVaultAndBalances();
-        setIsEditingWallets(false); // Hide edit inputs on save
+        setIsEditingWallets(false); // Auto close edit form on save
       } else {
         setVaultSaveStatus('❌ Lỗi khi lưu cấu hình ví quỹ!');
       }
@@ -134,11 +129,8 @@ export const AccountingAuditTab: React.FC<AccountingAuditTabProps> = ({
   const totalTreasuryRetained = totalGrossWithdraw * 0.10;
   const totalNetworkResellerRebates = users.reduce((acc, u) => acc + (u.referralBalance || 0), 0);
 
-  // Calculate Theoretical Allocated Funds for 4 Wallets based on Net TVL
+  // Total Live TVL on Exness
   const totalTVL = users.reduce((sum, u) => sum + (u.tradingBalance || 0), 0);
-  const exnessMasterAllocated = totalTVL * 0.80;
-  const hotLiquidityAllocated = totalTVL * 0.11;
-  const coldAdminProfitAllocated = totalDepositFees + (totalGrossWithdraw * 0.09) + totalTreasuryRetained;
 
   // Filtered transactions for audit
   const filteredTxs = transactions.filter(tx => {
@@ -166,43 +158,43 @@ export const AccountingAuditTab: React.FC<AccountingAuditTabProps> = ({
         {/* Total Inflow */}
         <div className="bg-[#0b0e17] p-4 rounded-2xl border border-[#1f293d] space-y-1">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider">TỔNG TIỀN NẠP (GROSS)</span>
+            <span className="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider">TỔNG TIỀN NẠP VÀO MASTER (GROSS)</span>
             <ArrowDown className="w-3.5 h-3.5 text-[#00df89]" />
           </div>
           <div className="text-lg font-black text-[#00df89] font-mono">
             ${totalGrossDeposit.toLocaleString('en-US', { minimumFractionDigits: 2 })}
           </div>
           <div className="text-[10px] text-gray-500 font-mono">
-            Phí Nạp Đã Thu: <strong className="text-amber-400">+${totalDepositFees.toFixed(2)} USD</strong>
+            Phí Nạp Đã Thu (9%): <strong className="text-amber-400">+${totalDepositFees.toFixed(2)} USD</strong>
           </div>
         </div>
 
         {/* Total Outflow */}
         <div className="bg-[#0b0e17] p-4 rounded-2xl border border-[#1f293d] space-y-1">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider">TỔNG TIỀN RÚT (GROSS)</span>
+            <span className="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider">TỔNG TIỀN RÚT TỪ MASTER (GROSS)</span>
             <ArrowUp className="w-3.5 h-3.5 text-[#ff2d55]" />
           </div>
           <div className="text-lg font-black text-[#ff2d55] font-mono">
             ${totalGrossWithdraw.toLocaleString('en-US', { minimumFractionDigits: 2 })}
           </div>
           <div className="text-[10px] text-gray-500 font-mono">
-            Phí Rút Đã Thu: <strong className="text-amber-400">+${totalWithdrawFees.toFixed(2)} USD</strong>
+            Phí Rút Đã Thu (19%): <strong className="text-amber-400">+${totalWithdrawFees.toFixed(2)} USD</strong>
           </div>
         </div>
       </div>
 
-      {/* BẢNG QUẢN LÝ BỘ 4 VÍ QUỸ ĐỊNH CHẾ (LƯỚI 2x2) */}
+      {/* BẢNG QUẢN LÝ 2 VÍ CỐT LÕI: MASTER EXNESS & QUỸ DỰ PHÒNG */}
       <div className="spartan-card rounded-3xl p-5 border border-amber-500/40 space-y-4 shadow-xl">
         <div className="flex items-center justify-between border-b border-[#1f293d] pb-2.5">
           <div className="flex items-center gap-2">
             <Wallet className="w-4 h-4 text-amber-400" />
             <div>
               <h3 className="text-xs font-black text-white uppercase tracking-wider">
-                QUẢN LÝ BỘ 4 VÍ QUỸ & SỐ DƯ THỰC TẾ
+                QUẢN LÝ BỘ 2 VÍ: MASTER EXNESS & QUỸ DỰ PHÒNG
               </h3>
               <span className="text-[9px] text-gray-400 font-mono block">
-                Tự động phân luồng & Giám sát số dư ví Kế toán
+                Khách nạp thẳng Master $\rightarrow$ Rút trích 10% Quỹ Dự Phòng $\rightarrow$ Trả số còn lại cho khách
               </span>
             </div>
           </div>
@@ -222,196 +214,47 @@ export const AccountingAuditTab: React.FC<AccountingAuditTabProps> = ({
               className="px-2.5 py-1.5 rounded-xl bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 border border-amber-500/40 text-[10px] font-black uppercase flex items-center gap-1 transition-all"
             >
               <Settings2 className="w-3.5 h-3.5" />
-              <span>{isEditingWallets ? 'Đóng Sửa' : 'Sửa Địa Chỉ Ví'}</span>
+              <span>{isEditingWallets ? 'Đóng Sửa' : 'Sửa Địa Chỉ 2 Ví'}</span>
             </button>
           </div>
         </div>
 
-        {/* LƯỚI 2x2 HIỂN THỊ SỐ DƯ & THÔNG TIN 4 VÍ */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        {/* LƯỚI 2 CỘT HIỂN THỊ 2 VÍ CHÍNH */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
 
-          {/* 1. VÍ TIẾP NHẬN NẠP TIỀN */}
-          <div className="bg-[#0b0e17] p-3.5 rounded-2xl border border-cyan-500/40 space-y-2 relative overflow-hidden shadow-sm">
+          {/* 1. VÍ MASTER EXNESS ECN (NẠP TRỰC TIẾP & GIAO DỊCH EA) */}
+          <div className="bg-[#0b0e17] p-4 rounded-2xl border border-amber-500/50 space-y-2.5 relative overflow-hidden shadow-md">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-lg bg-cyan-500/20 text-cyan-400 flex items-center justify-center font-black">
-                  <QrCode className="w-3.5 h-3.5" />
+                <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center font-black">
+                  🏦
                 </div>
                 <div>
-                  <span className="text-[11px] font-black text-cyan-300 uppercase tracking-wide block">
-                    1. VÍ TIẾP NHẬN NẠP
+                  <span className="text-xs font-black text-amber-300 uppercase tracking-wide block">
+                    1. VÍ MASTER EXNESS ECN
                   </span>
-                  <span className="text-[9px] text-gray-400 font-mono">Tạo mã QR cho khách nạp</span>
-                </div>
-              </div>
-              <span className="text-[9px] font-mono font-bold text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-500/20">
-                RECEIVING
-              </span>
-            </div>
-
-            {/* Balance Display */}
-            <div className="bg-[#131927] p-2.5 rounded-xl border border-[#1f293d] flex items-center justify-between">
-              <div>
-                <span className="text-[9px] text-gray-400 font-bold block">SỐ DƯ ON-CHAIN:</span>
-                <span className="text-base font-black text-white font-mono">
-                  ${walletBalances.receiving.usdt.toFixed(2)} USDT
-                </span>
-              </div>
-              <div className="text-right">
-                <span className="text-[9px] text-gray-500 font-bold block">GAS TRX:</span>
-                <span className="text-xs font-bold text-gray-300 font-mono">
-                  {walletBalances.receiving.trx.toFixed(1)} TRX
-                </span>
-              </div>
-            </div>
-
-            {/* Address & Copy */}
-            <div className="flex items-center justify-between text-[10px] font-mono pt-1 text-gray-400">
-              <span className="truncate max-w-[200px]" title={vaultConfig.receivingWallet}>
-                {vaultConfig.receivingWallet.slice(0, 8)}...{vaultConfig.receivingWallet.slice(-6)}
-              </span>
-              <button
-                onClick={() => handleCopy('receiving', vaultConfig.receivingWallet)}
-                className="text-cyan-400 hover:text-cyan-300 flex items-center gap-1 font-bold"
-              >
-                {copiedKey === 'receiving' ? <CheckCircle2 className="w-3 h-3 text-[#00df89]" /> : <Copy className="w-3 h-3" />}
-                <span>{copiedKey === 'receiving' ? 'Đã chép' : 'Sao chép'}</span>
-              </button>
-            </div>
-          </div>
-
-          {/* 2. VÍ NÓNG THANH KHOẢN (11%) */}
-          <div className="bg-[#0b0e17] p-3.5 rounded-2xl border border-[#00df89]/40 space-y-2 relative overflow-hidden shadow-sm">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-lg bg-[#00df89]/20 text-[#00df89] flex items-center justify-center font-black">
-                  <Flame className="w-3.5 h-3.5" />
-                </div>
-                <div>
-                  <span className="text-[11px] font-black text-[#00df89] uppercase tracking-wide block">
-                    2. VÍ NÓNG THANH KHOẢN
-                  </span>
-                  <span className="text-[9px] text-gray-400 font-mono">Chi trả rút tiền tức thì (11%)</span>
-                </div>
-              </div>
-              <span className="text-[9px] font-mono font-bold text-[#00df89] bg-[#00df89]/10 px-2 py-0.5 rounded border border-[#00df89]/20">
-                HOT WALLET
-              </span>
-            </div>
-
-            {/* Balance Display */}
-            <div className="bg-[#131927] p-2.5 rounded-xl border border-[#1f293d] flex items-center justify-between">
-              <div>
-                <span className="text-[9px] text-gray-400 font-bold block">QUỸ SẴN SÀNG TRẢ RÚT:</span>
-                <span className="text-base font-black text-[#00df89] font-mono">
-                  ${Math.max(hotLiquidityAllocated, walletBalances.hot.usdt).toLocaleString('en-US', { minimumFractionDigits: 2 })} USDT
-                </span>
-              </div>
-              <div className="text-right">
-                <span className="text-[9px] text-gray-500 font-bold block">GAS TRX:</span>
-                <span className="text-xs font-bold text-gray-300 font-mono">
-                  {walletBalances.hot.trx.toFixed(1)} TRX
-                </span>
-              </div>
-            </div>
-
-            {/* Address & Copy */}
-            <div className="flex items-center justify-between text-[10px] font-mono pt-1 text-gray-400">
-              <span className="truncate max-w-[200px]" title={vaultConfig.hotWallet}>
-                {vaultConfig.hotWallet.slice(0, 8)}...{vaultConfig.hotWallet.slice(-6)}
-              </span>
-              <button
-                onClick={() => handleCopy('hot', vaultConfig.hotWallet)}
-                className="text-[#00df89] hover:text-[#00df89]/80 flex items-center gap-1 font-bold"
-              >
-                {copiedKey === 'hot' ? <CheckCircle2 className="w-3 h-3 text-[#00df89]" /> : <Copy className="w-3 h-3" />}
-                <span>{copiedKey === 'hot' ? 'Đã chép' : 'Sao chép'}</span>
-              </button>
-            </div>
-          </div>
-
-          {/* 3. VÍ LẠNH DỰ PHÒNG & LỢI NHUẬN (9% + 10% Treasury) */}
-          <div className="bg-[#0b0e17] p-3.5 rounded-2xl border border-purple-500/40 space-y-2 relative overflow-hidden shadow-sm">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-lg bg-purple-500/20 text-purple-400 flex items-center justify-center font-black">
-                  <Lock className="w-3.5 h-3.5" />
-                </div>
-                <div>
-                  <span className="text-[11px] font-black text-purple-300 uppercase tracking-wide block">
-                    3. VÍ LẠNH LỢI NHUẬN & TREASURY
-                  </span>
-                  <span className="text-[9px] text-gray-400 font-mono">Lợi nhuận ròng 9% + 10% Quỹ</span>
-                </div>
-              </div>
-              <span className="text-[9px] font-mono font-bold text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded border border-purple-500/20">
-                COLD VAULT
-              </span>
-            </div>
-
-            {/* Balance Display */}
-            <div className="bg-[#131927] p-2.5 rounded-xl border border-[#1f293d] flex items-center justify-between">
-              <div>
-                <span className="text-[9px] text-gray-400 font-bold block">TÍCH LŨY AN TOÀN:</span>
-                <span className="text-base font-black text-purple-300 font-mono">
-                  ${Math.max(coldAdminProfitAllocated, walletBalances.cold.usdt).toLocaleString('en-US', { minimumFractionDigits: 2 })} USDT
-                </span>
-              </div>
-              <div className="text-right">
-                <span className="text-[9px] text-gray-500 font-bold block">BẢO MẬT:</span>
-                <span className="text-xs font-bold text-purple-400 font-mono">
-                  OFFLINE 100%
-                </span>
-              </div>
-            </div>
-
-            {/* Address & Copy */}
-            <div className="flex items-center justify-between text-[10px] font-mono pt-1 text-gray-400">
-              <span className="truncate max-w-[200px]" title={vaultConfig.coldWallet}>
-                {vaultConfig.coldWallet.slice(0, 8)}...{vaultConfig.coldWallet.slice(-6)}
-              </span>
-              <button
-                onClick={() => handleCopy('cold', vaultConfig.coldWallet)}
-                className="text-purple-400 hover:text-purple-300 flex items-center gap-1 font-bold"
-              >
-                {copiedKey === 'cold' ? <CheckCircle2 className="w-3 h-3 text-[#00df89]" /> : <Copy className="w-3 h-3" />}
-                <span>{copiedKey === 'cold' ? 'Đã chép' : 'Sao chép'}</span>
-              </button>
-            </div>
-          </div>
-
-          {/* 4. VÍ NẠP EXNESS MASTER ECN (80%) */}
-          <div className="bg-[#0b0e17] p-3.5 rounded-2xl border border-amber-500/40 space-y-2 relative overflow-hidden shadow-sm">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center font-black">
-                  <Layers className="w-3.5 h-3.5" />
-                </div>
-                <div>
-                  <span className="text-[11px] font-black text-amber-300 uppercase tracking-wide block">
-                    4. VÍ NẠP MASTER EXNESS ECN
-                  </span>
-                  <span className="text-[9px] text-gray-400 font-mono">80% Vốn bơm vào MT5 EA cào lãi</span>
+                  <span className="text-[9px] text-gray-400 font-mono">Khách nạp thẳng & Chạy Bot Scalping</span>
                 </div>
               </div>
               <span className="text-[9px] font-mono font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
-                EXNESS POOL
+                MASTER POOL
               </span>
             </div>
 
             {/* Balance Display */}
-            <div className="bg-[#131927] p-2.5 rounded-xl border border-[#1f293d] flex items-center justify-between">
+            <div className="bg-[#131927] p-3 rounded-xl border border-[#1f293d] flex items-center justify-between">
               <div>
-                <span className="text-[9px] text-gray-400 font-bold block">TỔNG VỐN CHẠY BOT:</span>
-                <span className="text-base font-black text-amber-300 font-mono">
-                  ${Math.max(exnessMasterAllocated, walletBalances.exness.usdt).toLocaleString('en-US', { minimumFractionDigits: 2 })} USDT
+                <span className="text-[9px] text-gray-400 font-bold block">TỔNG VỐN GIAO DỊCH (TVL):</span>
+                <span className="text-lg font-black text-amber-300 font-mono">
+                  ${totalTVL.toLocaleString('en-US', { minimumFractionDigits: 2 })} USDT
                 </span>
               </div>
               <div className="text-right">
-                <span className="text-[9px] text-gray-500 font-bold block">ROBOT EA:</span>
-                <span className="text-xs font-black text-[#00df89] font-mono">
-                  ACTIVE 24/7
+                <span className="text-[9px] text-gray-400 font-bold block">SỐ DƯ ON-CHAIN:</span>
+                <span className="text-xs font-black text-[#00df89] font-mono block">
+                  ${walletBalances.exness.usdt.toFixed(2)} USDT
                 </span>
+                <span className="text-[9px] text-gray-500 font-mono">{walletBalances.exness.trx.toFixed(1)} TRX</span>
               </div>
             </div>
 
@@ -430,60 +273,117 @@ export const AccountingAuditTab: React.FC<AccountingAuditTabProps> = ({
             </div>
           </div>
 
+          {/* 2. VÍ QUỸ DỰ PHÒNG (10% TRÍCH GIỮ TỪ LỆNH RÚT) */}
+          <div className="bg-[#0b0e17] p-4 rounded-2xl border border-purple-500/50 space-y-2.5 relative overflow-hidden shadow-md">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-purple-500/20 text-purple-400 flex items-center justify-center font-black">
+                  🛡️
+                </div>
+                <div>
+                  <span className="text-xs font-black text-purple-300 uppercase tracking-wide block">
+                    2. VÍ QUỸ DỰ PHÒNG (10%)
+                  </span>
+                  <span className="text-[9px] text-gray-400 font-mono">Trích giữ 10% từ mỗi lệnh rút tiền</span>
+                </div>
+              </div>
+              <span className="text-[9px] font-mono font-bold text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded border border-purple-500/20">
+                TREASURY RESERVE
+              </span>
+            </div>
+
+            {/* Balance Display */}
+            <div className="bg-[#131927] p-3 rounded-xl border border-[#1f293d] flex items-center justify-between">
+              <div>
+                <span className="text-[9px] text-gray-400 font-bold block">TÍCH LŨY 10% TỪ RÚT VỐN:</span>
+                <span className="text-lg font-black text-purple-300 font-mono">
+                  ${totalTreasuryRetained.toLocaleString('en-US', { minimumFractionDigits: 2 })} USDT
+                </span>
+              </div>
+              <div className="text-right">
+                <span className="text-[9px] text-gray-400 font-bold block">SỐ DƯ ON-CHAIN:</span>
+                <span className="text-xs font-black text-purple-300 font-mono block">
+                  ${walletBalances.reserve.usdt.toFixed(2)} USDT
+                </span>
+                <span className="text-[9px] text-gray-500 font-mono">{walletBalances.reserve.trx.toFixed(1)} TRX</span>
+              </div>
+            </div>
+
+            {/* Address & Copy */}
+            <div className="flex items-center justify-between text-[10px] font-mono pt-1 text-gray-400">
+              <span className="truncate max-w-[200px]" title={vaultConfig.treasuryReserveWallet}>
+                {vaultConfig.treasuryReserveWallet.slice(0, 8)}...{vaultConfig.treasuryReserveWallet.slice(-6)}
+              </span>
+              <button
+                onClick={() => handleCopy('reserve', vaultConfig.treasuryReserveWallet)}
+                className="text-purple-400 hover:text-purple-300 flex items-center gap-1 font-bold"
+              >
+                {copiedKey === 'reserve' ? <CheckCircle2 className="w-3 h-3 text-[#00df89]" /> : <Copy className="w-3 h-3" />}
+                <span>{copiedKey === 'reserve' ? 'Đã chép' : 'Sao chép'}</span>
+              </button>
+            </div>
+          </div>
+
         </div>
 
-        {/* PHẦN CHỈNH SỬA ĐỊA CHỈ VÍ (MẶC ĐỊNH ẨN - KHI CẦN THÌ BUNG RA) */}
+        {/* SƠ ĐỒ LUỒNG RÚT TIỀN TỰ ĐỘNG (CLEAR WITHDRAWAL WORKFLOW) */}
+        <div className="bg-[#0b0e17] p-3.5 rounded-2xl border border-[#1f293d] space-y-2 text-xs font-mono">
+          <span className="text-[10px] font-black text-gray-300 uppercase tracking-wider block border-b border-[#1f293d] pb-1.5 flex items-center gap-1.5">
+            <ArrowRight className="w-3.5 h-3.5 text-amber-400" /> QUY TRÌNH XỬ LÝ DÒNG TIỀN KHI KHÁCH RÚT TIỀN (VÍ DỤ $200 USDT):
+          </span>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-2 pt-1 text-[11px]">
+            <div className="bg-[#131927] p-2.5 rounded-xl border border-purple-500/30">
+              <span className="text-gray-400 text-[9px] block">1. TRÍCH SANG VÍ DỰ PHÒNG (10%):</span>
+              <strong className="text-purple-300">+$20.00 USDT</strong>
+              <span className="text-[9px] text-gray-500 block">(Nằm trong 19% phí rút)</span>
+            </div>
+            <div className="bg-[#131927] p-2.5 rounded-xl border border-[#00df89]/30">
+              <span className="text-gray-400 text-[9px] block">2. THỰC CHUYỂN CHO KHÁCH (NET):</span>
+              <strong className="text-[#00df89]">+$157.00 USDT</strong>
+              <span className="text-[9px] text-gray-500 block">(Đã trừ 19% phí + $5 gas)</span>
+            </div>
+            <div className="bg-[#131927] p-2.5 rounded-xl border border-amber-500/30">
+              <span className="text-gray-400 text-[9px] block">3. LỢI NHUẬN TẠI MASTER (9%):</span>
+              <strong className="text-amber-300">+$18.00 USDT</strong>
+              <span className="text-[9px] text-gray-500 block">(Phí vận hành giữ lại)</span>
+            </div>
+          </div>
+        </div>
+
+        {/* PHẦN CHỈNH SỬA ĐỊA CHỈ 2 VÍ (MẶC ĐỊNH ẨN - KHI CẦN BẤM SỬA SẼ BUNG RA) */}
         {isEditingWallets && (
           <div className="pt-3 border-t border-[#1f293d] space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
             <div className="flex items-center justify-between">
               <span className="text-xs font-black text-amber-400 uppercase tracking-wider flex items-center gap-1">
-                <Settings2 className="w-3.5 h-3.5" /> BẢNG CẬP NHẬT 4 ĐỊA CHỈ VÍ QUỸ
+                <Settings2 className="w-3.5 h-3.5" /> BẢNG CẬP NHẬT 2 ĐỊA CHỈ VÍ MASTER & DỰ PHÒNG
               </span>
-              <span className="text-[10px] text-gray-400 font-mono">Đồng bộ tự động lên Firebase RTDB</span>
+              <span className="text-[10px] text-gray-400 font-mono">Đồng bộ tức thì lên mã QR Nạp tiền</span>
             </div>
 
             <div className="space-y-2.5 text-xs">
-              {/* Input 1: Receiving */}
+              {/* Input 1: Master Exness */}
               <div>
-                <label className="text-[10px] font-bold text-cyan-400 block mb-1">1. Địa chỉ Ví Tiếp Nhận Nạp (TRC20):</label>
-                <input
-                  type="text"
-                  value={vaultConfig.receivingWallet}
-                  onChange={(e) => setVaultConfig({ ...vaultConfig, receivingWallet: e.target.value })}
-                  className="w-full bg-[#0b0e17] border border-cyan-500/40 rounded-xl px-3 py-2 text-white font-mono text-xs focus:outline-none focus:border-cyan-400"
-                />
-              </div>
-
-              {/* Input 2: Hot */}
-              <div>
-                <label className="text-[10px] font-bold text-[#00df89] block mb-1">2. Địa chỉ Ví Nóng Thanh Khoản (TRC20):</label>
-                <input
-                  type="text"
-                  value={vaultConfig.hotWallet}
-                  onChange={(e) => setVaultConfig({ ...vaultConfig, hotWallet: e.target.value })}
-                  className="w-full bg-[#0b0e17] border border-[#00df89]/40 rounded-xl px-3 py-2 text-white font-mono text-xs focus:outline-none focus:border-[#00df89]"
-                />
-              </div>
-
-              {/* Input 3: Cold */}
-              <div>
-                <label className="text-[10px] font-bold text-purple-400 block mb-1">3. Địa chỉ Ví Lạnh Lợi Nhuận / Treasury (TRC20):</label>
-                <input
-                  type="text"
-                  value={vaultConfig.coldWallet}
-                  onChange={(e) => setVaultConfig({ ...vaultConfig, coldWallet: e.target.value })}
-                  className="w-full bg-[#0b0e17] border border-purple-500/40 rounded-xl px-3 py-2 text-white font-mono text-xs focus:outline-none focus:border-purple-400"
-                />
-              </div>
-
-              {/* Input 4: Exness */}
-              <div>
-                <label className="text-[10px] font-bold text-amber-400 block mb-1">4. Địa chỉ Nạp Master Exness ECN (TRC20):</label>
+                <label className="text-[10px] font-bold text-amber-400 block mb-1">
+                  1. Địa chỉ Ví Master Exness ECN (TRC20 - Khách nạp thẳng vào đây):
+                </label>
                 <input
                   type="text"
                   value={vaultConfig.exnessMasterWallet}
                   onChange={(e) => setVaultConfig({ ...vaultConfig, exnessMasterWallet: e.target.value })}
                   className="w-full bg-[#0b0e17] border border-amber-500/40 rounded-xl px-3 py-2 text-white font-mono text-xs focus:outline-none focus:border-amber-400"
+                />
+              </div>
+
+              {/* Input 2: Treasury Reserve */}
+              <div>
+                <label className="text-[10px] font-bold text-purple-400 block mb-1">
+                  2. Địa chỉ Ví Quỹ Dự Phòng (TRC20 - Nhận 10% trích từ mỗi lệnh rút):
+                </label>
+                <input
+                  type="text"
+                  value={vaultConfig.treasuryReserveWallet}
+                  onChange={(e) => setVaultConfig({ ...vaultConfig, treasuryReserveWallet: e.target.value })}
+                  className="w-full bg-[#0b0e17] border border-purple-500/40 rounded-xl px-3 py-2 text-white font-mono text-xs focus:outline-none focus:border-purple-400"
                 />
               </div>
             </div>
@@ -496,7 +396,7 @@ export const AccountingAuditTab: React.FC<AccountingAuditTabProps> = ({
                 className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-[#ff5500] text-black font-black text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 hover:opacity-90 shadow-md transition-all"
               >
                 {isSavingVault ? <Loader2 className="w-4 h-4 animate-spin text-black" /> : <Save className="w-4 h-4 text-black" />}
-                <span>LƯU & ĐỒNG BỘ TOÀN APP</span>
+                <span>LƯU & ĐỒNG BỘ 2 VÍ TOÀN APP</span>
               </button>
 
               <button
@@ -510,7 +410,7 @@ export const AccountingAuditTab: React.FC<AccountingAuditTabProps> = ({
         )}
       </div>
 
-      {/* Treasury & Affiliate Ledger Card */}
+      {/* Sổ cái Thu - Chi & Hoa hồng F1 */}
       <div className="spartan-card rounded-3xl p-4 border border-[#1f293d] space-y-3 shadow-lg">
         <div className="flex items-center justify-between border-b border-[#1f293d] pb-2">
           <div className="flex items-center gap-2">
@@ -527,7 +427,7 @@ export const AccountingAuditTab: React.FC<AccountingAuditTabProps> = ({
         <div className="grid grid-cols-2 gap-2 text-xs font-mono">
           <div className="bg-[#0b0e17] p-3 rounded-xl border border-[#1f293d]">
             <span className="text-[10px] text-gray-400 block mb-0.5">TRÍCH GIỮ QUỸ DỰ PHÒNG (10%):</span>
-            <span className="text-sm font-black text-amber-300">
+            <span className="text-sm font-black text-purple-300">
               ${totalTreasuryRetained.toLocaleString('en-US', { minimumFractionDigits: 2 })} USDT
             </span>
           </div>
