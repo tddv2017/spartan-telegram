@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { calculateDepositFee, calculateWithdrawFee } from '@/lib/feeCalculator';
 import { createLiveTransaction, subscribeToUserTransactions, TransactionData } from '@/lib/firebaseService';
+import { fetchTreasuryVault, DEFAULT_TREASURY_VAULT } from '@/lib/walletConfig';
 
 interface WalletViewProps {
   currentBalance: number;
@@ -48,10 +49,15 @@ export const WalletView: React.FC<WalletViewProps> = ({
   const [firestoreTxs, setFirestoreTxs] = useState<TransactionData[]>([]);
   const [localTxs, setLocalTxs] = useState<TransactionData[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
+  const [receivingWallet, setReceivingWallet] = useState<string>(DEFAULT_TREASURY_VAULT.receivingWallet);
   const ITEMS_PER_PAGE = 5;
 
-  // Realtime Listener for User Transactions
+  // Realtime Listener for User Transactions & Treasury Wallet
   useEffect(() => {
+    fetchTreasuryVault().then(cfg => {
+      if (cfg.receivingWallet) setReceivingWallet(cfg.receivingWallet);
+    });
+
     if (!telegramId) return;
     const unsubscribe = subscribeToUserTransactions(telegramId, (txs) => {
       setFirestoreTxs(txs);
@@ -95,8 +101,8 @@ export const WalletView: React.FC<WalletViewProps> = ({
   const depositBreakdown = calculateDepositFee(numAmount);
   const withdrawBreakdown = calculateWithdrawFee(numAmount);
 
-  // Master Exness Deposit Address
-  const walletAddress = "TBGvPZsuqKH5CrSbYLEi8q2BCQ6CXyKmAu";
+  // Master Receiving Deposit Address
+  const walletAddress = receivingWallet;
   const activeMemo = activeDepositTx?.memoCode || `SPARTAN_${telegramId}_${Math.floor(Date.now() / 1000).toString().slice(-4)}`;
 
   const handleCopyAddress = () => {

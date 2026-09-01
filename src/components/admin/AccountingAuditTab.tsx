@@ -1,8 +1,14 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { TransactionData } from '@/lib/firebaseService';
 import { UserAuditItem } from '@/lib/adminService';
+import { 
+  fetchTreasuryVault, 
+  updateTreasuryVault, 
+  TreasuryVaultConfig, 
+  DEFAULT_TREASURY_VAULT 
+} from '@/lib/walletConfig';
 import { 
   DollarSign, 
   Receipt, 
@@ -15,7 +21,13 @@ import {
   Layers, 
   ShieldCheck,
   TrendingUp,
-  FileSpreadsheet
+  FileSpreadsheet,
+  Wallet,
+  Save,
+  Loader2,
+  Lock,
+  Flame,
+  QrCode
 } from 'lucide-react';
 
 interface AccountingAuditTabProps {
@@ -29,6 +41,32 @@ export const AccountingAuditTab: React.FC<AccountingAuditTabProps> = ({
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<'ALL' | 'DEPOSIT' | 'WITHDRAW'>('ALL');
+  
+  // Treasury Multi-Wallet Vault States
+  const [vaultConfig, setVaultConfig] = useState<TreasuryVaultConfig>(DEFAULT_TREASURY_VAULT);
+  const [isSavingVault, setIsSavingVault] = useState(false);
+  const [vaultSaveStatus, setVaultSaveStatus] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchTreasuryVault().then((cfg) => {
+      setVaultConfig(cfg);
+    });
+  }, []);
+
+  const handleSaveVault = async () => {
+    setIsSavingVault(true);
+    try {
+      const success = await updateTreasuryVault(vaultConfig);
+      if (success) {
+        setVaultSaveStatus('✅ ĐÃ LƯU & ĐỒNG BỘ BỘ 3 VÍ QUỸ THÀNH CÔNG!');
+      } else {
+        setVaultSaveStatus('❌ Lỗi khi lưu cấu hình ví quỹ!');
+      }
+      setTimeout(() => setVaultSaveStatus(null), 4000);
+    } finally {
+      setIsSavingVault(false);
+    }
+  };
 
   // Compute Cashflow Totals
   const approvedDeposits = transactions.filter(t => t.type === 'DEPOSIT' && t.status === 'APPROVED');
@@ -59,6 +97,14 @@ export const AccountingAuditTab: React.FC<AccountingAuditTabProps> = ({
 
   return (
     <div className="space-y-4">
+      {/* Toast Save Status */}
+      {vaultSaveStatus && (
+        <div className="p-3 bg-amber-500/20 border border-amber-500 rounded-2xl text-amber-300 text-xs font-bold flex items-center gap-2 animate-bounce">
+          <ShieldCheck className="w-4 h-4 flex-shrink-0 text-amber-400" />
+          <span>{vaultSaveStatus}</span>
+        </div>
+      )}
+
       {/* Financial Executive Summary Cards */}
       <div className="grid grid-cols-2 gap-3">
         {/* Total Inflow */}
@@ -88,6 +134,101 @@ export const AccountingAuditTab: React.FC<AccountingAuditTabProps> = ({
             Phí Rút Đã Thu: <strong className="text-amber-400">+${totalWithdrawFees.toFixed(2)} USD</strong>
           </div>
         </div>
+      </div>
+
+      {/* BẢNG CẤU HÌNH BỘ 3 VÍ QUỸ ĐỊNH CHẾ (TREASURY MULTI-WALLET VAULT) */}
+      <div className="spartan-card rounded-3xl p-5 border border-amber-500/40 space-y-3.5 shadow-xl">
+        <div className="flex items-center justify-between border-b border-[#1f293d] pb-2.5">
+          <div className="flex items-center gap-2">
+            <Wallet className="w-4 h-4 text-amber-400" />
+            <h3 className="text-xs font-black text-white uppercase tracking-wider">
+              CẤU HÌNH BỘ VÍ QUỸ & TỰ ĐỘNG PHÂN LUỒNG
+            </h3>
+          </div>
+          <span className="text-[9px] font-mono font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
+            TRC20 VAULT
+          </span>
+        </div>
+
+        <div className="space-y-3 text-xs">
+          {/* 1. Ví Tiếp Nhận Nạp Tiền (Master Receiving Wallet) */}
+          <div className="bg-[#0b0e17] p-3 rounded-2xl border border-[#1f293d] space-y-1.5">
+            <div className="flex items-center justify-between">
+              <label className="text-[11px] font-extrabold text-cyan-400 uppercase tracking-wider flex items-center gap-1.5">
+                <QrCode className="w-3.5 h-3.5" /> 1. VÍ TIẾP NHẬN NẠP TIỀN (RECEIVING WALLET)
+              </label>
+              <span className="text-[9px] text-gray-400 font-mono">Xuất mã QR cho khách nạp</span>
+            </div>
+            <input
+              type="text"
+              value={vaultConfig.receivingWallet}
+              onChange={(e) => setVaultConfig({ ...vaultConfig, receivingWallet: e.target.value })}
+              className="w-full bg-[#131927] border border-[#1f293d] rounded-xl px-3 py-2 text-white font-mono text-xs focus:outline-none focus:border-cyan-400"
+              placeholder="Nhập địa chỉ ví USDT TRC20 tiếp nhận tiền..."
+            />
+          </div>
+
+          {/* 2. Ví Nóng Thanh Khoản (Hot Wallet) */}
+          <div className="bg-[#0b0e17] p-3 rounded-2xl border border-[#1f293d] space-y-1.5">
+            <div className="flex items-center justify-between">
+              <label className="text-[11px] font-extrabold text-[#00df89] uppercase tracking-wider flex items-center gap-1.5">
+                <Flame className="w-3.5 h-3.5" /> 2. VÍ NÓNG THANH KHOẢN (HOT WALLET - 11%)
+              </label>
+              <span className="text-[9px] text-[#00df89] font-mono font-bold">Chi trả rút tiền tức thì</span>
+            </div>
+            <input
+              type="text"
+              value={vaultConfig.hotWallet}
+              onChange={(e) => setVaultConfig({ ...vaultConfig, hotWallet: e.target.value })}
+              className="w-full bg-[#131927] border border-[#1f293d] rounded-xl px-3 py-2 text-white font-mono text-xs focus:outline-none focus:border-[#00df89]"
+              placeholder="Nhập địa chỉ ví nóng TRC20 để sẵn tiền trả rút..."
+            />
+          </div>
+
+          {/* 3. Ví Lạnh Quản Trị / Lợi Nhuận (Cold Storage Vault) */}
+          <div className="bg-[#0b0e17] p-3 rounded-2xl border border-[#1f293d] space-y-1.5">
+            <div className="flex items-center justify-between">
+              <label className="text-[11px] font-extrabold text-purple-400 uppercase tracking-wider flex items-center gap-1.5">
+                <Lock className="w-3.5 h-3.5" /> 3. VÍ LẠNH QUẢN TRỊ / LỢI NHUẬN (COLD VAULT - 9%)
+              </label>
+              <span className="text-[9px] text-purple-400 font-mono font-bold">Lợi nhuận ròng đút túi</span>
+            </div>
+            <input
+              type="text"
+              value={vaultConfig.coldWallet}
+              onChange={(e) => setVaultConfig({ ...vaultConfig, coldWallet: e.target.value })}
+              className="w-full bg-[#131927] border border-[#1f293d] rounded-xl px-3 py-2 text-white font-mono text-xs focus:outline-none focus:border-purple-400"
+              placeholder="Nhập địa chỉ ví lạnh TRC20 lưu trữ an toàn..."
+            />
+          </div>
+
+          {/* 4. Ví Nạp Master Exness (Exness Master Pool) */}
+          <div className="bg-[#0b0e17] p-3 rounded-2xl border border-[#1f293d] space-y-1.5">
+            <div className="flex items-center justify-between">
+              <label className="text-[11px] font-extrabold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
+                <Layers className="w-3.5 h-3.5" /> 4. VÍ NẠP EXNESS MASTER ECN (80% VỐN BOT)
+              </label>
+              <span className="text-[9px] text-amber-400 font-mono font-bold">Bơm vốn cho EA cào lãi</span>
+            </div>
+            <input
+              type="text"
+              value={vaultConfig.exnessMasterWallet}
+              onChange={(e) => setVaultConfig({ ...vaultConfig, exnessMasterWallet: e.target.value })}
+              className="w-full bg-[#131927] border border-[#1f293d] rounded-xl px-3 py-2 text-white font-mono text-xs focus:outline-none focus:border-amber-400"
+              placeholder="Nhập địa chỉ nạp TRC20 của tài khoản Master Exness..."
+            />
+          </div>
+        </div>
+
+        {/* Nút Lưu Cấu Hình Ví Quỹ */}
+        <button
+          onClick={handleSaveVault}
+          disabled={isSavingVault}
+          className="w-full py-3 rounded-2xl bg-gradient-to-r from-amber-500 to-[#ff5500] text-black font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 hover:opacity-90 shadow-md transition-all font-sans"
+        >
+          {isSavingVault ? <Loader2 className="w-4 h-4 animate-spin text-black" /> : <Save className="w-4 h-4 text-black" />}
+          <span>LƯU & ĐỒNG BỘ CẤU HÌNH VÍ QUỸ TOÀN APP</span>
+        </button>
       </div>
 
       {/* Treasury & Affiliate Ledger Card */}
