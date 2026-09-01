@@ -106,6 +106,7 @@ export async function forceSyncUserProfile(
 
   let existingTradingBal = 0.00;
   let existingRefBal = 0.00;
+  let existingTier = 1;
 
   try {
     const res = await fetch(`${RTDB_BASE_URL}/users/${cleanId}.json`);
@@ -114,6 +115,7 @@ export async function forceSyncUserProfile(
       if (data) {
         if (typeof data.tradingBalance === 'number') existingTradingBal = data.tradingBalance;
         if (typeof data.referralBalance === 'number') existingRefBal = data.referralBalance;
+        if (typeof data.resellerTier === 'number') existingTier = data.resellerTier;
       }
     }
   } catch (e) {}
@@ -127,7 +129,7 @@ export async function forceSyncUserProfile(
     referralBalance: existingRefBal,
     referralCode: `SPARTAN_${cleanId}`,
     referrerId: referrerId || undefined,
-    resellerTier: 1,
+    resellerTier: existingTier,
     createdAt: nowIso,
     updatedAt: nowIso
   };
