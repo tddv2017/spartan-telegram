@@ -483,175 +483,240 @@ export async function approveLiveTransaction(
   adminUsername: string = 'tddv2017',
   actualOnChainAmount?: number
 ): Promise<{ success: boolean; message: string }> {
+  // Normalize inverted arguments if userId was passed first
+  let resolvedTxId = txId;
+  let resolvedAdmin = adminUsername;
+  if (/^\d+$/.test(txId) && (adminUsername.includes('_') || adminUsername.startsWith('SPARTAN'))) {
+    resolvedTxId = adminUsername;
+    resolvedAdmin = 'tddv2017';
+  }
+
   let userId = '';
   let netAmount = 0;
   let grossAmount = 0;
   let feeAmount = 0;
   let type = 'DEPOSIT';
+  let targetKey = resolvedTxId;
+  let tx: any = null;
 
   try {
-    const res = await fetch(`${RTDB_BASE_URL}/transactions/${txId}.json`);
+    // 1. Direct fetch
+    const res = await fetch(`${RTDB_BASE_URL}/transactions/${resolvedTxId}.json`);
     if (res.ok) {
-      const tx = await res.json();
-      if (tx) {
-        if (tx.status === 'APPROVED') {
-          return { success: false, message: 'Lệnh này đã được phê duyệt trước đó!' };
-        }
-        if (tx.status === 'REJECTED') {
-          return { success: false, message: 'Lệnh này đã bị từ chối trước đó!' };
-        }
+      tx = await res.json();
+    }
 
-        userId = tx.userId;
-        type = tx.type;
-
-        // If actualOnChainAmount is provided (e.g., user transferred a different amount on TRON), recalculate fees!
-        if (type === 'DEPOSIT' && typeof actualOnChainAmount === 'number' && actualOnChainAmount > 0) {
-          const feeCalc = calculateDepositFee(actualOnChainAmount);
-          grossAmount = actualOnChainAmount;
-          feeAmount = feeCalc.totalFee;
-          netAmount = feeCalc.netAmount;
-        } else {
-          grossAmount = tx.grossAmount;
-          feeAmount = tx.feeAmount;
-          netAmount = tx.netAmount;
-        }
-
-        if (type === 'WITHDRAW' && userId) {
-          const userRes = await fetch(`${RTDB_BASE_URL}/users/${userId}.json`);
-          if (userRes.ok) {
-            const user = await userRes.json();
-            const currentBal = user?.tradingBalance || 0;
-
-            if (currentBal < grossAmount) {
-              const rejectPayload = {
-                ...tx,
-                status: 'REJECTED',
-                approvedBy: 'SYSTEM_AUTO_REJECT_INSUFFICIENT_FUNDS',
-                rejectedAt: new Date().toISOString()
-              };
-
-              await fetch(`${RTDB_BASE_URL}/transactions/${txId}.json`, {
-                method: "PUT",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(rejectPayload)
-              });
-              await fetch(`${RTDB_BASE_URL}/users/${userId}/transactions/${txId}.json`, {
-                method: "PUT",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(rejectPayload)
-              });
-
-              await saveToFirestoreREST(`transactions/${txId}`, rejectPayload);
-              await saveToFirestoreREST(`users/${userId}/transactions/${txId}`, rejectPayload);
-
-              return {
-                success: false,
-                message: `⛔ TỪ CHỐI TỰ ĐỘNG: Số dư tài khoản ($${currentBal.toFixed(2)}) không đủ để duyệt lệnh rút $${grossAmount.toFixed(2)} thứ 2 này!`
-              };
+    // 2. Deep scan if not found by direct key
+    if (!tx) {
+      const allRes = await fetch(`${RTDB_BASE_URL}/transactions.json`);
+      if (allRes.ok) {
+        const allData = await allRes.json();
+        if (allData && typeof allData === 'object') {
+          for (const [k, v] of Object.entries(allData as Record<string, any>)) {
+            if (v && (k === resolvedTxId || v.id === resolvedTxId || v.memoCode === resolvedTxId)) {
+              targetKey = k;
+              tx = v;
+              break;
             }
           }
         }
-
-        const updatePayload = {
-          ...tx,
-          grossAmount,
-          feeAmount,
-          netAmount,
-          actualOnChainAmount: actualOnChainAmount || grossAmount,
-          adjustedOnChain: typeof actualOnChainAmount === 'number' && actualOnChainAmount !== tx.grossAmount,
-          status: 'APPROVED',
-          approvedBy: adminUsername,
-          approvedAt: new Date().toISOString()
-        };
-
-        await fetch(`${RTDB_BASE_URL}/transactions/${txId}.json`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(updatePayload)
-        });
-        await fetch(`${RTDB_BASE_URL}/users/${userId}/transactions/${txId}.json`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(updatePayload)
-        });
-
-        await saveToFirestoreREST(`transactions/${txId}`, updatePayload);
-        await saveToFirestoreREST(`users/${userId}/transactions/${txId}`, updatePayload);
       }
     }
-  } catch (e) {}
 
-  if (userId) {
-    try {
-      const userRes = await fetch(`${RTDB_BASE_URL}/users/${userId}.json`);
-      if (userRes.ok) {
-        const user = await userRes.json();
-        if (user) {
-          const currentBal = user.tradingBalance || 0;
-          const newBal = type === 'DEPOSIT' ? currentBal + netAmount : currentBal - grossAmount;
+    if (tx) {
+      if (tx.status === 'APPROVED') {
+        return { success: false, message: 'Lệnh này đã được phê duyệt trước đó!' };
+      }
+      if (tx.status === 'REJECTED') {
+        return { success: false, message: 'Lệnh này đã bị từ chối trước đó!' };
+      }
 
-          const balPayload = { tradingBalance: Math.max(0, newBal) };
+      userId = String(tx.userId);
+      type = tx.type;
 
-          await fetch(`${RTDB_BASE_URL}/users/${userId}.json`, {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(balPayload)
-          });
+      if (type === 'DEPOSIT' && typeof actualOnChainAmount === 'number' && actualOnChainAmount > 0) {
+        const feeCalc = calculateDepositFee(actualOnChainAmount);
+        grossAmount = actualOnChainAmount;
+        feeAmount = feeCalc.totalFee;
+        netAmount = feeCalc.netAmount;
+      } else {
+        grossAmount = tx.grossAmount;
+        feeAmount = tx.feeAmount;
+        netAmount = tx.netAmount;
+      }
 
-          await saveToFirestoreREST(`users/${userId}`, balPayload);
+      if (type === 'WITHDRAW' && userId) {
+        const userRes = await fetch(`${RTDB_BASE_URL}/users/${userId}.json`);
+        if (userRes.ok) {
+          const user = await userRes.json();
+          const currentBal = user?.tradingBalance || 0;
+
+          if (currentBal < grossAmount) {
+            const rejectPayload = {
+              ...tx,
+              status: 'REJECTED',
+              approvedBy: 'SYSTEM_AUTO_REJECT_INSUFFICIENT_FUNDS',
+              rejectedAt: new Date().toISOString()
+            };
+
+            await fetch(`${RTDB_BASE_URL}/transactions/${targetKey}.json`, {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(rejectPayload)
+            });
+            await fetch(`${RTDB_BASE_URL}/users/${userId}/transactions/${targetKey}.json`, {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(rejectPayload)
+            });
+
+            await saveToFirestoreREST(`transactions/${targetKey}`, rejectPayload);
+            await saveToFirestoreREST(`users/${userId}/transactions/${targetKey}`, rejectPayload);
+
+            return {
+              success: false,
+              message: `⛔ TỪ CHỐI TỰ ĐỘNG: Số dư tài khoản ($${currentBal.toFixed(2)}) không đủ để duyệt lệnh rút $${grossAmount.toFixed(2)} thứ 2 này!`
+            };
+          }
         }
       }
-    } catch (e) {}
+
+      const updatePayload = {
+        ...tx,
+        grossAmount,
+        feeAmount,
+        netAmount,
+        actualOnChainAmount: actualOnChainAmount || grossAmount,
+        adjustedOnChain: typeof actualOnChainAmount === 'number' && actualOnChainAmount !== tx.grossAmount,
+        status: 'APPROVED',
+        approvedBy: resolvedAdmin,
+        approvedAt: new Date().toISOString()
+      };
+
+      await fetch(`${RTDB_BASE_URL}/transactions/${targetKey}.json`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updatePayload)
+      });
+      if (userId) {
+        await fetch(`${RTDB_BASE_URL}/users/${userId}/transactions/${targetKey}.json`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(updatePayload)
+        });
+        await saveToFirestoreREST(`users/${userId}/transactions/${targetKey}`, updatePayload);
+      }
+
+      await saveToFirestoreREST(`transactions/${targetKey}`, updatePayload);
+
+      // Update user trading balance
+      if (userId) {
+        try {
+          const userRes = await fetch(`${RTDB_BASE_URL}/users/${userId}.json`);
+          if (userRes.ok) {
+            const user = await userRes.json();
+            if (user) {
+              const currentBal = user.tradingBalance || 0;
+              const newBal = type === 'DEPOSIT' ? currentBal + netAmount : currentBal - grossAmount;
+
+              const balPayload = { tradingBalance: Math.max(0, newBal) };
+
+              await fetch(`${RTDB_BASE_URL}/users/${userId}.json`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(balPayload)
+              });
+
+              await saveToFirestoreREST(`users/${userId}`, balPayload);
+            }
+          }
+        } catch (e) {}
+      }
+
+      return { success: true, message: `Phê duyệt giao dịch ${targetKey} thành công!` };
+    }
+  } catch (e) {
+    console.error("approveLiveTransaction error:", e);
   }
 
-  return { success: true, message: 'Phê duyệt giao dịch thành công!' };
+  return { success: false, message: 'Không tìm thấy giao dịch để duyệt!' };
 }
 
-// 9. Admin Rejection of Pending Transaction
+// 9. Admin Rejection of Pending Transaction (Bulletproof Smart Resolution)
 export async function rejectLiveTransaction(
   txId: string, 
   adminUsername: string = 'tddv2017', 
   reason: string = 'Từ chối bởi Admin'
 ): Promise<{ success: boolean; message: string }> {
+  // Normalize inverted arguments if userId was passed first
+  let resolvedTxId = txId;
+  let resolvedAdmin = adminUsername;
+  if (/^\d+$/.test(txId) && (adminUsername.includes('_') || adminUsername.startsWith('SPARTAN'))) {
+    resolvedTxId = adminUsername;
+    resolvedAdmin = 'tddv2017';
+  }
+
+  let targetKey = resolvedTxId;
+  let tx: any = null;
+
   try {
-    const res = await fetch(`${RTDB_BASE_URL}/transactions/${txId}.json`);
+    // 1. Direct fetch
+    const res = await fetch(`${RTDB_BASE_URL}/transactions/${resolvedTxId}.json`);
     if (res.ok) {
-      const tx = await res.json();
-      if (tx) {
-        if (tx.status === 'APPROVED') {
-          return { success: false, message: 'Lệnh này đã được duyệt trước đó, không thể từ chối!' };
-        }
-        if (tx.status === 'REJECTED') {
-          return { success: false, message: 'Lệnh này đã bị từ chối trước đó!' };
-        }
+      tx = await res.json();
+    }
 
-        const userId = String(tx.userId);
-        const rejectPayload = {
-          ...tx,
-          status: 'REJECTED',
-          approvedBy: adminUsername,
-          rejectionReason: reason,
-          rejectedAt: new Date().toISOString()
-        };
+    // 2. Deep scan if not found by direct key
+    if (!tx) {
+      const allRes = await fetch(`${RTDB_BASE_URL}/transactions.json`);
+      if (allRes.ok) {
+        const allData = await allRes.json();
+        if (allData && typeof allData === 'object') {
+          for (const [k, v] of Object.entries(allData as Record<string, any>)) {
+            if (v && (k === resolvedTxId || v.id === resolvedTxId || v.memoCode === resolvedTxId)) {
+              targetKey = k;
+              tx = v;
+              break;
+            }
+          }
+        }
+      }
+    }
 
-        await fetch(`${RTDB_BASE_URL}/transactions/${txId}.json`, {
+    if (tx) {
+      if (tx.status === 'APPROVED') {
+        return { success: false, message: 'Lệnh này đã được duyệt trước đó, không thể từ chối!' };
+      }
+      if (tx.status === 'REJECTED') {
+        return { success: false, message: 'Lệnh này đã bị từ chối trước đó!' };
+      }
+
+      const userId = String(tx.userId || '');
+      const rejectPayload = {
+        ...tx,
+        status: 'REJECTED',
+        approvedBy: resolvedAdmin,
+        rejectionReason: reason,
+        rejectedAt: new Date().toISOString()
+      };
+
+      await fetch(`${RTDB_BASE_URL}/transactions/${targetKey}.json`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(rejectPayload)
+      });
+
+      if (userId) {
+        await fetch(`${RTDB_BASE_URL}/users/${userId}/transactions/${targetKey}.json`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(rejectPayload)
         });
-
-        if (userId) {
-          await fetch(`${RTDB_BASE_URL}/users/${userId}/transactions/${txId}.json`, {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(rejectPayload)
-          });
-          await saveToFirestoreREST(`users/${userId}/transactions/${txId}`, rejectPayload);
-        }
-
-        await saveToFirestoreREST(`transactions/${txId}`, rejectPayload);
-        return { success: true, message: `Đã TỪ CHỐI thành công lệnh ${tx.type} ${tx.id}!` };
+        await saveToFirestoreREST(`users/${userId}/transactions/${targetKey}`, rejectPayload);
       }
+
+      await saveToFirestoreREST(`transactions/${targetKey}`, rejectPayload);
+      return { success: true, message: `Đã TỪ CHỐI thành công lệnh ${tx.type || ''} ${tx.id || targetKey}!` };
     }
   } catch (e) {
     console.error("rejectLiveTransaction error:", e);

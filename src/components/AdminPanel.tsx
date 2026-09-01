@@ -28,14 +28,19 @@ export const AdminPanel: React.FC = () => {
 
   const handleApprove = async (tx: TransactionData) => {
     const key = tx.id || tx.memoCode;
+    const txId = tx.id || tx.memoCode;
     setLoadingMap(prev => ({ ...prev, [key]: true }));
     try {
-      await approveLiveTransaction(tx.userId, tx.id || tx.memoCode);
-      setAdminStatusMsg(`✅ APPROVED order ${tx.id || tx.memoCode} (+$${tx.netAmount.toFixed(2)} USDT) for user @${tx.username}!`);
+      const res = await approveLiveTransaction(txId, 'tddv2017');
+      if (res.success) {
+        setAdminStatusMsg(`✅ ĐÃ DUYỆT đơn ${txId} (+${tx.netAmount.toFixed(2)} USDT) cho @${tx.username}!`);
+      } else {
+        setAdminStatusMsg(`⚠️ ${res.message}`);
+      }
       setTimeout(() => setAdminStatusMsg(null), 5000);
     } catch (err) {
       console.error('Approve error:', err);
-      setAdminStatusMsg(`❌ Approval failed for order ${tx.id || tx.memoCode}!`);
+      setAdminStatusMsg(`❌ Lỗi khi duyệt đơn ${txId}!`);
     } finally {
       setLoadingMap(prev => ({ ...prev, [key]: false }));
     }
@@ -43,14 +48,19 @@ export const AdminPanel: React.FC = () => {
 
   const handleReject = async (tx: TransactionData) => {
     const key = tx.id || tx.memoCode;
+    const txId = tx.id || tx.memoCode;
     setLoadingMap(prev => ({ ...prev, [key]: true }));
     try {
-      await rejectLiveTransaction(tx.userId, tx.id || tx.memoCode);
-      setAdminStatusMsg(`🚫 REJECTED order ${tx.id || tx.memoCode} for user @${tx.username}!`);
+      const res = await rejectLiveTransaction(txId, 'tddv2017', 'Từ chối bởi Admin');
+      if (res.success) {
+        setAdminStatusMsg(`🚫 ĐÃ TỪ CHỐI đơn ${txId} của người dùng @${tx.username}!`);
+      } else {
+        setAdminStatusMsg(`⚠️ ${res.message}`);
+      }
       setTimeout(() => setAdminStatusMsg(null), 5000);
     } catch (err) {
       console.error('Reject error:', err);
-      setAdminStatusMsg(`❌ Rejection failed for order ${tx.id || tx.memoCode}!`);
+      setAdminStatusMsg(`❌ Lỗi khi từ chối đơn ${txId}!`);
     } finally {
       setLoadingMap(prev => ({ ...prev, [key]: false }));
     }
