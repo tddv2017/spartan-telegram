@@ -526,7 +526,7 @@ export const WalletView: React.FC<WalletViewProps> = ({
 
             <div className="bg-[#131927] p-2.5 rounded-xl border border-[#1f293d] space-y-1 my-1">
               <div className="flex justify-between text-amber-400 font-bold text-[11px]">
-                <span>Treasury Reserve Retention (10% Treasury):</span>
+                <span>Treasury Reserve Retention (10% included in 19% fee):</span>
                 <span className="font-mono">${withdrawBreakdown.effectiveRetainedFee?.toFixed(2)} USDT</span>
               </div>
               <span className="text-[9px] text-gray-500 block leading-tight">
