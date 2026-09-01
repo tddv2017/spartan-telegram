@@ -5,6 +5,7 @@ import { User, Share2, Copy, CheckCircle2, ShieldCheck, Users, Trophy, DollarSig
 import { subscribeToReferredUsers } from '@/lib/firebaseService';
 import { getUserRankInfo } from './Header';
 import { checkIsAdmin } from '@/lib/adminAuth';
+import { calculateResellerTier } from '@/lib/resellerEngine';
 
 interface ProfileViewProps {
   telegramId?: string;
