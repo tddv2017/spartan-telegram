@@ -157,6 +157,8 @@ export default function Home() {
         isAdmin={isAdmin}
         tradingBalance={tradingBalance}
         resellerTier={resellerTier}
+        isBotActive={effectiveBotActive}
+        isTechOpsPaused={!isGlobalBotActive || !isBotActive}
         onClose={() => alert('Telegram Mini App Closed')} 
       />
 

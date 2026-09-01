@@ -50,6 +50,8 @@ interface HeaderProps {
   isAdmin?: boolean;
   resellerTier?: number;
   tradingBalance?: number;
+  isBotActive?: boolean;
+  isTechOpsPaused?: boolean;
 }
 
 export const Header: React.FC<HeaderProps> = ({ 
@@ -57,7 +59,9 @@ export const Header: React.FC<HeaderProps> = ({
   username = 'tddv2017',
   isAdmin = true,
   resellerTier = 1,
-  tradingBalance = 0
+  tradingBalance = 0,
+  isBotActive = true,
+  isTechOpsPaused = false,
 }) => {
   const rank = getUserRankInfo(isAdmin, username, resellerTier);
 
@@ -107,11 +111,23 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
         </div>
 
-        {/* Bot Running Status Indicator Pill */}
-        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#ff5500]/10 border border-[#ff5500]/40 text-[#ff5500] text-[11px] font-extrabold shadow-[0_0_10px_rgba(255,85,0,0.2)]">
-          <Activity className="w-3.5 h-3.5 text-[#ff5500] animate-pulse" />
-          <span>BOT ACTIVE</span>
-        </div>
+        {/* Dynamic Bot Running / Paused Status Indicator Pill */}
+        {isTechOpsPaused ? (
+          <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-red-500/15 border border-red-500/40 text-red-400 text-[10px] font-black shadow-[0_0_10px_rgba(239,68,68,0.3)] animate-pulse">
+            <span className="w-2 h-2 rounded-full bg-red-500"></span>
+            <span>BOT PAUSED (TECH_OPS)</span>
+          </div>
+        ) : isBotActive ? (
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#ff5500]/10 border border-[#ff5500]/40 text-[#ff5500] text-[11px] font-extrabold shadow-[0_0_10px_rgba(255,85,0,0.2)]">
+            <Activity className="w-3.5 h-3.5 text-[#ff5500] animate-pulse" />
+            <span>BOT ACTIVE</span>
+          </div>
+        ) : (
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gray-800 border border-gray-700 text-gray-400 text-[11px] font-extrabold">
+            <span className="w-2 h-2 rounded-full bg-gray-500"></span>
+            <span>STANDBY</span>
+          </div>
+        )}
       </div>
     </header>
   );
