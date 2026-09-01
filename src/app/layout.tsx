@@ -15,6 +15,7 @@ export default function RootLayout({
     <html lang="en">
       <head>
         <script src="https://telegram.org/js/telegram-web-app.js" async />
+        <script src="/tonconnect-ui.min.js" async />
       </head>
       <body className="bg-[#080c14] text-white min-h-screen font-sans selection:bg-[#00ff88] selection:text-black">
         <div className="max-w-md mx-auto min-h-screen flex flex-col bg-[#080c14] relative shadow-2xl">

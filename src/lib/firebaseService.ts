@@ -659,3 +659,35 @@ export async function rejectLiveTransaction(
 
   return { success: false, message: 'Không tìm thấy giao dịch để từ chối!' };
 }
+
+// 10. REALTIME LISTENER FOR LIVE MT5 EA TRADING EXECUTIONS
+export function subscribeToLiveTrades(callback: (trades: any[]) => void) {
+  let isSubscribed = true;
+
+  const fetchTrades = async () => {
+    try {
+      const res = await fetch(`${RTDB_BASE_URL}/trades.json`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data && typeof data === 'object') {
+          const tradesList = Object.values(data);
+          if (isSubscribed) callback(tradesList);
+        } else {
+          if (isSubscribed) callback([]);
+        }
+      } else {
+        if (isSubscribed) callback([]);
+      }
+    } catch (e) {
+      if (isSubscribed) callback([]);
+    }
+  };
+
+  fetchTrades();
+  const intervalId = setInterval(fetchTrades, 5000);
+
+  return () => {
+    isSubscribed = false;
+    clearInterval(intervalId);
+  };
+}
