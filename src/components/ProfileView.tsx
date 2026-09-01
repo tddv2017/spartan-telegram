@@ -15,8 +15,8 @@ interface ProfileViewProps {
 }
 
 export const ProfileView: React.FC<ProfileViewProps> = ({
-  telegramId = '494232782',
-  username = 'tddv2017',
+  telegramId = '',
+  username = '',
   referralBalance = 0.00,
   resellerTier = 1,
   tradingBalance = 0.00,
@@ -24,8 +24,11 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
   const [copied, setCopied] = useState(false);
   const [referredUsers, setReferredUsers] = useState<any[]>([]);
 
+  const dynamicTier = calculateResellerTier(referredUsers.length, 0);
+  const effectiveTier = Math.max(resellerTier, dynamicTier.tier);
+
   const isAdmin = checkIsAdmin(username) || checkIsAdmin(telegramId);
-  const rank = getUserRankInfo(isAdmin, username, resellerTier);
+  const rank = getUserRankInfo(isAdmin, username, effectiveTier);
 
   // Realtime subscription for Referred Users under this Reseller's account
   useEffect(() => {
@@ -86,14 +89,14 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
             <Trophy className="w-4 h-4 text-[#ff5500]" /> 10-LEVEL RESELLER TIER MATRIX
           </h3>
           <span className="text-[9px] font-black text-[#ff5500] bg-[#ff5500]/10 px-2 py-0.5 rounded-full border border-[#ff5500]/30">
-            {isAdmin ? '👑 SUPREME LEADER' : `Current: LEVEL ${resellerTier}`}
+            {isAdmin ? '👑 SUPREME LEADER' : `Current: LEVEL ${effectiveTier}`}
           </span>
         </div>
 
         {/* COMPACT SCROLLABLE BOX */}
         <div className="space-y-2 max-h-56 overflow-y-auto pr-1.5 scrollbar-thin scrollbar-thumb-[#ff5500]/40 scrollbar-track-[#0b0e17]">
           {resellerLevelsList.map((item) => {
-            const isCurrent = !isAdmin && resellerTier === item.level;
+            const isCurrent = !isAdmin && effectiveTier === item.level;
             return (
               <div
                 key={item.level}
