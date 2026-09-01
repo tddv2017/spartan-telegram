@@ -24,48 +24,49 @@ export const TelegramWalletConnectCard: React.FC<TelegramWalletConnectCardProps>
   const [signedSuccess, setSignedSuccess] = useState(false);
   const [txHash, setTxHash] = useState<string | null>(null);
 
-  // Auto-load stored wallet or prepare native Telegram SDK auto-derivation
+  // User's Real Official TON Wallet Address
+  const OFFICIAL_USER_TON_ADDRESS = 'UQCy3xRImlV3jEu9lq-FFbRzl-u9JLyaOPjVfv3n5TuuGiWP';
+
+  // Auto-load stored wallet or set official user address
   useEffect(() => {
     if (typeof window !== 'undefined') {
       try {
         const savedTon = localStorage.getItem('spartan_ton_wallet_address');
         const savedTrc20 = localStorage.getItem('spartan_trc20_wallet_address');
         const savedType = localStorage.getItem('spartan_ton_wallet_type');
-        if (savedTon || savedTrc20) {
-          if (savedTon) setTonAddress(savedTon);
-          if (savedTrc20) setTrc20Address(savedTrc20);
-          if (savedType) setWalletType(savedType);
-          setIsConnected(true);
+        
+        if (savedTon) {
+          setTonAddress(savedTon);
+        } else {
+          setTonAddress(OFFICIAL_USER_TON_ADDRESS);
         }
+
+        if (savedTrc20) setTrc20Address(savedTrc20);
+        if (savedType) setWalletType(savedType);
+        setIsConnected(true);
       } catch (e) {
         console.error('Storage load error:', e);
       }
     }
   }, []);
 
-  // 1-TAP DUAL-CHAIN AUTO-CONNECT ENGINE (TON UQ... & TRC20 T...)
+  // 1-TAP DUAL-CHAIN AUTO-CONNECT ENGINE (EXACT TON ADDRESS: UQCy3xRImlV3jEu9lq-FFbRzl-u9JLyaOPjVfv3n5TuuGiWP)
   const handleAutoConnect = (type: 'wallet' | 'tonkeeper' | 'mytonwallet') => {
     setIsConnecting(true);
 
     setTimeout(() => {
-      let derivedTon = '';
-      let derivedTrc20 = '';
+      let derivedTon = OFFICIAL_USER_TON_ADDRESS;
+      let derivedTrc20 = 'TBGvPZsuqKH5CrSbYLEi8q2BCQ6CXyKmAu';
 
       if (typeof window !== 'undefined') {
         const tg = (window as any).Telegram?.WebApp;
         const tgUser = tg?.initDataUnsafe?.user;
         if (tgUser && tgUser.id) {
           const idStr = String(tgUser.id);
-          // TON Network (UQ... / EQ... format)
-          derivedTon = `UQBAz_${idStr.slice(0,4)}_${idStr.slice(-4)}_ton`;
-          // TRON Network (T... format)
-          derivedTrc20 = `TQx_${idStr.slice(0,4)}_${idStr.slice(-4)}_trc20`;
+          if (idStr === '494232782' || tgUser.username === 'tddv2017') {
+            derivedTon = OFFICIAL_USER_TON_ADDRESS;
+          }
         }
-      }
-
-      if (!derivedTon) {
-        derivedTon = 'UQBAz_spartan_telegram_wallet_9824';
-        derivedTrc20 = 'TQx_spartan_telegram_wallet_77ab';
       }
 
       const label = type === 'wallet' ? 'Telegram @Wallet (Native Dual-Chain)' : type === 'tonkeeper' ? 'Tonkeeper App' : 'MyTonWallet';
@@ -153,8 +154,8 @@ export const TelegramWalletConnectCard: React.FC<TelegramWalletConnectCardProps>
   };
 
   const currentDisplayedAddress = activeNetwork === 'TON' 
-    ? (tonAddress || 'UQBAz_spartan_wallet_9824...77ab')
-    : (trc20Address || 'TQx_spartan_wallet_77ab...9824');
+    ? (tonAddress || OFFICIAL_USER_TON_ADDRESS)
+    : (trc20Address || 'TBGvPZsuqKH5CrSbYLEi8q2BCQ6CXyKmAu');
 
   return (
     <div className="w-full spartan-card rounded-3xl p-5 border border-[#1f293d] space-y-4 shadow-lg">
@@ -247,7 +248,7 @@ export const TelegramWalletConnectCard: React.FC<TelegramWalletConnectCardProps>
               <span className="text-[9px] text-gray-500 font-bold block uppercase">{walletType} ({activeNetwork})</span>
               <div className="flex items-center gap-1.5 mt-0.5">
                 <ShieldCheck className="w-4 h-4 text-[#00df89]" />
-                <span className="text-white font-bold truncate max-w-[170px]">{currentDisplayedAddress}</span>
+                <span className="text-white font-bold text-[11px] font-mono break-all">{currentDisplayedAddress}</span>
               </div>
             </div>
 
@@ -276,7 +277,7 @@ export const TelegramWalletConnectCard: React.FC<TelegramWalletConnectCardProps>
             <HelpCircle className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
             <div>
               <strong className="text-amber-400 block mb-0.5">LƯU Ý KỸ THUẬT VỀ VÍ TELEGRAM @WALLET:</strong>
-              Ví Telegram `@Wallet` hỗ trợ 2 định dạng: <strong>TON Network (bắt đầu bằng UQ.../EQ...)</strong> và <strong>TRON TRC20 (bắt đầu bằng T...)</strong>. Cả 2 địa chỉ đều thuộc về cùng một tài khoản Telegram `@Wallet` của bạn!
+              Địa chỉ TON chính thức của bạn: <strong className="text-white font-mono">{OFFICIAL_USER_TON_ADDRESS}</strong>. Ví Telegram `@Wallet` tự động liên kết ví TON và TRC20 của bạn!
             </div>
           </div>
 
@@ -325,7 +326,7 @@ export const TelegramWalletConnectCard: React.FC<TelegramWalletConnectCardProps>
                 type="text"
                 value={inputAddress}
                 onChange={(e) => setInputAddress(e.target.value)}
-                placeholder="e.g. UQBAz... or TQx..."
+                placeholder="e.g. UQCy3xRImlV3jEu9lq-FFbRzl-u9JLyaOPjVfv3n5TuuGiWP"
                 className="w-full bg-[#0b0e17] border border-[#1f293d] rounded-2xl p-3 text-white text-xs font-mono focus:outline-none focus:border-[#ff5500]"
               />
 
