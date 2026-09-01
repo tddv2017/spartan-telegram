@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Wallet, ShieldCheck, CheckCircle2, Zap, Lock, Key, Loader2, DollarSign, Sparkles, Activity, Globe, RefreshCw, LogOut, Power } from 'lucide-react';
+import { Wallet, ShieldCheck, CheckCircle2, Zap, Lock, Key, Loader2, DollarSign, Sparkles, Activity, Globe, RefreshCw, LogOut, Power, ExternalLink, Search } from 'lucide-react';
 
 interface TelegramWalletConnectCardProps {
   onDepositSigned?: (amount: number) => void;
@@ -140,6 +140,10 @@ export const TelegramWalletConnectCard: React.FC<TelegramWalletConnectCardProps>
     ? tonAddress 
     : trc20Address;
 
+  const explorerUrl = activeNetwork === 'TON'
+    ? `https://tonscan.org/address/${tonAddress}`
+    : `https://tronscan.org/#/address/${trc20Address}`;
+
   return (
     <div className="w-full spartan-card rounded-3xl p-5 border border-[#1f293d] space-y-4 shadow-lg">
       {/* Header Bar */}
@@ -250,19 +254,21 @@ export const TelegramWalletConnectCard: React.FC<TelegramWalletConnectCardProps>
             </button>
           </div>
 
-          {/* Auto-Extracted Wallet Address Display */}
+          {/* Auto-Extracted Wallet Address Display & TONScan Audit Link */}
           <div className="bg-[#0b0e17] p-3 rounded-2xl border border-[#1f293d] text-xs font-mono">
-            <div className="w-full space-y-1">
+            <div className="w-full space-y-1.5">
               <div className="flex items-center justify-between">
                 <span className="text-[9px] text-gray-500 font-bold block uppercase">
                   ĐỊA CHỈ VÍ TELEGRAM CHÍNH THỨC CỦA BẠN ({activeNetwork})
                 </span>
-                <button
-                  onClick={handleDisconnectWallet}
-                  className="text-[10px] text-gray-400 hover:text-red-400 font-bold flex items-center gap-1 underline"
+                <a
+                  href={explorerUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[10px] text-[#00df89] hover:underline font-bold flex items-center gap-1"
                 >
-                  <LogOut className="w-3 h-3" /> Disconnect
-                </button>
+                  <Search className="w-3 h-3" /> Soi Trên Explorer
+                </a>
               </div>
               <div className="flex items-center gap-1.5">
                 <ShieldCheck className="w-4 h-4 text-[#00df89] flex-shrink-0" />
@@ -346,7 +352,7 @@ export const TelegramWalletConnectCard: React.FC<TelegramWalletConnectCardProps>
 
                 <div>
                   <label className="text-xs text-gray-400 font-bold block mb-1">
-                    Amount to Deposit ($ USDT)
+                    Amount to Deposit ($ USD)
                   </label>
                   <input
                     type="number"
