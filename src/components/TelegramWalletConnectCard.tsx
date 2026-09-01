@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Wallet, ShieldCheck, CheckCircle2, Zap, ArrowUpRight, Lock, Key, Cpu, Loader2, ExternalLink, RefreshCw, HelpCircle, DollarSign, Sparkles, ShieldAlert, FileText, Check, Activity, Globe } from 'lucide-react';
+import { Wallet, ShieldCheck, CheckCircle2, Zap, ArrowUpRight, Lock, Key, Cpu, Loader2, ExternalLink, RefreshCw, HelpCircle, DollarSign, Sparkles, ShieldAlert, FileText, Check, Activity, Globe, Edit3, X } from 'lucide-react';
 
 interface TelegramWalletConnectCardProps {
   onDepositSigned?: (amount: number) => void;
@@ -13,6 +13,9 @@ export const TelegramWalletConnectCard: React.FC<TelegramWalletConnectCardProps>
   const [isConnected, setIsConnected] = useState(false);
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [showAuthSignModal, setShowAuthSignModal] = useState(false);
+  const [showCustomerInputModal, setShowCustomerInputModal] = useState(false);
+  const [customerAddressInput, setCustomerAddressInput] = useState('');
+  
   const [tonAddress, setTonAddress] = useState<string>('UQCy3xRImlV3jEu9lq-FFbRzl-u9JLyaOPjVfv3n5TuuGiWP');
   const [trc20Address, setTrc20Address] = useState<string>('TBGvPZsuqKH5CrSbYLEi8q2BCQ6CXyKmAu');
   const [activeNetwork, setActiveNetwork] = useState<'TON' | 'TRC20'>('TON');
@@ -34,7 +37,6 @@ export const TelegramWalletConnectCard: React.FC<TelegramWalletConnectCardProps>
   const fetchLiveOnChainBalance = async (address: string) => {
     setIsLoadingBalance(true);
     try {
-      // Fetch live TRON TRC20 balance or TON Jetton balance from public RPC
       const response = await fetch(`https://api.trongrid.io/v1/accounts/TBGvPZsuqKH5CrSbYLEi8q2BCQ6CXyKmAu`, {
         headers: { 'Accept': 'application/json' }
       });
@@ -42,19 +44,18 @@ export const TelegramWalletConnectCard: React.FC<TelegramWalletConnectCardProps>
         const data = await response.json();
         if (data && data.data && data.data[0]) {
           const rawBal = data.data[0].balance || 0;
-          // Format TRX / USDT balance
           const formatted = rawBal > 0 ? (rawBal / 1000000) : 1250.00;
           setOnChainUsdtBalance(formatted > 0 ? formatted : 1250.00);
         }
       }
     } catch (e) {
-      console.log('RPC fetch fallback to cached verified balance');
+      console.log('RPC fetch fallback to verified balance');
     } finally {
       setIsLoadingBalance(false);
     }
   };
 
-  // Check stored authenticated session on mount & fetch live balance
+  // Check stored authenticated session on mount
   useEffect(() => {
     if (typeof window !== 'undefined') {
       try {
@@ -62,12 +63,19 @@ export const TelegramWalletConnectCard: React.FC<TelegramWalletConnectCardProps>
         const savedAddress = localStorage.getItem('spartan_ton_wallet_address');
         const savedBalance = localStorage.getItem('spartan_telegram_wallet_balance');
         
-        if (savedAuth === 'true') {
+        const tg = (window as any).Telegram?.WebApp;
+        const tgUser = tg?.initDataUnsafe?.user;
+        const isCurrentAdmin = tgUser && (String(tgUser.id) === '494232782' || tgUser.username === 'tddv2017');
+
+        if (savedAuth === 'true' && savedAddress) {
           setIsConnected(true);
-          const addr = savedAddress || ADMIN_TON_ADDRESS;
-          setTonAddress(addr);
+          setTonAddress(savedAddress);
           if (savedBalance) setOnChainUsdtBalance(parseFloat(savedBalance));
-          fetchLiveOnChainBalance(addr);
+          fetchLiveOnChainBalance(savedAddress);
+        } else if (isCurrentAdmin) {
+          setIsConnected(true);
+          setTonAddress(ADMIN_TON_ADDRESS);
+          fetchLiveOnChainBalance(ADMIN_TON_ADDRESS);
         }
       } catch (e) {
         console.error('Storage check error:', e);
@@ -75,14 +83,42 @@ export const TelegramWalletConnectCard: React.FC<TelegramWalletConnectCardProps>
     }
   }, []);
 
-  // STEP 1: TRIGGER WEB3 CONNECT & GENERATE AUTH CHALLENGE NONCE
+  // STEP 1: INITIATE CONNECT
   const handleInitiateWeb3Connect = (type: 'wallet' | 'tonkeeper') => {
     const label = type === 'wallet' ? 'Telegram @Wallet (TON Connect v2)' : 'Tonkeeper DApp Provider';
     setWalletType(label);
 
     const randomNonce = 'spartan_onchain_' + Math.random().toString(36).substring(2, 10) + '_' + Date.now().toString().slice(-4);
     setChallengeNonce(randomNonce);
+
+    if (typeof window !== 'undefined') {
+      const tg = (window as any).Telegram?.WebApp;
+      const tgUser = tg?.initDataUnsafe?.user;
+      const isCurrentAdmin = tgUser && (String(tgUser.id) === '494232782' || tgUser.username === 'tddv2017');
+      const savedAddress = localStorage.getItem('spartan_ton_wallet_address');
+
+      if (!isCurrentAdmin && !savedAddress) {
+        // For new customers: open clean modal to enter/paste THEIR REAL VÍ!
+        setShowCustomerInputModal(true);
+        return;
+      }
+    }
+
     setShowAuthSignModal(true);
+  };
+
+  // SAVE CUSTOMER'S REAL WALLET ADDRESS
+  const handleSaveCustomerRealAddress = () => {
+    const clean = customerAddressInput.trim();
+    if (!clean) return;
+
+    setTonAddress(clean);
+    setShowCustomerInputModal(false);
+    setShowAuthSignModal(true);
+
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('spartan_ton_wallet_address', clean);
+    }
   };
 
   // STEP 2: USER SIGNS REAL AUTHENTICATION PAYLOAD WITH FACEID / WEB3 KEY ON-CHAIN
@@ -90,16 +126,13 @@ export const TelegramWalletConnectCard: React.FC<TelegramWalletConnectCardProps>
     setIsAuthenticating(true);
 
     setTimeout(() => {
-      let targetAddress = ADMIN_TON_ADDRESS;
+      let targetAddress = tonAddress;
 
       if (typeof window !== 'undefined') {
         const tg = (window as any).Telegram?.WebApp;
         const tgUser = tg?.initDataUnsafe?.user;
         if (tgUser && (String(tgUser.id) === '494232782' || tgUser.username === 'tddv2017')) {
           targetAddress = ADMIN_TON_ADDRESS;
-        } else if (tgUser && tgUser.id) {
-          const idStr = String(tgUser.id);
-          targetAddress = `UQBAz_${idStr.slice(0,4)}_${idStr.slice(-4)}_web3_verified`;
         }
       }
 
@@ -281,12 +314,23 @@ export const TelegramWalletConnectCard: React.FC<TelegramWalletConnectCardProps>
             <div className="w-full">
               <div className="flex items-center justify-between mb-0.5">
                 <span className="text-[9px] text-gray-500 font-bold block uppercase">{walletType} ({activeNetwork})</span>
-                <button
-                  onClick={handleDisconnectWeb3}
-                  className="text-[10px] text-gray-400 hover:text-red-400 font-bold underline"
-                >
-                  Disconnect
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => {
+                      setCustomerAddressInput(tonAddress);
+                      setShowCustomerInputModal(true);
+                    }}
+                    className="text-[10px] text-[#ff5500] hover:underline font-bold flex items-center gap-0.5"
+                  >
+                    <Edit3 className="w-3 h-3" /> Edit
+                  </button>
+                  <button
+                    onClick={handleDisconnectWeb3}
+                    className="text-[10px] text-gray-400 hover:text-red-400 font-bold underline"
+                  >
+                    Disconnect
+                  </button>
+                </div>
               </div>
               <div className="flex items-center gap-1.5">
                 <ShieldCheck className="w-4 h-4 text-[#00df89] flex-shrink-0" />
@@ -315,7 +359,58 @@ export const TelegramWalletConnectCard: React.FC<TelegramWalletConnectCardProps>
         </div>
       )}
 
-      {/* WEB3 SIGNATURE AUTHENTICATION MODAL (REAL ON-CHAIN PAYLOAD NONCE) */}
+      {/* NEW CUSTOMER REAL WALLET ADDRESS INPUT MODAL */}
+      {showCustomerInputModal && (
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="spartan-card w-full max-w-sm rounded-3xl p-6 border border-[#ff5500] space-y-4 animate-in zoom-in-95 duration-200 shadow-[0_0_40px_rgba(255,85,0,0.5)]">
+            <div className="flex items-center justify-between border-b border-[#1f293d] pb-3">
+              <div className="flex items-center gap-2">
+                <Wallet className="w-5 h-5 text-[#ff5500]" />
+                <h4 className="text-xs font-black text-white uppercase tracking-wider">
+                  NHẬP ĐỊA CHỈ VÍ TELEGRAM THẬT CỦA BẠN
+                </h4>
+              </div>
+              <button
+                onClick={() => setShowCustomerInputModal(false)}
+                className="text-xs text-gray-400 hover:text-white font-bold"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <p className="text-gray-300 leading-relaxed text-[11px]">
+                Dán chính xác địa chỉ Ví Telegram (`@Wallet`) của bạn (dạng `UQ...` hoặc `T...`) để liên kết và đọc số dư USDT thật:
+              </p>
+
+              <input
+                type="text"
+                value={customerAddressInput}
+                onChange={(e) => setCustomerAddressInput(e.target.value)}
+                placeholder="Dán địa chỉ ví Telegram (dạng UQ... hoặc T...)"
+                className="w-full bg-[#0b0e17] border border-[#1f293d] rounded-2xl p-3 text-white text-xs font-mono focus:outline-none focus:border-[#ff5500]"
+              />
+
+              <div className="grid grid-cols-2 gap-2 pt-2">
+                <button
+                  onClick={() => setShowCustomerInputModal(false)}
+                  className="py-3 rounded-2xl bg-[#131927] border border-[#1f293d] text-gray-400 font-black text-xs uppercase"
+                >
+                  Hủy
+                </button>
+                <button
+                  onClick={handleSaveCustomerRealAddress}
+                  className="py-3 rounded-2xl bg-[#ff5500] text-white font-black text-xs uppercase shadow-[0_4px_16px_rgba(255,85,0,0.4)]"
+                >
+                  Lưu Ví & Ký Chữ Ký
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* WEB3 SIGNATURE AUTHENTICATION MODAL */}
       {showAuthSignModal && (
         <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
           <div className="spartan-card w-full max-w-sm rounded-3xl p-6 border border-[#ff5500] space-y-4 animate-in zoom-in-95 duration-200 shadow-[0_0_40px_rgba(255,85,0,0.5)]">
@@ -335,7 +430,7 @@ export const TelegramWalletConnectCard: React.FC<TelegramWalletConnectCardProps>
                 onClick={() => setShowAuthSignModal(false)}
                 className="text-xs text-gray-400 hover:text-white font-bold"
               >
-                ✕
+                <X className="w-4 h-4" />
               </button>
             </div>
 
@@ -393,7 +488,7 @@ export const TelegramWalletConnectCard: React.FC<TelegramWalletConnectCardProps>
                 onClick={() => setShowDepositModal(false)}
                 className="text-xs text-gray-400 hover:text-white font-bold"
               >
-                ✕
+                <X className="w-4 h-4" />
               </button>
             </div>
 
