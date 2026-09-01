@@ -8,7 +8,7 @@ import {
   TransactionData 
 } from '@/lib/firebaseService';
 import { TelegramWalletConnectCard } from './TelegramWalletConnectCard';
-import { ArrowDownLeft, ArrowUpRight, Copy, CheckCircle2, QrCode, History, DollarSign, ArrowDown, ArrowUp, Loader2, AlertCircle, Zap, ShieldCheck, Lock, Clock, RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ArrowDownLeft, ArrowUpRight, Copy, CheckCircle2, QrCode, History, DollarSign, ArrowDown, ArrowUp, Loader2, AlertCircle, Zap, ShieldCheck, Lock, Clock, RefreshCw, ChevronLeft, ChevronRight, Wallet } from 'lucide-react';
 
 interface WalletViewProps {
   currentBalance: number;
@@ -24,6 +24,7 @@ export const WalletView: React.FC<WalletViewProps> = ({
   username = 'tddv2017',
 }) => {
   const [mode, setMode] = useState<'deposit' | 'withdraw'>('deposit');
+  const [depositMethod, setDepositMethod] = useState<'web3' | 'qr'>('web3');
   const [amount, setAmount] = useState<string>('1000');
   const [copied, setCopied] = useState(false);
   const [copiedMemo, setCopiedMemo] = useState(false);
@@ -46,26 +47,23 @@ export const WalletView: React.FC<WalletViewProps> = ({
     return () => unsubscribe();
   }, [telegramId]);
 
-  // Combine Firestore Txs and Local Txs (deduplicating by ID/memoCode)
+  // Combine Firestore Txs and Local Txs
   const combinedTxsMap = new Map<string, TransactionData>();
   [...localTxs, ...firestoreTxs].forEach((tx) => {
     const key = tx.id || tx.memoCode;
     combinedTxsMap.set(key, tx);
   });
 
-  // Sort Chronologically: Newest Transactions On Top
   const allTransactions = Array.from(combinedTxsMap.values()).sort((a, b) => {
     const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
     const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
     return timeB - timeA;
   });
 
-  // Pagination Math (5 Items Per Page)
   const totalPages = Math.max(1, Math.ceil(allTransactions.length / ITEMS_PER_PAGE));
   const validPage = Math.min(currentPage, totalPages);
   const paginatedTxs = allTransactions.slice((validPage - 1) * ITEMS_PER_PAGE, validPage * ITEMS_PER_PAGE);
 
-  // Dynamic Total Deposited & Withdrawn calculated purely from real transactions
   const approvedDeposits = allTransactions.filter(t => t.type === 'DEPOSIT' && t.status === 'APPROVED');
   const approvedWithdrawals = allTransactions.filter(t => t.type === 'WITHDRAW' && t.status === 'APPROVED');
 
@@ -75,7 +73,6 @@ export const WalletView: React.FC<WalletViewProps> = ({
   const totalWithdrawnNet = approvedWithdrawals.reduce((acc, t) => acc + t.netAmount, 0);
   const withdrawCount = approvedWithdrawals.length;
 
-  // Calculate Pending Withdrawals to Lock Available Balance
   const pendingWithdrawalTotal = allTransactions
     .filter(t => t.type === 'WITHDRAW' && t.status === 'PENDING')
     .reduce((acc, t) => acc + t.grossAmount, 0);
@@ -86,7 +83,6 @@ export const WalletView: React.FC<WalletViewProps> = ({
   const depositBreakdown = calculateDepositFee(numAmount);
   const withdrawBreakdown = calculateWithdrawFee(numAmount);
 
-  // Official Master USDT TRC20 Wallet Address
   const walletAddress = 'TBGvPZsuqKH5CrSbYLEi8q2BCQ6CXyKmAu';
   const activeMemo = activeDepositTx?.memoCode || '';
 
@@ -202,7 +198,6 @@ export const WalletView: React.FC<WalletViewProps> = ({
     }
   };
 
-  // Pure USDT TRC20 Master Wallet Address QR Code
   const pureQrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${walletAddress}`;
 
   return (
@@ -219,7 +214,6 @@ export const WalletView: React.FC<WalletViewProps> = ({
           ${currentBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <span className="text-xs text-gray-400 font-bold">USDT</span>
         </div>
 
-        {/* Available Withdrawal Lock Banner */}
         {pendingWithdrawalTotal > 0 && (
           <div className="mt-3 p-2 bg-amber-500/10 border border-amber-500/30 rounded-xl flex items-center justify-between text-[11px] font-bold text-amber-400">
             <span className="flex items-center gap-1">
@@ -233,7 +227,6 @@ export const WalletView: React.FC<WalletViewProps> = ({
 
       {/* Summary Banner */}
       <div className="grid grid-cols-2 gap-3">
-        {/* Total Deposited */}
         <div className="spartan-card rounded-2xl p-4 border border-[#1f293d] flex items-center justify-between transition-all">
           <div>
             <span className="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider block mb-0.5">
@@ -249,7 +242,6 @@ export const WalletView: React.FC<WalletViewProps> = ({
           </div>
         </div>
 
-        {/* Total Withdrawn */}
         <div className="spartan-card rounded-2xl p-4 border border-[#1f293d] flex items-center justify-between transition-all">
           <div>
             <span className="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider block mb-0.5">
@@ -265,9 +257,6 @@ export const WalletView: React.FC<WalletViewProps> = ({
           </div>
         </div>
       </div>
-
-      {/* TELEGRAM NATIVE WEB3 WALLET CONNECT CARD */}
-      <TelegramWalletConnectCard onDepositSigned={handleWeb3DepositSigned} />
 
       {/* Notification Banner */}
       {notification && (
@@ -285,7 +274,7 @@ export const WalletView: React.FC<WalletViewProps> = ({
         </div>
       )}
 
-      {/* Mode Switcher: Deposit vs Withdraw */}
+      {/* Primary Mode Switcher: Deposit vs Withdraw */}
       <div className="grid grid-cols-2 p-1.5 bg-[#0b0e17] rounded-2xl border border-[#1f293d]">
         <button
           onClick={() => { setMode('deposit'); setErrorMessage(null); }}
@@ -312,142 +301,177 @@ export const WalletView: React.FC<WalletViewProps> = ({
         </button>
       </div>
 
+      {/* DEPOSIT SUB-TAB SWITCHER (WEB3 WALLET VS QR CODE) */}
+      {mode === 'deposit' && (
+        <div className="grid grid-cols-2 p-1 bg-[#131927] rounded-xl border border-[#1f293d] text-[11px] font-black">
+          <button
+            onClick={() => setDepositMethod('web3')}
+            className={`py-2 rounded-lg flex items-center justify-center gap-1.5 transition-all ${
+              depositMethod === 'web3'
+                ? 'bg-[#00df89] text-black shadow-sm font-black'
+                : 'text-gray-400 hover:text-white'
+            }`}
+          >
+            <Wallet className="w-3.5 h-3.5" />
+            <span>KẾT NỐI VÍ TELEGRAM WALLET</span>
+          </button>
+
+          <button
+            onClick={() => setDepositMethod('qr')}
+            className={`py-2 rounded-lg flex items-center justify-center gap-1.5 transition-all ${
+              depositMethod === 'qr'
+                ? 'bg-[#ff5500] text-white shadow-sm font-black'
+                : 'text-gray-400 hover:text-white'
+            }`}
+          >
+            <QrCode className="w-3.5 h-3.5" />
+            <span>CHUYỂN BẰNG NẠP MÃ QR</span>
+          </button>
+        </div>
+      )}
+
       {/* Form Content */}
       {mode === 'deposit' ? (
-        <div className="spartan-card rounded-3xl p-5 border border-[#1f293d] space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-xs font-black text-white uppercase tracking-wider">DEPOSIT USDT (ON-CHAIN AUTOMATION)</h3>
-            <span className="text-[10px] font-bold text-[#ff5500] bg-[#ff5500]/10 px-2.5 py-0.5 rounded-full border border-[#ff5500]/20">
-              Fee: 9% + $3.00 USD
-            </span>
-          </div>
-
-          {/* Amount Input */}
-          <div>
-            <label className="text-xs text-gray-400 font-bold block mb-1.5">
-              Enter Deposit Amount ($ USD)
-            </label>
-            <div className="relative">
-              <input
-                type="number"
-                value={amount}
-                maxLength={10}
-                onChange={(e) => setAmount(e.target.value.slice(0, 10))}
-                className="w-full bg-[#0b0e17] border border-[#1f293d] rounded-2xl py-3 px-4 text-white text-base font-black focus:outline-none focus:border-[#ff5500]"
-                placeholder="1000"
-              />
-              <span className="absolute right-4 top-3.5 text-xs font-bold text-gray-400">
-                USDT
+        depositMethod === 'web3' ? (
+          /* SUB-TAB 1: TELEGRAM WEB3 WALLET CONNECT CARD */
+          <TelegramWalletConnectCard onDepositSigned={handleWeb3DepositSigned} />
+        ) : (
+          /* SUB-TAB 2: PURE QR CODE DEPOSIT FORM */
+          <div className="spartan-card rounded-3xl p-5 border border-[#1f293d] space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs font-black text-white uppercase tracking-wider">CHUYỂN TIỀN BẰNG MÃ QR (USDT TRC20)</h3>
+              <span className="text-[10px] font-bold text-[#ff5500] bg-[#ff5500]/10 px-2.5 py-0.5 rounded-full border border-[#ff5500]/20">
+                Fee: 9% + $3.00 USD
               </span>
             </div>
-          </div>
 
-          {/* Fee Engine Realtime Breakdown Card */}
-          <div className="bg-[#0b0e17] rounded-2xl p-4 border border-[#1f293d] text-xs space-y-2">
-            <div className="flex justify-between text-gray-400">
-              <span>Gross Deposit Amount:</span>
-              <span className="font-bold text-gray-200">${depositBreakdown.grossAmount.toFixed(2)} USDT</span>
-            </div>
-            <div className="flex justify-between text-gray-400">
-              <span>Percentage Fee (9%):</span>
-              <span className="font-bold text-[#ff2d55]">-${depositBreakdown.percentageFee.toFixed(2)} USDT</span>
-            </div>
-            <div className="flex justify-between text-gray-400">
-              <span>Fixed Fee ($3.00 USD):</span>
-              <span className="font-bold text-[#ff2d55]">-$3.00 USDT</span>
-            </div>
-            <div className="border-t border-[#1f293d] pt-2 flex justify-between font-black text-sm text-white">
-              <span className="text-[#00df89]">Net Credit to Bot:</span>
-              <span className="text-[#00df89]">${depositBreakdown.netAmount.toFixed(2)} USDT</span>
-            </div>
-          </div>
-
-          {/* CREATE ORDER BUTTON */}
-          {!activeDepositTx ? (
-            <button
-              onClick={handleDepositConfirm}
-              disabled={loading}
-              className="w-full py-3.5 rounded-2xl spartan-orange-btn font-black text-sm uppercase tracking-wider hover:opacity-95 transition-opacity flex items-center justify-center gap-2"
-            >
-              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
-              <span>🚀 CREATE DEPOSIT ORDER & GET QR (Net +${depositBreakdown.netAmount.toFixed(2)})</span>
-            </button>
-          ) : (
-            /* ON-CHAIN AUTO-APPROVE CLEAN QR CODE & FIXED MEMO CARD */
-            <div className="bg-[#0b0e17] border border-[#ff5500] rounded-2xl p-4 space-y-3 animate-in fade-in slide-in-from-top-3 duration-500 shadow-[0_0_20px_rgba(255,85,0,0.2)]">
-              <div className="flex items-center justify-between border-b border-[#1f293d] pb-2">
-                <div>
-                  <span className="text-xs font-black text-white uppercase tracking-wider flex items-center gap-1.5">
-                    <CheckCircle2 className="w-4 h-4 text-[#00df89]" /> QR & MEMO LOCKED FOR ORDER {activeDepositTx.id}
-                  </span>
-                  <span className="text-[10px] text-gray-400 font-bold block mt-0.5">
-                    Gross Deposit Amount: <strong className="text-white">${activeDepositTx.grossAmount.toFixed(2)} USDT</strong>
-                  </span>
-                </div>
-                <button
-                  onClick={() => setActiveDepositTx(null)}
-                  className="px-2.5 py-1 rounded-xl bg-[#131927] text-gray-400 hover:text-white text-[10px] font-bold border border-[#1f293d] flex items-center gap-1"
-                >
-                  <RefreshCw className="w-3 h-3" /> Change Amount
-                </button>
-              </div>
-
-              {/* Pure USDT TRC20 Wallet QR Image Display */}
-              <div className="flex flex-col items-center justify-center p-4 bg-white rounded-2xl border border-gray-200">
-                <img
-                  src={pureQrUrl}
-                  alt="USDT TRC20 Master Deposit QR Code"
-                  className="w-44 h-44 object-contain"
+            {/* Amount Input */}
+            <div>
+              <label className="text-xs text-gray-400 font-bold block mb-1.5">
+                Enter Deposit Amount ($ USD)
+              </label>
+              <div className="relative">
+                <input
+                  type="number"
+                  value={amount}
+                  maxLength={10}
+                  onChange={(e) => setAmount(e.target.value.slice(0, 10))}
+                  className="w-full bg-[#0b0e17] border border-[#1f293d] rounded-2xl py-3 px-4 text-white text-base font-black focus:outline-none focus:border-[#ff5500]"
+                  placeholder="1000"
                 />
-                <span className="text-[10px] font-black text-gray-800 mt-2 uppercase tracking-wider">
-                  MASTER USDT TRC20 WALLET QR CODE
+                <span className="absolute right-4 top-3.5 text-xs font-bold text-gray-400">
+                  USDT
                 </span>
               </div>
+            </div>
 
-              {/* Wallet Address Box */}
-              <div>
-                <label className="text-[10px] text-gray-400 font-bold block mb-1">
-                  1. Official Master USDT TRC20 Deposit Address
-                </label>
-                <div className="flex items-center gap-2 bg-[#131927] border border-[#1f293d] p-2.5 rounded-xl">
-                  <span className="text-xs text-[#00df89] font-mono font-bold truncate flex-1">
-                    {walletAddress}
-                  </span>
-                  <button
-                    onClick={handleCopyAddress}
-                    className="px-2.5 py-1 rounded-lg bg-[#ff5500] text-white text-xs font-black flex items-center gap-1 hover:opacity-90"
-                  >
-                    {copied ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                    <span>Wallet</span>
-                  </button>
-                </div>
+            {/* Fee Engine Realtime Breakdown Card */}
+            <div className="bg-[#0b0e17] rounded-2xl p-4 border border-[#1f293d] text-xs space-y-2">
+              <div className="flex justify-between text-gray-400">
+                <span>Gross Deposit Amount:</span>
+                <span className="font-bold text-gray-200">${depositBreakdown.grossAmount.toFixed(2)} USDT</span>
               </div>
-
-              {/* Mandatory Fixed Memo Code Box */}
-              <div>
-                <label className="text-[10px] text-[#facc15] font-black block mb-1 uppercase tracking-wider flex items-center gap-1">
-                  <ShieldCheck className="w-3.5 h-3.5" /> 2. FIXED MEMO CODE (Paste in transfer note)
-                </label>
-                <div className="flex items-center gap-2 bg-[#131927] border border-[#facc15]/60 p-2.5 rounded-xl">
-                  <span className="text-sm text-[#facc15] font-mono font-black truncate flex-1 tracking-wider">
-                    {activeMemo}
-                  </span>
-                  <button
-                    onClick={handleCopyMemo}
-                    className="px-2.5 py-1 rounded-lg bg-[#facc15] text-black text-xs font-black flex items-center gap-1 hover:opacity-90"
-                  >
-                    {copiedMemo ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                    <span>Memo</span>
-                  </button>
-                </div>
+              <div className="flex justify-between text-gray-400">
+                <span>Percentage Fee (9%):</span>
+                <span className="font-bold text-[#ff2d55]">-${depositBreakdown.percentageFee.toFixed(2)} USDT</span>
               </div>
-
-              <div className="text-[10px] text-gray-400 leading-relaxed bg-[#131927] p-2.5 rounded-xl border border-[#1f293d]">
-                💡 <strong>FLEXIBLE DEPOSIT ENGINE:</strong> You can send ANY AMOUNT from your wallet (Binance/Trust Wallet). The system automatically scans actual received USDT on TRON blockchain, calculates 9% + $3.00 fee, and credits net funds automatically!
+              <div className="flex justify-between text-gray-400">
+                <span>Fixed Fee ($3.00 USD):</span>
+                <span className="font-bold text-[#ff2d55]">-$3.00 USDT</span>
+              </div>
+              <div className="border-t border-[#1f293d] pt-2 flex justify-between font-black text-sm text-white">
+                <span className="text-[#00df89]">Net Credit to Bot:</span>
+                <span className="text-[#00df89]">${depositBreakdown.netAmount.toFixed(2)} USDT</span>
               </div>
             </div>
-          )}
-        </div>
+
+            {/* CREATE ORDER BUTTON */}
+            {!activeDepositTx ? (
+              <button
+                onClick={handleDepositConfirm}
+                disabled={loading}
+                className="w-full py-3.5 rounded-2xl spartan-orange-btn font-black text-sm uppercase tracking-wider hover:opacity-95 transition-opacity flex items-center justify-center gap-2"
+              >
+                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
+                <span>🚀 CREATE DEPOSIT ORDER & GET QR (Net +${depositBreakdown.netAmount.toFixed(2)})</span>
+              </button>
+            ) : (
+              /* ON-CHAIN AUTO-APPROVE CLEAN QR CODE & FIXED MEMO CARD */
+              <div className="bg-[#0b0e17] border border-[#ff5500] rounded-2xl p-4 space-y-3 animate-in fade-in slide-in-from-top-3 duration-500 shadow-[0_0_20px_rgba(255,85,0,0.2)]">
+                <div className="flex items-center justify-between border-b border-[#1f293d] pb-2">
+                  <div>
+                    <span className="text-xs font-black text-white uppercase tracking-wider flex items-center gap-1.5">
+                      <CheckCircle2 className="w-4 h-4 text-[#00df89]" /> QR & MEMO LOCKED FOR ORDER {activeDepositTx.id}
+                    </span>
+                    <span className="text-[10px] text-gray-400 font-bold block mt-0.5">
+                      Gross Deposit Amount: <strong className="text-white">${activeDepositTx.grossAmount.toFixed(2)} USDT</strong>
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => setActiveDepositTx(null)}
+                    className="px-2.5 py-1 rounded-xl bg-[#131927] text-gray-400 hover:text-white text-[10px] font-bold border border-[#1f293d] flex items-center gap-1"
+                  >
+                    <RefreshCw className="w-3 h-3" /> Change Amount
+                  </button>
+                </div>
+
+                {/* Pure USDT TRC20 Wallet QR Image Display */}
+                <div className="flex flex-col items-center justify-center p-4 bg-white rounded-2xl border border-gray-200">
+                  <img
+                    src={pureQrUrl}
+                    alt="USDT TRC20 Master Deposit QR Code"
+                    className="w-44 h-44 object-contain"
+                  />
+                  <span className="text-[10px] font-black text-gray-800 mt-2 uppercase tracking-wider">
+                    MASTER USDT TRC20 WALLET QR CODE
+                  </span>
+                </div>
+
+                {/* Wallet Address Box */}
+                <div>
+                  <label className="text-[10px] text-gray-400 font-bold block mb-1">
+                    1. Official Master USDT TRC20 Deposit Address
+                  </label>
+                  <div className="flex items-center gap-2 bg-[#131927] border border-[#1f293d] p-2.5 rounded-xl">
+                    <span className="text-xs text-[#00df89] font-mono font-bold truncate flex-1">
+                      {walletAddress}
+                    </span>
+                    <button
+                      onClick={handleCopyAddress}
+                      className="px-2.5 py-1 rounded-lg bg-[#ff5500] text-white text-xs font-black flex items-center gap-1 hover:opacity-90"
+                    >
+                      {copied ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                      <span>Wallet</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Mandatory Fixed Memo Code Box */}
+                <div>
+                  <label className="text-[10px] text-[#facc15] font-black block mb-1 uppercase tracking-wider flex items-center gap-1">
+                    <ShieldCheck className="w-3.5 h-3.5" /> 2. FIXED MEMO CODE (Paste in transfer note)
+                  </label>
+                  <div className="flex items-center gap-2 bg-[#131927] border border-[#facc15]/60 p-2.5 rounded-xl">
+                    <span className="text-sm text-[#facc15] font-mono font-black truncate flex-1 tracking-wider">
+                      {activeMemo}
+                    </span>
+                    <button
+                      onClick={handleCopyMemo}
+                      className="px-2.5 py-1 rounded-lg bg-[#facc15] text-black text-xs font-black flex items-center gap-1 hover:opacity-90"
+                    >
+                      {copiedMemo ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                      <span>Memo</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div className="text-[10px] text-gray-400 leading-relaxed bg-[#131927] p-2.5 rounded-xl border border-[#1f293d]">
+                  💡 <strong>FLEXIBLE DEPOSIT ENGINE:</strong> You can send ANY AMOUNT from your wallet (Binance/Trust Wallet). The system automatically scans actual received USDT on TRON blockchain, calculates 9% + $3.00 fee, and credits net funds automatically!
+                </div>
+              </div>
+            )}
+          </div>
+        )
       ) : (
         /* Withdraw Mode (Strategic Fee Model 19% + $5.00 USD) */
         <div className="spartan-card rounded-3xl p-5 border border-[#1f293d] space-y-4">
@@ -458,7 +482,6 @@ export const WalletView: React.FC<WalletViewProps> = ({
             </span>
           </div>
 
-          {/* Available Balance Status */}
           <div className="bg-[#0b0e17] p-3 rounded-2xl border border-[#1f293d] flex items-center justify-between text-xs font-bold">
             <span className="text-gray-400">Available to Withdraw:</span>
             <span className="text-[#00df89] font-mono text-sm font-black">
@@ -466,7 +489,6 @@ export const WalletView: React.FC<WalletViewProps> = ({
             </span>
           </div>
 
-          {/* Amount Input */}
           <div>
             <label className="text-xs text-gray-400 font-bold block mb-1.5">
               Enter Withdrawal Amount ($ USD)
@@ -489,7 +511,6 @@ export const WalletView: React.FC<WalletViewProps> = ({
             </div>
           </div>
 
-          {/* Destination Address */}
           <div>
             <label className="text-xs text-gray-400 font-bold block mb-1.5">
               Destination Address (USDT TRC20)
@@ -503,7 +524,6 @@ export const WalletView: React.FC<WalletViewProps> = ({
             />
           </div>
 
-          {/* Fee Engine Realtime Breakdown Card (Strategic 19% + $5.00 Model) */}
           <div className="bg-[#0b0e17] rounded-2xl p-4 border border-[#1f293d] text-xs space-y-2">
             <div className="flex justify-between text-gray-400">
               <span>Gross Withdrawal Amount:</span>
@@ -518,7 +538,6 @@ export const WalletView: React.FC<WalletViewProps> = ({
               <span className="font-bold text-[#ff2d55]">-$5.00 USDT</span>
             </div>
 
-            {/* Effective Retained Fee Breakdown (10%) */}
             <div className="bg-[#131927] p-2.5 rounded-xl border border-[#1f293d] space-y-1 my-1">
               <div className="flex justify-between text-amber-400 font-bold text-[11px]">
                 <span>Retained Performance Fee (10% Treasury):</span>
@@ -537,7 +556,6 @@ export const WalletView: React.FC<WalletViewProps> = ({
             </div>
           </div>
 
-          {/* Negative Net Withdrawal Safeguard Alert */}
           {withdrawBreakdown.netAmount <= 0 && (
             <div className="bg-red-500/20 border border-red-500 p-3 rounded-2xl text-xs font-bold text-red-400 flex items-center gap-2">
               <AlertCircle className="w-4 h-4 flex-shrink-0" />
@@ -645,7 +663,6 @@ export const WalletView: React.FC<WalletViewProps> = ({
           )}
         </div>
 
-        {/* PAGINATION CONTROLS BAR (5 Items per page) */}
         {allTransactions.length > ITEMS_PER_PAGE && (
           <div className="flex items-center justify-between border-t border-[#1f293d] pt-3 text-xs font-bold">
             <button
@@ -670,7 +687,7 @@ export const WalletView: React.FC<WalletViewProps> = ({
               disabled={validPage >= totalPages}
               className={`px-3 py-1.5 rounded-xl border flex items-center gap-1 transition-all ${
                 validPage >= totalPages
-                  ? 'border-gray-800 text-gray-600 bg-gray-900/50 cursor-not-allowed'
+                  ? 'border-gray-800 text-gray-600 bg-[#131927]/50 cursor-not-allowed'
                   : 'border-[#1f293d] bg-[#131927] text-white hover:bg-[#1f293d]'
               }`}
             >
