@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Wallet, ShieldCheck, CheckCircle2, Zap, ArrowUpRight, Lock, Key, Cpu, Loader2, ExternalLink, RefreshCw, Edit3 } from 'lucide-react';
+import { Wallet, ShieldCheck, CheckCircle2, Zap, ArrowUpRight, Lock, Key, Cpu, Loader2, ExternalLink, RefreshCw, Edit3, X } from 'lucide-react';
 
 interface TelegramWalletConnectCardProps {
   onDepositSigned?: (amount: number) => void;
@@ -14,77 +14,54 @@ export const TelegramWalletConnectCard: React.FC<TelegramWalletConnectCardProps>
   const [isConnecting, setIsConnecting] = useState(false);
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
   const [walletType, setWalletType] = useState<string>('Telegram @Wallet');
-  const [isEditingAddress, setIsEditingAddress] = useState(false);
-  const [customInputAddress, setCustomInputAddress] = useState('');
+  const [showAddressInputModal, setShowAddressInputModal] = useState(false);
+  const [inputAddress, setInputAddress] = useState('');
   const [showSignModal, setShowSignModal] = useState(false);
   const [signAmount, setSignAmount] = useState('1000');
   const [isSigning, setIsSigning] = useState(false);
   const [signedSuccess, setSignedSuccess] = useState(false);
   const [txHash, setTxHash] = useState<string | null>(null);
 
-  // Check stored wallet connection in localStorage
+  // Check stored wallet connection in localStorage safely on mount
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const savedWallet = localStorage.getItem('spartan_ton_wallet_address');
-      const savedType = localStorage.getItem('spartan_ton_wallet_type');
-      if (savedWallet) {
-        setWalletAddress(savedWallet);
-        if (savedType) setWalletType(savedType);
-        setIsConnected(true);
+      try {
+        const savedWallet = localStorage.getItem('spartan_ton_wallet_address');
+        const savedType = localStorage.getItem('spartan_ton_wallet_type');
+        if (savedWallet) {
+          setWalletAddress(savedWallet);
+          if (savedType) setWalletType(savedType);
+          setIsConnected(true);
+        }
+      } catch (e) {
+        console.error('Localstorage error:', e);
       }
     }
   }, []);
 
-  const handleConnectTelegramWallet = (type: 'wallet' | 'tonkeeper' | 'mytonwallet') => {
-    setIsConnecting(true);
-
-    // Deep link or WebApp native TON Connect trigger
-    if (typeof window !== 'undefined') {
-      const tg = (window as any).Telegram?.WebApp;
-      if (tg && tg.openTelegramLink && type === 'wallet') {
-        try {
-          tg.openTelegramLink('https://t.me/wallet');
-        } catch (e) {
-          console.log('Telegram link trigger:', e);
-        }
-      }
-    }
-
-    setTimeout(() => {
-      // Prompt or allow setting exact address if not previously stored
-      const label = type === 'wallet' ? 'Telegram @Wallet (Native)' : type === 'tonkeeper' ? 'Tonkeeper App' : 'MyTonWallet';
-      
-      let realAddress = walletAddress;
-      if (!realAddress || realAddress.includes('mock') || realAddress.includes('telegram_wallet')) {
-        // Prompt for user's real Telegram wallet address or fallback to clean format
-        const userEntered = prompt('Enter or paste your exact Telegram @Wallet address (TON/TRC20):');
-        if (userEntered && userEntered.trim()) {
-          realAddress = userEntered.trim();
-        } else {
-          realAddress = 'UQBAz_spartan_wallet_9824...77ab';
-        }
-      }
-
-      setWalletAddress(realAddress);
-      setWalletType(label);
-      setIsConnected(true);
-      setIsConnecting(false);
-
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('spartan_ton_wallet_address', realAddress);
-        localStorage.setItem('spartan_ton_wallet_type', label);
-      }
-    }, 1000);
+  const handleConnectClick = (type: 'wallet' | 'tonkeeper' | 'mytonwallet') => {
+    const label = type === 'wallet' ? 'Telegram @Wallet (Native)' : type === 'tonkeeper' ? 'Tonkeeper App' : 'MyTonWallet';
+    setWalletType(label);
+    
+    // Non-blocking: open clean React modal input right inside the Mini App
+    setShowAddressInputModal(true);
   };
 
-  const handleSaveCustomAddress = () => {
-    if (!customInputAddress.trim()) return;
-    const cleanAddr = customInputAddress.trim();
-    setWalletAddress(cleanAddr);
+  const handleConfirmAddressInput = () => {
+    const clean = inputAddress.trim();
+    const finalAddress = clean || 'UQBAz_spartan_wallet_9824...77ab';
+
+    setWalletAddress(finalAddress);
     setIsConnected(true);
-    setIsEditingAddress(false);
+    setShowAddressInputModal(false);
+
     if (typeof window !== 'undefined') {
-      localStorage.setItem('spartan_ton_wallet_address', cleanAddr);
+      try {
+        localStorage.setItem('spartan_ton_wallet_address', finalAddress);
+        localStorage.setItem('spartan_ton_wallet_type', walletType);
+      } catch (e) {
+        console.error('Storage save error:', e);
+      }
     }
   };
 
@@ -92,8 +69,12 @@ export const TelegramWalletConnectCard: React.FC<TelegramWalletConnectCardProps>
     setIsConnected(false);
     setWalletAddress(null);
     if (typeof window !== 'undefined') {
-      localStorage.removeItem('spartan_ton_wallet_address');
-      localStorage.removeItem('spartan_ton_wallet_type');
+      try {
+        localStorage.removeItem('spartan_ton_wallet_address');
+        localStorage.removeItem('spartan_ton_wallet_type');
+      } catch (e) {
+        console.error('Storage remove error:', e);
+      }
     }
   };
 
@@ -114,8 +95,8 @@ export const TelegramWalletConnectCard: React.FC<TelegramWalletConnectCardProps>
       setTimeout(() => {
         setSignedSuccess(false);
         setShowSignModal(false);
-      }, 3000);
-    }, 2000);
+      }, 2500);
+    }, 1500);
   };
 
   return (
@@ -154,21 +135,15 @@ export const TelegramWalletConnectCard: React.FC<TelegramWalletConnectCardProps>
 
           <div className="grid grid-cols-1 gap-2">
             <button
-              onClick={() => handleConnectTelegramWallet('wallet')}
-              disabled={isConnecting}
-              className="w-full py-3.5 rounded-2xl spartan-orange-btn font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-[0_4px_16px_rgba(255,85,0,0.4)]"
+              onClick={() => handleConnectClick('wallet')}
+              className="w-full py-3.5 rounded-2xl spartan-orange-btn font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-[0_4px_16px_rgba(255,85,0,0.4)] hover:opacity-95 transition-opacity"
             >
-              {isConnecting ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Wallet className="w-4 h-4" />
-              )}
-              <span>{isConnecting ? 'CONNECTING TELEGRAM @WALLET...' : '💎 CONNECT TELEGRAM WALLET (@WALLET)'}</span>
+              <Wallet className="w-4 h-4" />
+              <span>💎 CONNECT TELEGRAM WALLET (@WALLET)</span>
             </button>
 
             <button
-              onClick={() => handleConnectTelegramWallet('tonkeeper')}
-              disabled={isConnecting}
+              onClick={() => handleConnectClick('tonkeeper')}
               className="w-full py-2.5 rounded-2xl bg-[#131927] border border-[#1f293d] text-gray-300 hover:text-white font-extrabold text-xs uppercase tracking-wider flex items-center justify-center gap-2"
             >
               <ExternalLink className="w-3.5 h-3.5 text-blue-400" />
@@ -179,56 +154,33 @@ export const TelegramWalletConnectCard: React.FC<TelegramWalletConnectCardProps>
       ) : (
         /* Connected State */
         <div className="space-y-3">
-          <div className="bg-[#0b0e17] p-3 rounded-2xl border border-[#1f293d] space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-[9px] text-gray-500 font-bold uppercase">{walletType}</span>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => {
-                    setCustomInputAddress(walletAddress || '');
-                    setIsEditingAddress(!isEditingAddress);
-                  }}
-                  className="text-[10px] text-[#ff5500] hover:underline font-bold flex items-center gap-1"
-                >
-                  <Edit3 className="w-3 h-3" />
-                  <span>{isEditingAddress ? 'Cancel' : 'Edit Address'}</span>
-                </button>
-                <button
-                  onClick={handleDisconnect}
-                  className="text-[10px] text-gray-400 hover:text-red-400 font-bold underline"
-                >
-                  Disconnect
-                </button>
+          <div className="bg-[#0b0e17] p-3 rounded-2xl border border-[#1f293d] flex items-center justify-between text-xs font-mono">
+            <div>
+              <span className="text-[9px] text-gray-500 font-bold block uppercase">{walletType}</span>
+              <div className="flex items-center gap-1.5 mt-0.5">
+                <ShieldCheck className="w-4 h-4 text-[#00df89]" />
+                <span className="text-white font-bold truncate max-w-[180px]">{walletAddress}</span>
               </div>
             </div>
 
-            {isEditingAddress ? (
-              <div className="space-y-2 pt-1">
-                <label className="text-[10px] text-gray-400 font-bold block">
-                  Paste Your Real Telegram Wallet Address (TON or TRC20):
-                </label>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="text"
-                    value={customInputAddress}
-                    onChange={(e) => setCustomInputAddress(e.target.value)}
-                    placeholder="e.g. UQBAz... or TQx..."
-                    className="flex-1 bg-[#131927] border border-[#1f293d] rounded-xl px-3 py-1.5 text-xs text-white font-mono focus:outline-none focus:border-[#ff5500]"
-                  />
-                  <button
-                    onClick={handleSaveCustomAddress}
-                    className="px-3 py-1.5 rounded-xl bg-[#00df89] text-black text-xs font-black"
-                  >
-                    Save
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div className="flex items-center gap-1.5">
-                <ShieldCheck className="w-4 h-4 text-[#00df89] flex-shrink-0" />
-                <span className="text-xs text-white font-mono font-bold truncate">{walletAddress}</span>
-              </div>
-            )}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => {
+                  setInputAddress(walletAddress || '');
+                  setShowAddressInputModal(true);
+                }}
+                className="text-[10px] text-[#ff5500] hover:underline font-bold flex items-center gap-1"
+              >
+                <Edit3 className="w-3 h-3" />
+                <span>Edit</span>
+              </button>
+              <button
+                onClick={handleDisconnect}
+                className="text-[10px] text-gray-400 hover:text-red-400 font-bold underline"
+              >
+                Disconnect
+              </button>
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-2 text-xs">
@@ -243,6 +195,57 @@ export const TelegramWalletConnectCard: React.FC<TelegramWalletConnectCardProps>
             <div className="bg-[#0b0e17] p-2.5 rounded-2xl border border-[#1f293d] flex items-center justify-between">
               <span className="text-[10px] text-gray-500 font-bold uppercase">MANIFEST</span>
               <span className="text-xs font-black text-amber-400 font-mono">VERIFIED 2026</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* NON-BLOCKING INLINE ADDRESS INPUT MODAL */}
+      {showAddressInputModal && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="spartan-card w-full max-w-sm rounded-3xl p-6 border border-[#ff5500] space-y-4 animate-in zoom-in-95 duration-200 shadow-[0_0_30px_rgba(255,85,0,0.4)]">
+            <div className="flex items-center justify-between border-b border-[#1f293d] pb-3">
+              <div className="flex items-center gap-2">
+                <Wallet className="w-5 h-5 text-[#ff5500]" />
+                <h4 className="text-sm font-black text-white uppercase tracking-wider">
+                  TELEGRAM WALLET ADDRESS
+                </h4>
+              </div>
+              <button
+                onClick={() => setShowAddressInputModal(false)}
+                className="text-xs text-gray-400 hover:text-white font-bold"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <p className="text-xs text-gray-400">
+                Paste or enter your official Telegram `@Wallet` (TON `UQ...`/`EQ...` or TRC20 `T...`) address:
+              </p>
+
+              <input
+                type="text"
+                value={inputAddress}
+                onChange={(e) => setInputAddress(e.target.value)}
+                placeholder="e.g. UQBAz_spartan_wallet_9824...77ab"
+                className="w-full bg-[#0b0e17] border border-[#1f293d] rounded-2xl p-3 text-white text-xs font-mono focus:outline-none focus:border-[#ff5500]"
+              />
+
+              <div className="grid grid-cols-2 gap-2 pt-2">
+                <button
+                  onClick={() => setShowAddressInputModal(false)}
+                  className="py-2.5 rounded-xl bg-[#131927] border border-[#1f293d] text-gray-400 font-extrabold text-xs"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleConfirmAddressInput}
+                  className="py-2.5 rounded-xl bg-[#ff5500] text-white font-black text-xs uppercase shadow-[0_4px_12px_rgba(255,85,0,0.4)]"
+                >
+                  Save & Connect
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -263,7 +266,7 @@ export const TelegramWalletConnectCard: React.FC<TelegramWalletConnectCardProps>
                 onClick={() => setShowSignModal(false)}
                 className="text-xs text-gray-400 hover:text-white font-bold"
               >
-                ✕
+                <X className="w-4 h-4" />
               </button>
             </div>
 
