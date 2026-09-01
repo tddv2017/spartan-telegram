@@ -1,75 +1,67 @@
 'use client';
 
-import React, { useState } from 'react';
-import { TrendingUp, BarChart2 } from 'lucide-react';
+import React from 'react';
 
 export const EquityChart: React.FC = () => {
-  const [timeframe, setTimeframe] = useState<'7d' | '30d' | 'all'>('7d');
-
   return (
-    <div className="w-full spartan-card rounded-3xl p-4 border border-[#1f293d] space-y-3 shadow-lg">
+    <div className="w-full bg-[#131927] rounded-3xl p-4 border border-[#1f293d] space-y-2 shadow-md">
       {/* Chart Header */}
-      <div className="flex items-center justify-between border-b border-[#1f293d] pb-2.5">
-        <div>
-          <span className="text-[10px] font-extrabold text-gray-400 uppercase tracking-widest block">
-            ACCOUNT GROWTH CURVE
-          </span>
-          <div className="flex items-center gap-1.5 mt-0.5">
-            <span className="text-lg font-black text-[#00df89] font-mono">+1.85%</span>
-            <span className="text-[10px] text-gray-400 font-bold">Today</span>
-          </div>
-        </div>
-
-        {/* Timeframe Selector Pills */}
-        <div className="flex items-center gap-1 p-1 bg-[#0b0e17] rounded-xl border border-[#1f293d]">
-          {(['7d', '30d', 'all'] as const).map((tf) => (
-            <button
-              key={tf}
-              onClick={() => setTimeframe(tf)}
-              className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase transition-all ${
-                timeframe === tf
-                  ? 'bg-[#ff5500] text-white shadow-sm'
-                  : 'text-gray-400 hover:text-white'
-              }`}
-            >
-              {tf}
-            </button>
-          ))}
-        </div>
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-bold text-gray-200">
+          Account Growth Curve
+        </span>
+        <span className="text-[11px] font-black text-[#ff5500] bg-[#ff5500]/15 px-2.5 py-0.5 rounded-full border border-[#ff5500]/40">
+          +1.85% Today
+        </span>
       </div>
 
-      {/* SVG Smooth Growth Curve Graph */}
-      <div className="w-full h-32 pt-2 relative">
-        <svg className="w-full h-full overflow-visible" viewBox="0 0 300 100">
-          <defs>
-            <linearGradient id="equityGlow" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#ff5500" stopOpacity="0.35" />
-              <stop offset="100%" stopColor="#ff5500" stopOpacity="0.0" />
-            </linearGradient>
-          </defs>
+      {/* Chart with Left Axis */}
+      <div className="flex items-stretch gap-2 pt-2 h-36">
+        {/* Left Y-Axis Labels */}
+        <div className="flex flex-col justify-between text-[9px] text-gray-500 font-mono py-1">
+          <span>128,3</span>
+          <span>128,1</span>
+          <span>127,9</span>
+          <span>127,7</span>
+          <span>127,5</span>
+          <span>127,3</span>
+        </div>
 
-          {/* Fill Area Gradient */}
-          <path
-            d="M 0 80 Q 75 40, 150 60 T 300 20 L 300 100 L 0 100 Z"
-            fill="url(#equityGlow)"
-          />
+        {/* SVG Curve Line */}
+        <div className="flex-1 relative">
+          <svg className="w-full h-full overflow-visible" viewBox="0 0 260 90" preserveAspectRatio="none">
+            <defs>
+              <linearGradient id="growthGlow" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#ff5500" stopOpacity="0.35" />
+                <stop offset="100%" stopColor="#ff5500" stopOpacity="0.0" />
+              </linearGradient>
+            </defs>
 
-          {/* Stroke Curve Line */}
-          <path
-            d="M 0 80 Q 75 40, 150 60 T 300 20"
-            fill="none"
-            stroke="#ff5500"
-            strokeWidth="3"
-            strokeLinecap="round"
-          />
+            {/* Gradient Fill */}
+            <path
+              d="M 10 82 C 40 50, 70 75, 100 80 C 130 85, 150 30, 180 32 C 210 34, 230 65, 255 18 L 255 90 L 10 90 Z"
+              fill="url(#growthGlow)"
+            />
 
-          {/* Data Points */}
-          <circle cx="0" cy="80" r="3" fill="#ff5500" />
-          <circle cx="75" cy="48" r="3" fill="#ff5500" />
-          <circle cx="150" cy="60" r="3" fill="#ff5500" />
-          <circle cx="225" cy="35" r="3" fill="#ff5500" />
-          <circle cx="300" cy="20" r="4" fill="#00df89" className="animate-pulse" />
-        </svg>
+            {/* Smooth Spline Curve */}
+            <path
+              d="M 10 82 C 40 50, 70 75, 100 80 C 130 85, 150 30, 180 32 C 210 34, 230 65, 255 18"
+              fill="none"
+              stroke="#ff5500"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+            />
+
+            {/* Glowing Golden Points */}
+            <circle cx="10" cy="82" r="2.5" fill="#facc15" />
+            <circle cx="55" cy="62" r="2.5" fill="#facc15" />
+            <circle cx="100" cy="80" r="2.5" fill="#facc15" />
+            <circle cx="145" cy="55" r="2.5" fill="#facc15" />
+            <circle cx="180" cy="32" r="3" fill="#facc15" />
+            <circle cx="218" cy="50" r="2.5" fill="#facc15" />
+            <circle cx="255" cy="18" r="3.5" fill="#facc15" className="animate-pulse" />
+          </svg>
+        </div>
       </div>
     </div>
   );
