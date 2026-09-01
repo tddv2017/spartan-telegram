@@ -4,6 +4,7 @@
  */
 
 const RTDB_BASE_URL = "https://decisive-mapper-216306-default-rtdb.asia-southeast1.firebasedatabase.app";
+const USDT_CONTRACT = 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t';
 
 export interface TreasuryVaultConfig {
   receivingWallet: string;    // 📥 Ví Tiếp Nhận Nạp Tiền (Master Deposit Receiving Wallet)
@@ -16,6 +17,13 @@ export interface TreasuryVaultConfig {
     adminProfitPct: number;   // 9% to Admin Cold Vault
   };
   updatedAt?: string;
+}
+
+export interface WalletBalanceInfo {
+  usdt: number;
+  trx: number;
+  allocatedValue: number;
+  status: 'ONLINE' | 'ACTIVE' | 'COLD_SECURE';
 }
 
 export const DEFAULT_TREASURY_VAULT: TreasuryVaultConfig = {
@@ -74,4 +82,37 @@ export async function updateTreasuryVault(updates: Partial<TreasuryVaultConfig>)
     console.error('Error updating treasury vault config:', err);
     return false;
   }
+}
+
+/**
+ * Query On-Chain TRON USDT Balance for a given wallet address
+ */
+export async function fetchOnChainWalletBalance(address: string): Promise<{ usdt: number; trx: number }> {
+  if (!address || address.length < 20) {
+    return { usdt: 0, trx: 0 };
+  }
+  try {
+    const url = `https://apilist.tronscanapi.com/api/account?address=${address}`;
+    const res = await fetch(url, {
+      method: 'GET',
+      headers: { 'Accept': 'application/json' },
+      next: { revalidate: 15 }
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      const trc20 = data.trc20token_balances || [];
+      const usdtToken = trc20.find((t: any) => 
+        t.tokenSymbol === 'USDT' || 
+        t.tokenId === USDT_CONTRACT || 
+        t.tokenName?.toLowerCase()?.includes('tether')
+      );
+      const usdtBal = usdtToken ? parseFloat(usdtToken.balance || '0') / Math.pow(10, usdtToken.tokenDecimal || 6) : 0;
+      const trxBal = (data.balance || 0) / 1e6;
+      return { usdt: usdtBal, trx: trxBal };
+    }
+  } catch (err) {
+    console.warn(`Could not fetch on-chain balance for ${address}:`, err);
+  }
+  return { usdt: 0, trx: 0 };
 }
