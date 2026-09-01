@@ -2,24 +2,69 @@
 
 import React, { useState, useEffect } from 'react';
 import { 
-  createLiveTransaction, 
   approveLiveTransaction, 
   rejectLiveTransaction, 
   subscribeToPendingTransactions,
   TransactionData
 } from '@/lib/firebaseService';
-import { checkIsAdmin } from '@/lib/adminAuth';
-import { ShieldCheck, CheckCircle2, XCircle, RefreshCw, Zap, AlertTriangle, Send, Activity, Lock, Unlock, Database } from 'lucide-react';
+import { 
+  fetchAllUsers, 
+  fetchAllTransactions, 
+  fetchSystemConfig, 
+  UserAuditItem, 
+  SystemConfig 
+} from '@/lib/adminService';
+import { AdminOverviewTab } from './admin/AdminOverviewTab';
+import { AccountingAuditTab } from './admin/AccountingAuditTab';
+import { PersonnelHrTab } from './admin/PersonnelHrTab';
+import { TechOpsTab } from './admin/TechOpsTab';
+import { 
+  ShieldCheck, 
+  Layers, 
+  Receipt, 
+  Users, 
+  Cpu, 
+  RefreshCw,
+  Crown
+} from 'lucide-react';
+
+type AdminDepartment = 'overview' | 'accounting' | 'personnel' | 'techops';
 
 export const AdminPanel: React.FC = () => {
+  const [activeDept, setActiveDept] = useState<AdminDepartment>('overview');
   const [pendingTxs, setPendingTxs] = useState<TransactionData[]>([]);
+  const [allTransactions, setAllTransactions] = useState<TransactionData[]>([]);
+  const [allUsers, setAllUsers] = useState<UserAuditItem[]>([]);
+  const [systemConfig, setSystemConfig] = useState<SystemConfig>({
+    maintenanceMode: false,
+    globalBotActive: true
+  });
   const [loadingMap, setLoadingMap] = useState<Record<string, boolean>>({});
   const [adminStatusMsg, setAdminStatusMsg] = useState<string | null>(null);
-  const [masterSwitch, setMasterSwitch] = useState<boolean>(true);
   const [broadcastMsg, setBroadcastMsg] = useState<string>('');
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // Realtime subscription for pending deposits/withdrawals across all users
+  // Load All System Data
+  const loadSystemData = async () => {
+    setIsRefreshing(true);
+    try {
+      const [uList, tList, sysCfg] = await Promise.all([
+        fetchAllUsers(),
+        fetchAllTransactions(),
+        fetchSystemConfig()
+      ]);
+      setAllUsers(uList);
+      setAllTransactions(tList);
+      setSystemConfig(sysCfg);
+    } catch (err) {
+      console.error('Error loading admin data:', err);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
   useEffect(() => {
+    loadSystemData();
     const unsub = subscribeToPendingTransactions((txs) => {
       setPendingTxs(txs);
     });
@@ -34,6 +79,7 @@ export const AdminPanel: React.FC = () => {
       const res = await approveLiveTransaction(txId, 'tddv2017');
       if (res.success) {
         setAdminStatusMsg(`✅ APPROVED order ${txId} (+${tx.netAmount.toFixed(2)} USDT) for @${tx.username}!`);
+        loadSystemData();
       } else {
         setAdminStatusMsg(`⚠️ ${res.message}`);
       }
@@ -54,6 +100,7 @@ export const AdminPanel: React.FC = () => {
       const res = await rejectLiveTransaction(txId, 'tddv2017', 'Rejected by Admin');
       if (res.success) {
         setAdminStatusMsg(`🚫 REJECTED order ${txId} for user @${tx.username}!`);
+        loadSystemData();
       } else {
         setAdminStatusMsg(`⚠️ ${res.message}`);
       }
@@ -72,28 +119,43 @@ export const AdminPanel: React.FC = () => {
     setBroadcastMsg('');
   };
 
+  const departments = [
+    { id: 'overview' as AdminDepartment, label: 'OVERVIEW', icon: Layers },
+    { id: 'accounting' as AdminDepartment, label: 'ACCOUNTING', icon: Receipt },
+    { id: 'personnel' as AdminDepartment, label: 'HR & RESELLER', icon: Users },
+    { id: 'techops' as AdminDepartment, label: 'TECH OPS', icon: Cpu },
+  ];
+
   return (
     <div className="w-full space-y-4 pb-20">
-      {/* Admin Panel Header */}
+      {/* Admin Suite Master Banner */}
       <div className="spartan-card rounded-3xl p-5 border border-amber-500/40 shadow-[0_0_20px_rgba(245,158,11,0.2)]">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-2xl bg-amber-500/20 text-amber-400 border border-amber-500/40 flex items-center justify-center font-black">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-2xl bg-amber-500/20 text-amber-400 border border-amber-500/40 flex items-center justify-center font-black text-xl shadow-md">
               👑
             </div>
             <div>
-              <h2 className="text-base font-black text-white uppercase tracking-wider">
-                ADMIN MASTER CONTROL CONSOLE
+              <h2 className="text-base font-black text-white uppercase tracking-wider flex items-center gap-1.5">
+                ADMIN MASTER SUITE
               </h2>
               <span className="text-[10px] text-amber-400 font-mono font-bold block">
-                Exclusive Authorization: @tddv2017 (ID: 494232782)
+                Supreme Executive: @tddv2017 (ID: 494232782)
               </span>
             </div>
           </div>
+
+          <button
+            onClick={loadSystemData}
+            disabled={isRefreshing}
+            className="p-2.5 rounded-2xl bg-[#0b0e17] border border-[#1f293d] text-gray-300 hover:text-white transition-colors"
+          >
+            <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin text-amber-400' : ''}`} />
+          </button>
         </div>
       </div>
 
-      {/* Admin Toast Status Banner */}
+      {/* Global Status Toast */}
       {adminStatusMsg && (
         <div className="p-3 bg-amber-500/20 border border-amber-500 rounded-2xl text-amber-300 text-xs font-bold flex items-center gap-2 animate-bounce">
           <ShieldCheck className="w-4 h-4 flex-shrink-0 text-amber-400" />
@@ -101,147 +163,64 @@ export const AdminPanel: React.FC = () => {
         </div>
       )}
 
-      {/* System Emergency Master Switch Card */}
-      <div className="spartan-card rounded-3xl p-5 border border-[#1f293d] space-y-3 shadow-lg">
-        <div className="flex items-center justify-between border-b border-[#1f293d] pb-2.5">
-          <span className="text-xs font-black text-white uppercase tracking-wider flex items-center gap-1.5">
-            <Activity className="w-4 h-4 text-[#ff5500]" /> SYSTEM MASTER SWITCH (EMERGENCY BOT STOP)
-          </span>
-          <span className={`text-[10px] font-black px-2.5 py-0.5 rounded-full border ${
-            masterSwitch ? 'bg-[#00df89]/15 text-[#00df89] border-[#00df89]/30' : 'bg-red-500/15 text-red-400 border-red-500/30'
-          }`}>
-            {masterSwitch ? 'SYSTEM ONLINE' : 'SYSTEM PAUSED'}
-          </span>
-        </div>
-
-        <div className="flex items-center justify-between">
-          <span className="text-xs text-gray-400 font-bold">
-            Master CopyTrade Execution Engine:
-          </span>
-          <button
-            onClick={() => setMasterSwitch(!masterSwitch)}
-            className={`px-4 py-2 rounded-xl font-black text-xs uppercase tracking-wider flex items-center gap-2 transition-all ${
-              masterSwitch 
-                ? 'bg-[#00df89] text-black shadow-[0_0_15px_rgba(0,223,137,0.4)]' 
-                : 'bg-red-500 text-white shadow-[0_0_15px_rgba(239,68,68,0.4)]'
-            }`}
-          >
-            {masterSwitch ? <Unlock className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
-            <span>{masterSwitch ? 'RUNNING ONLINE' : 'EMERGENCY PAUSE'}</span>
-          </button>
-        </div>
+      {/* 4 Administrative Departments Sub-Nav Bar */}
+      <div className="grid grid-cols-4 p-1 bg-[#0b0e17] rounded-2xl border border-[#1f293d]">
+        {departments.map((dept) => {
+          const Icon = dept.icon;
+          const isActive = activeDept === dept.id;
+          return (
+            <button
+              key={dept.id}
+              onClick={() => setActiveDept(dept.id)}
+              className={`py-2 px-1 rounded-xl text-[10px] font-black uppercase flex flex-col items-center justify-center gap-1 transition-all ${
+                isActive
+                  ? 'bg-amber-500 text-black shadow-md font-black'
+                  : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              <Icon className="w-3.5 h-3.5" />
+              <span className="truncate">{dept.label}</span>
+            </button>
+          );
+        })}
       </div>
 
-      {/* Pending Transactions Realtime Approval Queue */}
-      <div className="spartan-card rounded-3xl p-5 border border-[#1f293d] space-y-3 shadow-lg">
-        <div className="flex items-center justify-between border-b border-[#1f293d] pb-2.5">
-          <h3 className="text-xs font-black text-white uppercase tracking-wider flex items-center gap-1.5">
-            <Database className="w-4 h-4 text-amber-400" /> PENDING TRANSACTION QUEUE ({pendingTxs.length})
-          </h3>
-          <span className="text-[10px] text-gray-400 font-mono font-bold">
-            Firebase Realtime Sync
-          </span>
-        </div>
+      {/* RENDER ACTIVE DEPARTMENT */}
+      {activeDept === 'overview' && (
+        <AdminOverviewTab
+          pendingTxs={pendingTxs}
+          transactions={allTransactions}
+          users={allUsers}
+          loadingMap={loadingMap}
+          onApprove={handleApprove}
+          onReject={handleReject}
+          broadcastMsg={broadcastMsg}
+          setBroadcastMsg={setBroadcastMsg}
+          onBroadcast={handleBroadcast}
+        />
+      )}
 
-        {pendingTxs.length === 0 ? (
-          <div className="text-center py-6 text-xs text-gray-500 font-bold bg-[#0b0e17] rounded-2xl border border-[#1f293d]">
-            No pending transactions in queue
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {pendingTxs.map((tx) => {
-              const key = tx.id || tx.memoCode;
-              const isProcessing = loadingMap[key] || false;
-              return (
-                <div
-                  key={key}
-                  className="p-3.5 rounded-2xl bg-[#0b0e17] border border-[#1f293d] space-y-2.5 text-xs"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className={`text-[10px] font-black px-2 py-0.5 rounded border uppercase ${
-                        tx.type === 'DEPOSIT' ? 'bg-[#00df89]/15 text-[#00df89] border-[#00df89]/30' : 'bg-[#ff2d55]/15 text-[#ff2d55] border-[#ff2d55]/30'
-                      }`}>
-                        {tx.type}
-                      </span>
-                      <span className="font-extrabold text-white">@{tx.username}</span>
-                      <span className="text-[10px] font-mono text-gray-500">(ID: {tx.userId})</span>
-                    </div>
-                    <span className="font-mono font-black text-[#facc15] text-[10px] bg-[#facc15]/10 px-2 py-0.5 rounded border border-[#facc15]/20">
-                      PENDING
-                    </span>
-                  </div>
+      {activeDept === 'accounting' && (
+        <AccountingAuditTab
+          transactions={allTransactions}
+          users={allUsers}
+        />
+      )}
 
-                  <div className="grid grid-cols-2 gap-2 text-[11px] bg-[#131927] p-2.5 rounded-xl border border-[#1f293d] font-mono">
-                    <div>
-                      <span className="text-gray-400 block text-[9px]">GROSS AMOUNT:</span>
-                      <span className="font-black text-white">${tx.grossAmount.toFixed(2)} USD</span>
-                    </div>
-                    <div>
-                      <span className="text-gray-400 block text-[9px]">NET CREDIT/DEBIT:</span>
-                      <span className="font-black text-[#00df89]">${tx.netAmount.toFixed(2)} USD</span>
-                    </div>
-                  </div>
+      {activeDept === 'personnel' && (
+        <PersonnelHrTab
+          users={allUsers}
+          onRefresh={loadSystemData}
+        />
+      )}
 
-                  <div className="flex items-center justify-between text-[10px] text-gray-400 font-mono">
-                    <span>Memo: <strong className="text-amber-300">{tx.memoCode}</strong></span>
-                    <span>Order: {tx.id}</span>
-                  </div>
-
-                  {/* Action Buttons: Approve vs Reject */}
-                  <div className="grid grid-cols-2 gap-2 pt-1">
-                    <button
-                      onClick={() => handleApprove(tx)}
-                      disabled={isProcessing}
-                      className="py-2 rounded-xl bg-[#00df89] text-black font-black text-xs uppercase flex items-center justify-center gap-1 hover:opacity-90 transition-opacity"
-                    >
-                      <CheckCircle2 className="w-3.5 h-3.5" />
-                      <span>APPROVE ORDER</span>
-                    </button>
-
-                    <button
-                      onClick={() => handleReject(tx)}
-                      disabled={isProcessing}
-                      className="py-2 rounded-xl bg-[#ff2d55] text-white font-black text-xs uppercase flex items-center justify-center gap-1 hover:opacity-90 transition-opacity"
-                    >
-                      <XCircle className="w-3.5 h-3.5" />
-                      <span>REJECT ORDER</span>
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
-      {/* Emergency Broadcast Dispatcher */}
-      <div className="spartan-card rounded-3xl p-5 border border-[#1f293d] space-y-3 shadow-lg">
-        <div className="flex items-center gap-2 border-b border-[#1f293d] pb-2.5">
-          <Send className="w-4 h-4 text-[#ff5500]" />
-          <h3 className="text-xs font-black text-white uppercase tracking-wider">
-            SYSTEM-WIDE BROADCAST DISPATCHER
-          </h3>
-        </div>
-
-        <div>
-          <textarea
-            value={broadcastMsg}
-            onChange={(e) => setBroadcastMsg(e.target.value)}
-            rows={3}
-            className="w-full bg-[#0b0e17] border border-[#1f293d] rounded-2xl p-3 text-white text-xs font-medium focus:outline-none focus:border-[#ff5500]"
-            placeholder="Type notification text to dispatch to all active Telegram Mini App users..."
-          />
-        </div>
-
-        <button
-          onClick={handleBroadcast}
-          className="w-full py-3 rounded-2xl spartan-orange-btn font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2"
-        >
-          <Send className="w-4 h-4" />
-          <span>DISPATCH BROADCAST NOTIFICATION</span>
-        </button>
-      </div>
+      {activeDept === 'techops' && (
+        <TechOpsTab
+          users={allUsers}
+          systemConfig={systemConfig}
+          onRefresh={loadSystemData}
+        />
+      )}
     </div>
   );
 };
