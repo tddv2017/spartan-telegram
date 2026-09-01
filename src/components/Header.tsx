@@ -69,7 +69,7 @@ export const Header: React.FC<HeaderProps> = ({
           onClick={onClose} 
           className="text-[#ff5500] font-bold text-xs hover:opacity-80 transition-opacity"
         >
-          Đóng
+          Close
         </button>
         <div className="text-center flex items-center gap-1.5 justify-center">
           <h1 className="font-extrabold text-white text-sm tracking-wide">SPARTAN TRADING SYSTEM</h1>
@@ -110,7 +110,7 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Bot Running Status Indicator Pill */}
         <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#ff5500]/10 border border-[#ff5500]/40 text-[#ff5500] text-[11px] font-extrabold shadow-[0_0_10px_rgba(255,85,0,0.2)]">
           <Activity className="w-3.5 h-3.5 text-[#ff5500] animate-pulse" />
-          <span>BOT ĐANG CHẠY</span>
+          <span>BOT ACTIVE</span>
         </div>
       </div>
     </header>

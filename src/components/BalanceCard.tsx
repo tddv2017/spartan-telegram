@@ -21,7 +21,7 @@ export const BalanceCard: React.FC<BalanceCardProps> = ({
       {/* Header Line */}
       <div className="flex items-center justify-between mb-2">
         <span className="text-xs font-bold text-white/95 tracking-tight">
-          Total balance (Gồm Hoa Hồng Đại Lý):
+          Total Balance (Incl. Reseller Rebates):
         </span>
         <span className="text-[10px] font-black px-3 py-1 rounded-full bg-black/40 text-white border border-white/20 uppercase tracking-wider">
           SPARTAN 300 AI
@@ -39,11 +39,11 @@ export const BalanceCard: React.FC<BalanceCardProps> = ({
       {/* Bottom Row */}
       <div className="flex items-center justify-between pt-2">
         <span className="text-xs font-bold text-white/95">
-          Đầu tư: ${tradingBalance.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 2 })}
+          Trading Capital: ${tradingBalance.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 2 })}
         </span>
 
         <span className="text-xs font-black text-[#00df89] px-3 py-1.5 rounded-xl bg-[#00df89]/15 border border-[#00df89]/60 shadow-[0_0_10px_rgba(0,223,137,0.15)]">
-          Hoa hồng Đại lý: +${referralsIncome.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USDT
+          Reseller Rebate: +${referralsIncome.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USDT
         </span>
       </div>
     </div>

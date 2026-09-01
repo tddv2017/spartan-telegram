@@ -97,7 +97,7 @@ export default function Home() {
 
     // START AUTOMATED BACKGROUND TRONSCAN / TRONGRID SCANNER WORKER
     const unsubWorker = startAutoScanWorker((tx, actualAmount) => {
-      setSyncStatus(`🎉 BOT AUTOMATION: Đã tự động phát hiện giao dịch $${actualAmount.toFixed(2)} USDT On-Chain TRON và tự động duyệt đơn ${tx.id} cho @${tx.username}!`);
+      setSyncStatus(`🎉 BOT AUTOMATION: Detected on-chain TRON transfer of $${actualAmount.toFixed(2)} USDT and auto-approved order ${tx.id} for @${tx.username}!`);
       setTimeout(() => setSyncStatus(null), 10000);
     });
 

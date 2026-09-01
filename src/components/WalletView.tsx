@@ -1,13 +1,27 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { calculateDepositFee, calculateWithdrawFee } from '@/lib/feeCalculator';
 import { 
-  createLiveTransaction, 
-  subscribeToUserTransactions, 
-  TransactionData 
-} from '@/lib/firebaseService';
-import { ArrowDownLeft, ArrowUpRight, Copy, CheckCircle2, QrCode, History, DollarSign, ArrowDown, ArrowUp, Loader2, AlertCircle, Zap, ShieldCheck, Lock, Clock, RefreshCw, ChevronLeft, ChevronRight, Wallet } from 'lucide-react';
+  ArrowDownLeft, 
+  ArrowUpRight, 
+  Copy, 
+  CheckCircle2, 
+  AlertCircle, 
+  Zap, 
+  ShieldCheck, 
+  Clock, 
+  ArrowDown, 
+  ArrowUp, 
+  History,
+  QrCode,
+  RefreshCw,
+  Lock,
+  ChevronLeft,
+  ChevronRight,
+  Loader2
+} from 'lucide-react';
+import { calculateDepositFee, calculateWithdrawFee } from '@/lib/feeCalculator';
+import { createLiveTransaction, subscribeToUserTransactions, TransactionData } from '@/lib/firebaseService';
 
 interface WalletViewProps {
   currentBalance: number;
@@ -36,7 +50,7 @@ export const WalletView: React.FC<WalletViewProps> = ({
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 5;
 
-  // Firestore & RTDB Realtime Listener for User Transactions
+  // Realtime Listener for User Transactions
   useEffect(() => {
     if (!telegramId) return;
     const unsubscribe = subscribeToUserTransactions(telegramId, (txs) => {
@@ -58,31 +72,32 @@ export const WalletView: React.FC<WalletViewProps> = ({
     return timeB - timeA;
   });
 
-  const totalPages = Math.max(1, Math.ceil(allTransactions.length / ITEMS_PER_PAGE));
-  const validPage = Math.min(currentPage, totalPages);
-  const paginatedTxs = allTransactions.slice((validPage - 1) * ITEMS_PER_PAGE, validPage * ITEMS_PER_PAGE);
-
-  const approvedDeposits = allTransactions.filter(t => t.type === 'DEPOSIT' && t.status === 'APPROVED');
-  const approvedWithdrawals = allTransactions.filter(t => t.type === 'WITHDRAW' && t.status === 'APPROVED');
-
-  const totalDepositedNet = approvedDeposits.reduce((acc, t) => acc + t.netAmount, 0);
-  const depositCount = approvedDeposits.length;
-
-  const totalWithdrawnNet = approvedWithdrawals.reduce((acc, t) => acc + t.netAmount, 0);
-  const withdrawCount = approvedWithdrawals.length;
-
+  // Calculate Pending Withdrawal Locks
   const pendingWithdrawalTotal = allTransactions
     .filter(t => t.type === 'WITHDRAW' && t.status === 'PENDING')
-    .reduce((acc, t) => acc + t.grossAmount, 0);
+    .reduce((sum, t) => sum + (t.grossAmount || 0), 0);
 
   const availableForWithdraw = Math.max(0, currentBalance - pendingWithdrawalTotal);
+
+  // Compute Net Totals
+  const totalDepositedNet = allTransactions
+    .filter(t => t.type === 'DEPOSIT' && t.status === 'APPROVED')
+    .reduce((sum, t) => sum + (t.netAmount || 0), 0);
+
+  const totalWithdrawnNet = allTransactions
+    .filter(t => t.type === 'WITHDRAW' && t.status === 'APPROVED')
+    .reduce((sum, t) => sum + (t.netAmount || 0), 0);
+
+  const depositCount = allTransactions.filter(t => t.type === 'DEPOSIT').length;
+  const withdrawCount = allTransactions.filter(t => t.type === 'WITHDRAW').length;
 
   const numAmount = parseFloat(amount) || 0;
   const depositBreakdown = calculateDepositFee(numAmount);
   const withdrawBreakdown = calculateWithdrawFee(numAmount);
 
-  const walletAddress = 'TBGvPZsuqKH5CrSbYLEi8q2BCQ6CXyKmAu';
-  const activeMemo = activeDepositTx?.memoCode || '';
+  // Master Exness Deposit Address
+  const walletAddress = "TBGvPZsuqKH5CrSbYLEi8q2BCQ6CXyKmAu";
+  const activeMemo = activeDepositTx?.memoCode || `SPARTAN_${telegramId}_${Math.floor(Date.now() / 1000).toString().slice(-4)}`;
 
   const handleCopyAddress = () => {
     navigator.clipboard.writeText(walletAddress);
@@ -101,23 +116,22 @@ export const WalletView: React.FC<WalletViewProps> = ({
     if (loading) return;
     setErrorMessage(null);
     if (numAmount <= 0) {
-      setErrorMessage('Số tiền nạp phải lớn hơn $0.00 USD!');
+      setErrorMessage('Deposit amount must be greater than $0.00 USD!');
       return;
     }
     setLoading(true);
 
     try {
       const newTx = await createLiveTransaction(telegramId, username, 'DEPOSIT', numAmount);
-
       setActiveDepositTx(newTx);
       setLocalTxs((prev) => [newTx, ...prev]);
       setCurrentPage(1);
 
-      setNotification(`🎉 ĐÃ TẠO ĐƠN NẠP $${numAmount.toFixed(2)} USDT! Mã Memo: ${newTx.memoCode}. Vui lòng quét mã QR để chuyển khoản!`);
+      setNotification(`🎉 DEPOSIT ORDER CREATED: $${numAmount.toFixed(2)} USDT! Memo: ${newTx.memoCode}. Please scan QR code to complete transfer.`);
       setTimeout(() => setNotification(null), 8000);
     } catch (err) {
       console.error('Deposit error:', err);
-      setNotification(`Đã tạo đơn nạp $${numAmount.toFixed(2)} USDT! Đang chờ chuyển khoản.`);
+      setNotification(`Deposit order created: $${numAmount.toFixed(2)} USDT! Awaiting on-chain confirmation.`);
       setTimeout(() => setNotification(null), 5000);
     } finally {
       setLoading(false);
@@ -129,26 +143,26 @@ export const WalletView: React.FC<WalletViewProps> = ({
     setErrorMessage(null);
 
     if (numAmount <= 0) {
-      setErrorMessage('Số tiền rút phải lớn hơn $0.00 USD!');
+      setErrorMessage('Withdrawal amount must be greater than $0.00 USD!');
       return;
     }
 
     if (withdrawBreakdown.netAmount <= 0) {
-      setErrorMessage(`⛔ KHÔNG THỂ RÚT: Số tiền rút ($${numAmount.toFixed(2)}) nhỏ hơn phí giao dịch ($${withdrawBreakdown.totalFee.toFixed(2)} USD). Vui lòng nhập số tiền lớn hơn $6.50 USD!`);
+      setErrorMessage(`⛔ CANNOT WITHDRAW: Amount ($${numAmount.toFixed(2)}) is less than transaction fees ($${withdrawBreakdown.totalFee.toFixed(2)} USD). Minimum withdrawal is $6.50 USD.`);
       return;
     }
 
     if (numAmount > availableForWithdraw) {
       if (pendingWithdrawalTotal > 0) {
-        setErrorMessage(`⛔ LỆNH ĐANG BỊ KHÓA: Bạn đang có $${pendingWithdrawalTotal.toFixed(2)} USD ở lệnh chờ rút. Số dư khả dụng là $${availableForWithdraw.toFixed(2)} USD!`);
+        setErrorMessage(`⛔ LOCKED: You have $${pendingWithdrawalTotal.toFixed(2)} USD in pending withdrawals. Available balance is $${availableForWithdraw.toFixed(2)} USD.`);
       } else {
-        setErrorMessage(`⛔ KHÔNG THỂ RÚT: Số tiền rút ($${numAmount.toFixed(2)}) vượt quá số dư khả dụng ($${currentBalance.toFixed(2)} USD)!`);
+        setErrorMessage(`⛔ INSUFFICIENT FUNDS: Requested amount ($${numAmount.toFixed(2)}) exceeds available balance ($${currentBalance.toFixed(2)} USD).`);
       }
       return;
     }
 
     if (!withdrawAddress.trim()) {
-      setErrorMessage('Vui lòng dán địa chỉ ví USDT (TRC20) nhận tiền của bạn!');
+      setErrorMessage('Please enter your recipient USDT (TRC20) wallet address!');
       return;
     }
 
@@ -156,18 +170,17 @@ export const WalletView: React.FC<WalletViewProps> = ({
 
     try {
       const newTx = await createLiveTransaction(telegramId, username, 'WITHDRAW', numAmount);
-
       setLocalTxs((prev) => [newTx, ...prev]);
       setCurrentPage(1);
 
-      setNotification(`Yêu cầu rút $${withdrawBreakdown.netAmount.toFixed(2)} USDT thực nhận về ví ${withdrawAddress.slice(0, 8)}...! Đang chờ xử lý.`);
+      setNotification(`Withdrawal request for $${withdrawBreakdown.netAmount.toFixed(2)} USDT sent to ${withdrawAddress.slice(0, 8)}...! Pending processing.`);
       setTimeout(() => setNotification(null), 6000);
     } catch (err: any) {
       console.error('Withdraw error:', err);
       if (err.message && err.message.includes('INSUFFICIENT_AVAILABLE_FUNDS')) {
-        setErrorMessage(`⛔ LỆNH ĐANG BỊ KHÓA: Bạn có lệnh rút đang chờ. Không đủ số dư khả dụng!`);
+        setErrorMessage(`⛔ LOCKED: Insufficient available balance due to pending withdrawals.`);
       } else {
-        setNotification(`Đã tạo yêu cầu rút $${withdrawBreakdown.netAmount.toFixed(2)} USDT! Đang chờ duyệt.`);
+        setNotification(`Withdrawal request created: $${withdrawBreakdown.netAmount.toFixed(2)} USDT! Awaiting approval.`);
       }
       setTimeout(() => setNotification(null), 5000);
     } finally {
@@ -176,29 +189,35 @@ export const WalletView: React.FC<WalletViewProps> = ({
   };
 
   const formatTxTime = (isoString?: string) => {
-    if (!isoString) return 'Vừa xong';
+    if (!isoString) return 'Just now';
     try {
       const date = new Date(isoString);
-      return date.toLocaleString('vi-VN', {
+      return date.toLocaleString('en-US', {
+        month: 'short',
         day: '2-digit',
-        month: '2-digit',
         hour: '2-digit',
         minute: '2-digit',
         second: '2-digit'
       });
     } catch (e) {
-      return 'Vừa xong';
+      return 'Just now';
     }
   };
 
   const pureQrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${walletAddress}`;
+
+  // Pagination Math
+  const totalPages = Math.max(1, Math.ceil(allTransactions.length / ITEMS_PER_PAGE));
+  const validPage = Math.min(currentPage, totalPages);
+  const startIndex = (validPage - 1) * ITEMS_PER_PAGE;
+  const paginatedTxs = allTransactions.slice(startIndex, startIndex + ITEMS_PER_PAGE);
 
   return (
     <div className="w-full space-y-4 pb-20">
       {/* Balance & Overview Card */}
       <div className="spartan-card rounded-3xl p-5 border border-[#1f293d] shadow-lg">
         <div className="flex items-center justify-between mb-3">
-          <span className="text-xs text-gray-400 font-bold uppercase tracking-wider">SỐ DƯ ĐẦU TƯ KHẢ DỤNG</span>
+          <span className="text-xs text-gray-400 font-bold uppercase tracking-wider">AVAILABLE TRADING BALANCE</span>
           <span className="px-3 py-1 rounded-full bg-[#ff5500]/15 border border-[#ff5500]/30 text-[#ff5500] text-xs font-black">
             USDT TRC20
           </span>
@@ -211,7 +230,7 @@ export const WalletView: React.FC<WalletViewProps> = ({
           <div className="mt-3 p-2 bg-amber-500/10 border border-amber-500/30 rounded-xl flex items-center justify-between text-[11px] font-bold text-amber-400">
             <span className="flex items-center gap-1">
               <Lock className="w-3.5 h-3.5 flex-shrink-0" />
-              Tạm khóa do có lệnh rút đang chờ:
+              Locked in pending withdrawal:
             </span>
             <span className="font-mono font-black text-amber-300">-${pendingWithdrawalTotal.toFixed(2)} USD</span>
           </div>
@@ -223,12 +242,12 @@ export const WalletView: React.FC<WalletViewProps> = ({
         <div className="spartan-card rounded-2xl p-4 border border-[#1f293d] flex items-center justify-between transition-all">
           <div>
             <span className="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider block mb-0.5">
-              TỔNG NẠP (THỰC NHẬN)
+              TOTAL DEPOSIT (NET)
             </span>
             <span className="text-base font-black text-[#00df89]">
               +${totalDepositedNet.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </span>
-            <span className="text-[9px] text-gray-500 font-bold block mt-0.5">{depositCount} Lần nạp</span>
+            <span className="text-[9px] text-gray-500 font-bold block mt-0.5">{depositCount} Deposits</span>
           </div>
           <div className="w-8 h-8 rounded-xl bg-[#00df89]/15 border border-[#00df89]/30 flex items-center justify-center text-[#00df89]">
             <ArrowDown className="w-4 h-4" />
@@ -238,12 +257,12 @@ export const WalletView: React.FC<WalletViewProps> = ({
         <div className="spartan-card rounded-2xl p-4 border border-[#1f293d] flex items-center justify-between transition-all">
           <div>
             <span className="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider block mb-0.5">
-              TỔNG RÚT (THỰC NHẬN)
+              TOTAL WITHDRAWAL (NET)
             </span>
             <span className="text-base font-black text-[#ff2d55]">
               -${totalWithdrawnNet.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </span>
-            <span className="text-[9px] text-gray-500 font-bold block mt-0.5">{withdrawCount} Lần rút</span>
+            <span className="text-[9px] text-gray-500 font-bold block mt-0.5">{withdrawCount} Withdrawals</span>
           </div>
           <div className="w-8 h-8 rounded-xl bg-[#ff2d55]/15 border border-[#ff2d55]/30 flex items-center justify-center text-[#ff2d55]">
             <ArrowUp className="w-4 h-4" />
@@ -278,7 +297,7 @@ export const WalletView: React.FC<WalletViewProps> = ({
           }`}
         >
           <ArrowDownLeft className="w-4 h-4" />
-          <span>NẠP USDT (MÃ QR)</span>
+          <span>DEPOSIT USDT (QR CODE)</span>
         </button>
 
         <button
@@ -290,7 +309,7 @@ export const WalletView: React.FC<WalletViewProps> = ({
           }`}
         >
           <ArrowUpRight className="w-4 h-4" />
-          <span>RÚT USDT (TRC20)</span>
+          <span>WITHDRAW USDT (TRC20)</span>
         </button>
       </div>
 
@@ -304,19 +323,19 @@ export const WalletView: React.FC<WalletViewProps> = ({
                 <QrCode className="w-4 h-4" />
               </div>
               <div>
-                <h3 className="text-xs font-black text-white uppercase tracking-wider">NẠP TIỀN BẰNG MÃ QR (USDT TRC20)</h3>
-                <span className="text-[10px] text-gray-400 font-bold block">Quét mã chuyển thẳng từ Binance / OKX / TrustWallet / @Wallet</span>
+                <h3 className="text-xs font-black text-white uppercase tracking-wider">DEPOSIT VIA QR CODE (USDT TRC20)</h3>
+                <span className="text-[10px] text-gray-400 font-bold block">Scan to transfer directly from Binance / OKX / Bybit / TrustWallet / @Wallet</span>
               </div>
             </div>
             <span className="text-[10px] font-bold text-[#ff5500] bg-[#ff5500]/10 px-2.5 py-0.5 rounded-full border border-[#ff5500]/20">
-              Phí: 9% + $3.00 USD
+              Fee: 9% + $3.00 USD
             </span>
           </div>
 
           {/* Amount Input */}
           <div>
             <label className="text-xs text-gray-400 font-bold block mb-1.5">
-              Nhập Số Tiền Muốn Nạp ($ USD)
+              Enter Deposit Amount ($ USD)
             </label>
             <div className="relative">
               <input
@@ -336,19 +355,19 @@ export const WalletView: React.FC<WalletViewProps> = ({
           {/* Fee Engine Realtime Breakdown Card */}
           <div className="bg-[#0b0e17] rounded-2xl p-4 border border-[#1f293d] text-xs space-y-2">
             <div className="flex justify-between text-gray-400">
-              <span>Số Tiền Nạp Gốc:</span>
+              <span>Gross Deposit Amount:</span>
               <span className="font-bold text-gray-200">${depositBreakdown.grossAmount.toFixed(2)} USDT</span>
             </div>
             <div className="flex justify-between text-gray-400">
-              <span>Phí Phần Trăm (9%):</span>
+              <span>Percentage Fee (9%):</span>
               <span className="font-bold text-[#ff2d55]">-${depositBreakdown.percentageFee.toFixed(2)} USDT</span>
             </div>
             <div className="flex justify-between text-gray-400">
-              <span>Phí Cố Định ($3.00 USD):</span>
+              <span>Fixed Network Fee ($3.00 USD):</span>
               <span className="font-bold text-[#ff2d55]">-$3.00 USDT</span>
             </div>
             <div className="border-t border-[#1f293d] pt-2 flex justify-between font-black text-sm text-white">
-              <span className="text-[#00df89]">Thực Nhận Vào Quỹ Bot:</span>
+              <span className="text-[#00df89]">Net Credited to Bot Fund:</span>
               <span className="text-[#00df89]">${depositBreakdown.netAmount.toFixed(2)} USDT</span>
             </div>
           </div>
@@ -361,7 +380,7 @@ export const WalletView: React.FC<WalletViewProps> = ({
               className="w-full py-3.5 rounded-2xl spartan-orange-btn font-black text-sm uppercase tracking-wider hover:opacity-95 transition-opacity flex items-center justify-center gap-2 shadow-[0_4px_16px_rgba(255,85,0,0.4)]"
             >
               {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
-              <span>🚀 TẠO ĐƠN NẠP & LẤY MÃ QR (Thực nhận +${depositBreakdown.netAmount.toFixed(2)})</span>
+              <span>🚀 CREATE DEPOSIT ORDER & GET QR (Net +${depositBreakdown.netAmount.toFixed(2)})</span>
             </button>
           ) : (
             /* ON-CHAIN AUTO-APPROVE CLEAN QR CODE & FIXED MEMO CARD */
@@ -369,17 +388,17 @@ export const WalletView: React.FC<WalletViewProps> = ({
               <div className="flex items-center justify-between border-b border-[#1f293d] pb-2">
                 <div>
                   <span className="text-xs font-black text-white uppercase tracking-wider flex items-center gap-1.5">
-                    <CheckCircle2 className="w-4 h-4 text-[#00df89]" /> MÃ QR & MEMO CHO ĐƠN #{activeDepositTx.id}
+                    <CheckCircle2 className="w-4 h-4 text-[#00df89]" /> QR CODE & MEMO FOR ORDER #{activeDepositTx.id}
                   </span>
                   <span className="text-[10px] text-gray-400 font-bold block mt-0.5">
-                    Số Tiền Nạp: <strong className="text-white">${activeDepositTx.grossAmount.toFixed(2)} USDT</strong>
+                    Deposit Amount: <strong className="text-white">${activeDepositTx.grossAmount.toFixed(2)} USDT</strong>
                   </span>
                 </div>
                 <button
                   onClick={() => setActiveDepositTx(null)}
                   className="px-2.5 py-1 rounded-xl bg-[#131927] text-gray-400 hover:text-white text-[10px] font-bold border border-[#1f293d] flex items-center gap-1"
                 >
-                  <RefreshCw className="w-3 h-3" /> Đổi Số Tiền
+                  <RefreshCw className="w-3 h-3" /> Change Amount
                 </button>
               </div>
 
@@ -391,14 +410,14 @@ export const WalletView: React.FC<WalletViewProps> = ({
                   className="w-44 h-44 object-contain"
                 />
                 <span className="text-[10px] font-black text-gray-800 mt-2 uppercase tracking-wider">
-                  MÃ QR VÍ MASTER EXNESS USDT (TRC20)
+                  MASTER EXNESS WALLET QR CODE (USDT TRC20)
                 </span>
               </div>
 
               {/* Wallet Address Box */}
               <div>
                 <label className="text-[10px] text-gray-400 font-bold block mb-1">
-                  1. Địa Chỉ Ví Master Exness Nhận Chuyển Khoản (TRC20)
+                  1. Master Exness Recipient Address (TRC20)
                 </label>
                 <div className="flex items-center gap-2 bg-[#131927] border border-[#1f293d] p-2.5 rounded-xl">
                   <span className="text-xs text-[#00df89] font-mono font-bold truncate flex-1">
@@ -409,7 +428,7 @@ export const WalletView: React.FC<WalletViewProps> = ({
                     className="px-2.5 py-1 rounded-lg bg-[#ff5500] text-white text-xs font-black flex items-center gap-1 hover:opacity-90"
                   >
                     {copied ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                    <span>Sao Chép Ví</span>
+                    <span>Copy Address</span>
                   </button>
                 </div>
               </div>
@@ -417,7 +436,7 @@ export const WalletView: React.FC<WalletViewProps> = ({
               {/* Mandatory Fixed Memo Code Box */}
               <div>
                 <label className="text-[10px] text-[#facc15] font-black block mb-1 uppercase tracking-wider flex items-center gap-1">
-                  <ShieldCheck className="w-3.5 h-3.5" /> 2. MÃ MEMO BẮT BUỘC (Dán vào ghi chú chuyển tiền)
+                  <ShieldCheck className="w-3.5 h-3.5" /> 2. MANDATORY MEMO CODE (Paste into transfer note)
                 </label>
                 <div className="flex items-center gap-2 bg-[#131927] border border-[#facc15]/60 p-2.5 rounded-xl">
                   <span className="text-sm text-[#facc15] font-mono font-black truncate flex-1 tracking-wider">
@@ -428,13 +447,13 @@ export const WalletView: React.FC<WalletViewProps> = ({
                     className="px-2.5 py-1 rounded-lg bg-[#facc15] text-black text-xs font-black flex items-center gap-1 hover:opacity-90"
                   >
                     {copiedMemo ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                    <span>Sao Chép Memo</span>
+                    <span>Copy Memo</span>
                   </button>
                 </div>
               </div>
 
               <div className="text-[10px] text-gray-400 leading-relaxed bg-[#131927] p-2.5 rounded-xl border border-[#1f293d]">
-                💡 <strong>HỆ THỐNG QUÉT TỰ ĐỘNG:</strong> Bạn có thể chuyển tiền từ bất kỳ sàn nào (Binance, OKX, Bybit, TrustWallet, ví Telegram). Bot tự động quét giao dịch thực tế trên mạng TRON, trừ phí 9% + $3.00 và tự động cộng tiền vào tài khoản ngay lập tức!
+                💡 <strong>AUTOMATED ON-CHAIN SCANNER:</strong> You can transfer from any exchange (Binance, OKX, Bybit, TrustWallet, Telegram Wallet). The bot automatically detects your transaction on the TRON network, applies fees, and credits your balance instantly!
               </div>
             </div>
           )}
@@ -443,14 +462,14 @@ export const WalletView: React.FC<WalletViewProps> = ({
         /* WITHDRAW MODE */
         <div className="spartan-card rounded-3xl p-5 border border-[#1f293d] space-y-4 shadow-lg">
           <div className="flex items-center justify-between">
-            <h3 className="text-xs font-black text-white uppercase tracking-wider">RÚT USDT (CHIẾN LƯỢC QUỸ SPARTAN)</h3>
+            <h3 className="text-xs font-black text-white uppercase tracking-wider">WITHDRAW USDT (SPARTAN TREASURY POLICY)</h3>
             <span className="text-[10px] font-bold text-[#ff2d55] bg-[#ff2d55]/10 px-2.5 py-0.5 rounded-full border border-[#ff2d55]/20">
-              Phí: 19% + $5.00 USD
+              Fee: 19% + $5.00 USD
             </span>
           </div>
 
           <div className="bg-[#0b0e17] p-3 rounded-2xl border border-[#1f293d] flex items-center justify-between text-xs font-bold">
-            <span className="text-gray-400">Số Dư Khả Dụng Để Rút:</span>
+            <span className="text-gray-400">Available Balance for Withdrawal:</span>
             <span className="text-[#00df89] font-mono text-sm font-black">
               ${availableForWithdraw.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USDT
             </span>
@@ -458,7 +477,7 @@ export const WalletView: React.FC<WalletViewProps> = ({
 
           <div>
             <label className="text-xs text-gray-400 font-bold block mb-1.5">
-              Nhập Số Tiền Muốn Rút ($ USD)
+              Enter Withdrawal Amount ($ USD)
             </label>
             <div className="relative">
               <input
@@ -473,50 +492,50 @@ export const WalletView: React.FC<WalletViewProps> = ({
                 onClick={() => setAmount(availableForWithdraw.toString())}
                 className="absolute right-3 top-2.5 px-2.5 py-1 bg-[#ff2d55]/20 text-[#ff2d55] rounded-lg text-xs font-black border border-[#ff2d55]/30"
               >
-                RÚT TẤT CẢ
+                MAX
               </button>
             </div>
           </div>
 
           <div>
             <label className="text-xs text-gray-400 font-bold block mb-1.5">
-              Địa Chỉ Ví Nhận Tiền (USDT TRC20)
+              Destination Wallet Address (USDT TRC20)
             </label>
             <input
               type="text"
               value={withdrawAddress}
               onChange={(e) => { setWithdrawAddress(e.target.value); setErrorMessage(null); }}
               className="w-full bg-[#0b0e17] border border-[#1f293d] rounded-2xl py-3 px-4 text-white text-xs font-mono focus:outline-none focus:border-[#ff2d55]"
-              placeholder="Dán địa chỉ ví TRC20 nhận tiền (bắt đầu bằng chữ T...)"
+              placeholder="Paste your TRC20 address (starts with T...)"
             />
           </div>
 
           <div className="bg-[#0b0e17] rounded-2xl p-4 border border-[#1f293d] text-xs space-y-2">
             <div className="flex justify-between text-gray-400">
-              <span>Số Tiền Rút Gốc:</span>
+              <span>Gross Withdrawal Amount:</span>
               <span className="font-bold text-gray-200">${withdrawBreakdown.grossAmount.toFixed(2)} USDT</span>
             </div>
             <div className="flex justify-between text-gray-400">
-              <span>Phí Phần Trăm (19%):</span>
+              <span>Percentage Fee (19%):</span>
               <span className="font-bold text-[#ff2d55]">-${withdrawBreakdown.percentageFee.toFixed(2)} USDT</span>
             </div>
             <div className="flex justify-between text-gray-400">
-              <span>Phí Cố Định ($5.00 USD):</span>
+              <span>Fixed Network Fee ($5.00 USD):</span>
               <span className="font-bold text-[#ff2d55]">-$5.00 USDT</span>
             </div>
 
             <div className="bg-[#131927] p-2.5 rounded-xl border border-[#1f293d] space-y-1 my-1">
               <div className="flex justify-between text-amber-400 font-bold text-[11px]">
-                <span>Phí Giữ Lại Tái Đầu Tư (10% Treasury):</span>
+                <span>Treasury Reserve Retention (10% Treasury):</span>
                 <span className="font-mono">${withdrawBreakdown.effectiveRetainedFee?.toFixed(2)} USDT</span>
               </div>
               <span className="text-[9px] text-gray-500 block leading-tight">
-                (Phân bổ vào quỹ dự phòng thanh khoản & chia sẻ lợi nhuận đại lý)
+                (Allocated to liquidity reserve & reseller affiliate pool)
               </span>
             </div>
 
             <div className="border-t border-[#1f293d] pt-2 flex justify-between font-black text-sm text-white">
-              <span className="text-[#ff2d55]">Thực Nhận Về Ví:</span>
+              <span className="text-[#ff2d55]">Net Payout to Your Wallet:</span>
               <span className={withdrawBreakdown.netAmount <= 0 ? "text-red-500 font-black" : "text-[#ff2d55]"}>
                 ${withdrawBreakdown.netAmount.toFixed(2)} USDT
               </span>
@@ -526,7 +545,7 @@ export const WalletView: React.FC<WalletViewProps> = ({
           {withdrawBreakdown.netAmount <= 0 && (
             <div className="bg-red-500/20 border border-red-500 p-3 rounded-2xl text-xs font-bold text-red-400 flex items-center gap-2">
               <AlertCircle className="w-4 h-4 flex-shrink-0" />
-              <span>⛔ Số tiền thực nhận âm! Vui lòng nhập số tiền rút lớn hơn $6.50 USD.</span>
+              <span>⛔ Negative payout amount! Please enter a withdrawal amount greater than $6.50 USD.</span>
             </div>
           )}
 
@@ -542,10 +561,10 @@ export const WalletView: React.FC<WalletViewProps> = ({
             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
             <span>
               {numAmount > availableForWithdraw
-                ? 'KHÓA (KHÔNG ĐỦ SỐ DƯ KHẢ DỤNG)'
+                ? 'LOCKED (INSUFFICIENT AVAILABLE BALANCE)'
                 : withdrawBreakdown.netAmount <= 0
-                ? 'KHÔNG THỂ RÚT (SỐ TIỀN ÂM)'
-                : `Xác Nhận Rút Tiền (Thực nhận $${withdrawBreakdown.netAmount.toFixed(2)} USDT)`}
+                ? 'CANNOT WITHDRAW (NEGATIVE AMOUNT)'
+                : `Confirm Withdrawal (Net Payout $${withdrawBreakdown.netAmount.toFixed(2)} USDT)`}
             </span>
           </button>
         </div>
@@ -555,17 +574,17 @@ export const WalletView: React.FC<WalletViewProps> = ({
       <div className="spartan-card rounded-3xl p-4 border border-[#1f293d] space-y-3 shadow-lg">
         <div className="flex items-center justify-between border-b border-[#1f293d] pb-2.5">
           <h3 className="text-xs font-black text-white uppercase tracking-wider flex items-center gap-1.5">
-            <History className="w-4 h-4 text-[#ff5500]" /> LỊCH SỬ GIAO DỊCH (REALTIME)
+            <History className="w-4 h-4 text-[#ff5500]" /> TRANSACTION HISTORY (REALTIME)
           </h3>
           <span className="text-[10px] text-gray-400 font-bold">
-            Tổng {allTransactions.length} Giao Dịch
+            Total {allTransactions.length} Transactions
           </span>
         </div>
 
         <div className="space-y-2">
           {paginatedTxs.length === 0 ? (
             <div className="text-center py-6 text-xs font-bold text-gray-500">
-              Chưa có giao dịch nạp rút nào được ghi nhận
+              No transactions recorded yet.
             </div>
           ) : (
             paginatedTxs.map((tx) => (
@@ -590,7 +609,7 @@ export const WalletView: React.FC<WalletViewProps> = ({
                   <div>
                     <div className="flex items-center gap-2">
                       <span className="font-extrabold text-white">
-                        {tx.type === 'DEPOSIT' ? 'NẠP TIỀN' : 'RÚT TIỀN'}
+                        {tx.type === 'DEPOSIT' ? 'DEPOSIT' : 'WITHDRAWAL'}
                       </span>
                       <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded border font-black ${
                         tx.status === 'APPROVED' 
@@ -599,7 +618,7 @@ export const WalletView: React.FC<WalletViewProps> = ({
                           ? 'text-[#facc15] bg-[#facc15]/10 border-[#facc15]/20' 
                           : 'text-[#ff2d55] bg-[#ff2d55]/10 border-[#ff2d55]/20'
                       }`}>
-                        {tx.status === 'APPROVED' ? 'ĐÃ DUYỆT' : tx.status === 'PENDING' ? 'CHỜ DUYỆT' : 'TỪ CHỐI'}
+                        {tx.status === 'APPROVED' ? 'APPROVED' : tx.status === 'PENDING' ? 'PENDING' : 'REJECTED'}
                       </span>
                     </div>
                     <div className="flex items-center gap-2 text-[10px] text-gray-500 font-mono mt-0.5">
@@ -622,7 +641,7 @@ export const WalletView: React.FC<WalletViewProps> = ({
                     {tx.type === 'DEPOSIT' ? `+$${tx.netAmount.toFixed(2)}` : `-$${tx.netAmount.toFixed(2)}`}
                   </span>
                   <span className="text-[9px] text-gray-500 font-bold block">
-                    Phí: -${tx.feeAmount.toFixed(2)}
+                    Fee: -${tx.feeAmount.toFixed(2)}
                   </span>
                 </div>
               </div>
@@ -642,11 +661,11 @@ export const WalletView: React.FC<WalletViewProps> = ({
               }`}
             >
               <ChevronLeft className="w-4 h-4" />
-              <span>Trang trước</span>
+              <span>Previous</span>
             </button>
 
             <span className="text-gray-400 font-mono text-[11px]">
-              Trang <strong className="text-white">{validPage}</strong> / {totalPages}
+              Page <strong className="text-white">{validPage}</strong> of {totalPages}
             </span>
 
             <button
@@ -658,7 +677,7 @@ export const WalletView: React.FC<WalletViewProps> = ({
                   : 'border-[#1f293d] bg-[#131927] text-white hover:bg-[#1f293d]'
               }`}
             >
-              <span>Trang sau</span>
+              <span>Next</span>
               <ChevronRight className="w-4 h-4" />
             </button>
           </div>

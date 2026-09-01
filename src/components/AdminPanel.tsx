@@ -33,14 +33,14 @@ export const AdminPanel: React.FC = () => {
     try {
       const res = await approveLiveTransaction(txId, 'tddv2017');
       if (res.success) {
-        setAdminStatusMsg(`✅ ĐÃ DUYỆT đơn ${txId} (+${tx.netAmount.toFixed(2)} USDT) cho @${tx.username}!`);
+        setAdminStatusMsg(`✅ APPROVED order ${txId} (+${tx.netAmount.toFixed(2)} USDT) for @${tx.username}!`);
       } else {
         setAdminStatusMsg(`⚠️ ${res.message}`);
       }
       setTimeout(() => setAdminStatusMsg(null), 5000);
     } catch (err) {
       console.error('Approve error:', err);
-      setAdminStatusMsg(`❌ Lỗi khi duyệt đơn ${txId}!`);
+      setAdminStatusMsg(`❌ Error approving order ${txId}!`);
     } finally {
       setLoadingMap(prev => ({ ...prev, [key]: false }));
     }
@@ -51,16 +51,16 @@ export const AdminPanel: React.FC = () => {
     const txId = tx.id || tx.memoCode;
     setLoadingMap(prev => ({ ...prev, [key]: true }));
     try {
-      const res = await rejectLiveTransaction(txId, 'tddv2017', 'Từ chối bởi Admin');
+      const res = await rejectLiveTransaction(txId, 'tddv2017', 'Rejected by Admin');
       if (res.success) {
-        setAdminStatusMsg(`🚫 ĐÃ TỪ CHỐI đơn ${txId} của người dùng @${tx.username}!`);
+        setAdminStatusMsg(`🚫 REJECTED order ${txId} for user @${tx.username}!`);
       } else {
         setAdminStatusMsg(`⚠️ ${res.message}`);
       }
       setTimeout(() => setAdminStatusMsg(null), 5000);
     } catch (err) {
       console.error('Reject error:', err);
-      setAdminStatusMsg(`❌ Lỗi khi từ chối đơn ${txId}!`);
+      setAdminStatusMsg(`❌ Error rejecting order ${txId}!`);
     } finally {
       setLoadingMap(prev => ({ ...prev, [key]: false }));
     }
