@@ -48,7 +48,8 @@ import {
   ShieldAlert,
   Bell,
   Smartphone,
-  Mail
+  Mail,
+  ChevronDown
 } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 
@@ -102,6 +103,7 @@ export default function StandaloneAdminPortalPage() {
   const [is3FaSettingsOpen, setIs3FaSettingsOpen] = useState(false);
   const [threeFaConfig, setThreeFaConfig] = useState<Admin3FaConfig>(getAdmin3FaConfig());
   const [threeFaSaveSuccess, setThreeFaSaveSuccess] = useState<string | null>(null);
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
 
   const handleSave3FaConfig = (e: React.FormEvent) => {
     e.preventDefault();
@@ -242,46 +244,70 @@ export default function StandaloneAdminPortalPage() {
 
   return (
     <div className="min-h-screen bg-[#04060a] text-white flex flex-col font-sans">
-      {/* Top Universal Institutional Header Bar */}
-      <header className="bg-[#05070c] border-b border-[#221c10] px-4 md:px-8 py-3.5 sticky top-0 z-40 flex items-center justify-between shadow-md">
-        {/* Brand & Supreme Leader */}
+      {/* Top Universal Institutional Cockpit Command Bar */}
+      <header className="bg-[#05070c] border-b border-[#221c10] px-4 md:px-6 py-2.5 sticky top-0 z-40 flex items-center justify-between shadow-lg">
+        {/* Brand & Live Engine Status Indicators */}
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-[#d4af37]/15 border border-[#d4af37]/40 text-[#f5d77f] font-black text-xl flex items-center justify-center shadow-[0_0_12px_rgba(212,175,55,0.25)]">
-            👑
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-sm md:text-base font-black text-[#f5d77f] uppercase tracking-wider">
-                {t('admin_suite_title')}
-              </h1>
-              <span className="text-[9px] font-black gold-btn-solid text-black px-2 py-0.5 rounded uppercase font-mono">
-                {t('admin_portal_badge')}
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl bg-[#d4af37]/15 border border-[#d4af37]/40 text-[#f5d77f] font-black text-lg flex items-center justify-center shadow-[0_0_12px_rgba(212,175,55,0.25)]">
+              👑
+            </div>
+            <div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-sm font-black text-white tracking-wider uppercase">SPARTAN</span>
+                <span className="text-[9px] font-black gold-btn-solid text-black px-1.5 py-0.5 rounded uppercase font-mono">
+                  COCKPIT
+                </span>
+              </div>
+              <span className="text-[9px] text-[#f5d77f] font-mono block">
+                INSTITUTIONAL SUITE
               </span>
             </div>
-            <span className="text-[10px] text-[#d4af37] font-mono font-bold block">
-              {t('admin_supreme_header')}
-            </span>
+          </div>
+
+          {/* Heartbeat Status Indicators */}
+          <div className="hidden lg:flex items-center gap-2 border-l border-[#221c10] pl-3 ml-1">
+            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-emerald-500/10 border border-emerald-500/25 text-[10px] text-emerald-400 font-mono font-bold">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              <span>MT5 EA LIVE</span>
+            </div>
+            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-emerald-500/10 border border-emerald-500/25 text-[10px] text-emerald-400 font-mono font-bold">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+              <span>TRONGRID 100%</span>
+            </div>
           </div>
         </div>
 
-        {/* Live Gold Ticker & Security Controls */}
-        <div className="flex items-center gap-2 md:gap-3">
-          {/* Gold Ticker */}
-          <div className="hidden lg:flex items-center gap-2 bg-[#080b12] border border-[#221c10] px-3 py-1.5 rounded-xl font-mono text-xs">
-            <span className="text-gray-400 text-[10px]">XAUUSD:</span>
-            <span className="font-black text-[#f5d77f]">${goldPrice.price.toFixed(2)}</span>
-            <span className={`text-[10px] font-bold ${goldPrice.changePercent24h >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-              {goldPrice.changePercent24h >= 0 ? '+' : ''}{goldPrice.changePercent24h.toFixed(2)}%
-            </span>
-          </div>
+        {/* Live Gold Ticker (Center Focus) */}
+        <div className="hidden xl:flex items-center gap-2 bg-[#080b12] border border-[#221c10] px-3 py-1.5 rounded-xl font-mono text-xs shadow-inner">
+          <span className="text-gray-400 text-[10px]">XAU/USD:</span>
+          <span className="font-black text-[#f5d77f]">${goldPrice.price.toFixed(2)}</span>
+          <span className={`text-[10px] font-bold ${goldPrice.changePercent24h >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+            {goldPrice.changePercent24h >= 0 ? '+' : ''}{goldPrice.changePercent24h.toFixed(2)}%
+          </span>
+          <span className="w-1 h-1 rounded-full bg-[#221c10] mx-0.5" />
+          <span className="text-[9px] text-gray-500">EXNESS LIVE</span>
+        </div>
+
+        {/* Right Consolidated Controls */}
+        <div className="flex items-center gap-2">
+          {/* Refresh Button */}
+          <button
+            onClick={loadSystemData}
+            disabled={isRefreshing}
+            className="p-2 rounded-xl bg-[#0c0f17] hover:bg-[#141924] border border-[#221c10] text-gray-300 hover:text-white transition-all active:scale-95 shadow-sm"
+            title={t('admin_refresh')}
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-[#f5d77f]' : ''}`} />
+          </button>
 
           {/* Bilingual Language Switcher Toggle */}
           <button
             onClick={toggleLang}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-[#0c0f17] hover:bg-[#141924] border border-[#2a2215] text-xs font-bold transition-all shadow-sm active:scale-95"
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-[#0c0f17] hover:bg-[#141924] border border-[#221c10] text-xs font-bold transition-all shadow-sm active:scale-95"
             title={lang === 'vi' ? 'Switch to English' : 'Chuyển sang Tiếng Việt'}
           >
-            <span className="text-sm">{lang === 'vi' ? '🇻🇳' : '🇬🇧'}</span>
+            <span className="text-xs">{lang === 'vi' ? '🇻🇳' : '🇬🇧'}</span>
             <span className="font-mono text-[10px] text-[#f5d77f] font-extrabold uppercase">
               {lang === 'vi' ? 'VI' : 'EN'}
             </span>
@@ -290,75 +316,90 @@ export default function StandaloneAdminPortalPage() {
           {/* Notification Bell Button */}
           <button
             onClick={() => setIsNotificationOpen(true)}
-            className="relative p-2.5 rounded-xl bg-[#0c0f17] hover:bg-[#141924] border border-[#221c10] text-gray-300 hover:text-white transition-all shadow-md group active:scale-95"
+            className="relative p-2 rounded-xl bg-[#0c0f17] hover:bg-[#141924] border border-[#221c10] text-gray-300 hover:text-white transition-all shadow-sm group active:scale-95"
             title="Xem trung tâm thông báo"
           >
-            <Bell className="w-4 h-4 group-hover:text-[#f5d77f] transition-colors" />
+            <Bell className="w-3.5 h-3.5 group-hover:text-[#f5d77f] transition-colors" />
             {unreadNotifsCount > 0 && (
-              <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-red-500 text-white font-mono font-black text-[10px] rounded-full flex items-center justify-center shadow-[0_0_8px_#ef4444] animate-bounce">
+              <span className="absolute -top-1 -right-1 min-w-[16px] h-[16px] px-1 bg-red-500 text-white font-mono font-black text-[9px] rounded-full flex items-center justify-center shadow-[0_0_8px_#ef4444] animate-bounce">
                 {unreadNotifsCount > 9 ? '9+' : unreadNotifsCount}
               </span>
             )}
           </button>
 
-          {/* Refresh Button */}
-          <button
-            onClick={loadSystemData}
-            disabled={isRefreshing}
-            className="p-2.5 rounded-xl bg-[#0c0f17] border border-[#221c10] text-gray-300 hover:text-white transition-all active:scale-95"
-            title={t('admin_refresh')}
-          >
-            <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin text-[#f5d77f]' : ''}`} />
-          </button>
+          {/* Consolidated Admin Profile Chip with Dropdown */}
+          <div className="relative pl-1">
+            <button
+              onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
+              className="flex items-center gap-2 bg-[#0c0f17] hover:bg-[#141924] border border-[#221c10] px-2.5 py-1 rounded-xl transition-all shadow-sm active:scale-95"
+            >
+              <div className="w-6 h-6 rounded-lg bg-[#d4af37]/20 text-[#f5d77f] flex items-center justify-center text-xs font-black">
+                👑
+              </div>
+              <div className="text-left leading-tight hidden sm:block">
+                <span className="text-xs font-black text-[#f5d77f] block">@tddv2017</span>
+                <span className="text-[8px] text-gray-400 font-mono">SUPREME LEADER</span>
+              </div>
+              <ChevronDown className="w-3 h-3 text-gray-400 ml-0.5" />
+            </button>
 
-          {/* Binance 3FA Custody Settings Button */}
-          <button
-            onClick={() => setIs3FaSettingsOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#d4af37]/15 hover:bg-[#d4af37]/25 border border-[#d4af37]/40 text-[#f5d77f] text-xs font-bold transition-all shadow-sm active:scale-95"
-            title="Cấu hình bảo mật 3 lớp Gmail & Thiết bị di động"
-          >
-            <ShieldCheck className="w-4 h-4 text-[#d4af37]" />
-            <span className="hidden md:inline">{t('admin_security_3fa')}</span>
-          </button>
+            {/* Profile Dropdown Menu */}
+            {isProfileMenuOpen && (
+              <div 
+                className="absolute right-0 mt-2 w-56 bg-[#080b12] border border-[#221c10] rounded-2xl p-2 shadow-2xl space-y-1 z-50 animate-in fade-in zoom-in-95 duration-150"
+                onClick={() => setIsProfileMenuOpen(false)}
+              >
+                <div className="px-3 py-2 border-b border-[#221c10] space-y-0.5">
+                  <span className="text-xs font-black text-white block">@tddv2017</span>
+                  <span className="text-[9px] text-[#f5d77f] font-mono block">ID: 494232782</span>
+                </div>
 
-          {/* Change PIN Button */}
-          <button
-            onClick={() => setIsChangePinOpen(true)}
-            className="p-2.5 rounded-xl bg-[#0c0f17] hover:bg-[#141924] border border-[#221c10] text-[#f5d77f] text-xs font-bold transition-all active:scale-95"
-            title={t('admin_change_pin')}
-          >
-            <KeyRound className="w-4 h-4" />
-          </button>
+                <button
+                  onClick={() => setIs3FaSettingsOpen(true)}
+                  className="w-full px-3 py-2 rounded-xl text-left text-xs font-bold text-gray-300 hover:text-white hover:bg-[#0c0f17] flex items-center gap-2 transition-colors"
+                >
+                  <ShieldCheck className="w-3.5 h-3.5 text-[#d4af37]" />
+                  <span>{t('admin_security_3fa')}</span>
+                </button>
 
-          {/* Link back to Mini App */}
-          <a
-            href="/"
-            className="px-3 py-2 rounded-xl bg-[#0c0f17] hover:bg-[#141924] border border-[#221c10] text-gray-300 hover:text-white text-xs font-bold flex items-center gap-1.5 transition-all active:scale-95"
-            title="Mở giao diện Telegram Mini App"
-          >
-            <ExternalLink className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Mini App</span>
-          </a>
+                <button
+                  onClick={() => setIsChangePinOpen(true)}
+                  className="w-full px-3 py-2 rounded-xl text-left text-xs font-bold text-gray-300 hover:text-white hover:bg-[#0c0f17] flex items-center gap-2 transition-colors"
+                >
+                  <KeyRound className="w-3.5 h-3.5 text-[#d4af37]" />
+                  <span>{t('admin_change_pin')}</span>
+                </button>
 
-          {/* Emergency Lock / Logout Button */}
-          <button
-            onClick={handleLogout}
-            className="px-3 py-2 rounded-xl bg-red-500/15 hover:bg-red-500/25 border border-red-500/35 text-red-400 hover:text-red-300 text-xs font-black uppercase flex items-center gap-1.5 transition-all active:scale-95"
-            title={t('admin_lock_portal')}
-          >
-            <LogOut className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">{t('admin_lock_portal')}</span>
-          </button>
+                <a
+                  href="/"
+                  className="w-full px-3 py-2 rounded-xl text-left text-xs font-bold text-gray-300 hover:text-white hover:bg-[#0c0f17] flex items-center gap-2 transition-colors"
+                >
+                  <ExternalLink className="w-3.5 h-3.5 text-gray-400" />
+                  <span>{lang === 'vi' ? 'Mở Telegram Mini App' : 'Open Mini App'}</span>
+                </a>
+
+                <div className="pt-1 border-t border-[#221c10]">
+                  <button
+                    onClick={handleLogout}
+                    className="w-full px-3 py-2 rounded-xl text-left text-xs font-black text-red-400 hover:bg-red-500/15 flex items-center gap-2 transition-colors"
+                  >
+                    <LogOut className="w-3.5 h-3.5 text-red-400" />
+                    <span>{t('admin_lock_portal')}</span>
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </header>
 
       {/* Main Dashboard Layout (Sidebar + Content Workspace) */}
       <div className="flex-1 flex flex-col md:flex-row">
-        {/* Left Navigation Sidebar */}
-        <aside className="w-full md:w-64 bg-[#080b12] border-r border-[#221c10] p-3 md:p-4 flex md:flex-col gap-1.5 md:sticky md:top-[65px] md:h-[calc(100vh-65px)] overflow-x-auto md:overflow-y-auto">
+        {/* Left Slim Navigation Sidebar */}
+        <aside className="w-full md:w-56 bg-[#080b12] border-r border-[#221c10] p-3 flex md:flex-col gap-1 md:sticky md:top-[57px] md:h-[calc(100vh-57px)] overflow-x-auto md:overflow-y-auto shrink-0">
           <div className="hidden md:block pb-2 mb-1 border-b border-[#221c10]">
-            <span className="text-[10px] font-mono font-bold text-gray-400 uppercase tracking-wider block">
-              {lang === 'vi' ? 'BỘ ĐIỀU HÀNH CHUYÊN TRÁCH' : 'EXECUTIVE DEPARTMENTS'}
+            <span className="text-[9px] font-mono font-bold text-gray-500 uppercase tracking-wider block">
+              {lang === 'vi' ? 'ĐIỀU HÀNH HỆ THỐNG' : 'OPERATIONS'}
             </span>
           </div>
 
