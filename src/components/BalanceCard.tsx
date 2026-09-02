@@ -5,11 +5,15 @@ import React from 'react';
 interface BalanceCardProps {
   tradingBalance: number;
   referralsIncome: number;
+  poolSharePercentage?: number;
+  estimatedPoolProfit?: number;
 }
 
 export const BalanceCard: React.FC<BalanceCardProps> = ({
   tradingBalance = 0.00,
   referralsIncome = 0.00,
+  poolSharePercentage = 0.00,
+  estimatedPoolProfit = 0.00,
 }) => {
   const totalBalance = tradingBalance + referralsIncome;
 
@@ -45,6 +49,22 @@ export const BalanceCard: React.FC<BalanceCardProps> = ({
         <span className="text-xs font-black text-[#00df89] px-3 py-1.5 rounded-xl bg-[#00df89]/15 border border-[#00df89]/60 shadow-[0_0_10px_rgba(0,223,137,0.15)]">
           Reseller Rebate: +${referralsIncome.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USDT
         </span>
+      </div>
+
+      {/* Realtime Capital Share & Profit Allocation Row */}
+      <div className="mt-3 pt-2.5 border-t border-white/20 flex items-center justify-between text-xs">
+        <div className="flex items-center gap-1.5">
+          <span className="text-[10px] text-white/80 uppercase font-bold">Cổ phần góp vốn:</span>
+          <span className="font-mono font-black text-amber-300 bg-black/30 px-2 py-0.5 rounded-lg border border-amber-300/30">
+            {poolSharePercentage.toFixed(2)}% Pool
+          </span>
+        </div>
+        <div className="text-right flex items-center gap-1.5">
+          <span className="text-[10px] text-white/80 uppercase font-bold">Lãi phân bổ:</span>
+          <span className={`font-mono font-black ${estimatedPoolProfit >= 0 ? 'text-[#00df89]' : 'text-red-300'}`}>
+            {estimatedPoolProfit >= 0 ? '+' : ''}${estimatedPoolProfit.toFixed(2)} USD
+          </span>
+        </div>
       </div>
     </div>
   );

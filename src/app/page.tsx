@@ -47,6 +47,10 @@ export default function Home() {
   const [userTransactions, setUserTransactions] = useState<TransactionData[]>([]);
   const [refreshNotifCount, setRefreshNotifCount] = useState(0);
 
+  // Live Master Pool & Bot Profit State for Capital Share Allocation
+  const [masterPoolBalance, setMasterPoolBalance] = useState<number>(50308.2);
+  const [masterPoolProfit, setMasterPoolProfit] = useState<number>(0);
+
   // Dynamic Real Telegram SDK User Detection & Force Firebase Profile Write
   useEffect(() => {
     let handle = '';
@@ -140,11 +144,35 @@ export default function Home() {
       }
     );
 
+    // Realtime Listener for Master Pool & Trades Profit
+    const fetchMasterPoolLive = async () => {
+      try {
+        const [poolRes, tradesRes] = await Promise.all([
+          fetch("https://decisive-mapper-216306-default-rtdb.asia-southeast1.firebasedatabase.app/master_pool.json"),
+          fetch("https://decisive-mapper-216306-default-rtdb.asia-southeast1.firebasedatabase.app/trades.json")
+        ]);
+        if (poolRes.ok) {
+          const p = await poolRes.json();
+          if (p?.balance) setMasterPoolBalance(Number(p.balance));
+        }
+        if (tradesRes.ok) {
+          const t = await tradesRes.json();
+          if (t && typeof t === 'object') {
+            const sumPnl = Object.values(t).reduce((acc: number, item: any) => acc + (Number(item.pnl) || 0), 0);
+            setMasterPoolProfit(sumPnl);
+          }
+        }
+      } catch (e) {}
+    };
+    fetchMasterPoolLive();
+    const poolInterval = setInterval(fetchMasterPoolLive, 5000);
+
     return () => {
       unsubUser();
       unsubTxs();
       unsubSystem();
       unsubWorker();
+      clearInterval(poolInterval);
     };
   }, []);
 
@@ -301,6 +329,8 @@ export default function Home() {
           <BalanceCard 
             tradingBalance={tradingBalance} 
             referralsIncome={referralsIncome} 
+            poolSharePercentage={masterPoolBalance > 0 ? (tradingBalance / masterPoolBalance) * 100 : 0}
+            estimatedPoolProfit={masterPoolProfit * (masterPoolBalance > 0 ? (tradingBalance / masterPoolBalance) : 0)}
           />
 
           <ActionButtons 

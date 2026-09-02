@@ -35,7 +35,12 @@ import {
   Settings2,
   ExternalLink,
   RefreshCw,
-  ArrowRight
+  ArrowRight,
+  PieChart,
+  Coins,
+  Percent,
+  Trophy,
+  Briefcase
 } from 'lucide-react';
 
 interface AccountingAuditTabProps {
@@ -57,6 +62,10 @@ export const AccountingAuditTab: React.FC<AccountingAuditTabProps> = ({
   const [vaultSaveStatus, setVaultSaveStatus] = useState<string | null>(null);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [isRefreshingBalances, setIsRefreshingBalances] = useState(false);
+
+  // Live EA Master Pool & Trades State
+  const [masterPool, setMasterPool] = useState<any>(null);
+  const [trades, setTrades] = useState<any[]>([]);
 
   // On-Chain Wallet Balances
   const [walletBalances, setWalletBalances] = useState<Record<string, { usdt: number; trx: number }>>({
@@ -88,6 +97,31 @@ export const AccountingAuditTab: React.FC<AccountingAuditTabProps> = ({
 
   useEffect(() => {
     loadVaultAndBalances();
+
+    let isSubscribed = true;
+    const fetchLiveMasterData = async () => {
+      try {
+        const [poolRes, tradesRes] = await Promise.all([
+          fetch("https://decisive-mapper-216306-default-rtdb.asia-southeast1.firebasedatabase.app/master_pool.json"),
+          fetch("https://decisive-mapper-216306-default-rtdb.asia-southeast1.firebasedatabase.app/trades.json")
+        ]);
+        if (poolRes.ok) {
+          const p = await poolRes.json();
+          if (isSubscribed && p) setMasterPool(p);
+        }
+        if (tradesRes.ok) {
+          const t = await tradesRes.json();
+          if (isSubscribed && t && typeof t === 'object') setTrades(Object.values(t));
+        }
+      } catch (e) {}
+    };
+
+    fetchLiveMasterData();
+    const interval = setInterval(fetchLiveMasterData, 5000);
+    return () => {
+      isSubscribed = false;
+      clearInterval(interval);
+    };
   }, []);
 
   const handleCopy = (key: string, text: string) => {
@@ -129,8 +163,41 @@ export const AccountingAuditTab: React.FC<AccountingAuditTabProps> = ({
   const totalTreasuryRetained = totalGrossWithdraw * 0.10;
   const totalNetworkResellerRebates = users.reduce((acc, u) => acc + (u.referralBalance || 0), 0);
 
-  // Total Live TVL on Exness
-  const totalTVL = users.reduce((sum, u) => sum + (u.tradingBalance || 0), 0);
+  // Total Live TVL of all Investors (User Deposits)
+  const totalInvestorCapital = users.reduce((sum, u) => sum + (u.tradingBalance || 0), 0);
+  const totalTVL = totalInvestorCapital;
+
+  // Real Master Pool Balance (Live from MT5 EA Exness)
+  const masterPoolBalance = Number(masterPool?.balance) || (totalInvestorCapital + totalDepositFees + totalWithdrawFees);
+  const masterPoolEquity = Number(masterPool?.equity) || masterPoolBalance;
+  const floatingPnL = Number(masterPool?.floatingProfit) || 0;
+
+  // Closed Trades Realized Profit
+  const closedTradesProfit = trades.reduce((acc, t) => acc + (Number(t.pnl) || 0), 0);
+  const totalBotProfit = closedTradesProfit + floatingPnL;
+
+  // Platform Capital Contribution (Phí nạp 9% + $3, Phí rút 19% + $5 và vốn giữ lại của Sàn nằm trong Master Pool)
+  const totalFeeCollected = totalDepositFees + totalWithdrawFees;
+  const platformCapitalContribution = Math.max(0, masterPoolBalance - totalInvestorCapital);
+  const effectiveTotalPool = Math.max(masterPoolBalance, totalInvestorCapital + platformCapitalContribution, 1);
+
+  // Capital Share Ratios (%)
+  const investorSharePercent = (totalInvestorCapital / effectiveTotalPool) * 100;
+  const platformSharePercent = (platformCapitalContribution / effectiveTotalPool) * 100;
+
+  // Profit Allocation by Capital Share
+  const investorProfitDistributed = totalBotProfit * (investorSharePercent / 100);
+  const platformCapitalProfit = totalBotProfit * (platformSharePercent / 100);
+
+  // Operating Costs
+  const totalOnChainGasCost = (approvedDeposits.length * 3.00) + (approvedWithdrawals.length * 5.00);
+
+  // DOANH THU THUẦN TỪ PHÍ (NET FEE REVENUE)
+  const netFeeRevenue = totalFeeCollected - totalOnChainGasCost - totalNetworkResellerRebates;
+
+  // TỔNG DOANH THU THUẦN TOÀN DIỆN CỦA ADMIN (TOTAL COMPREHENSIVE ADMIN REVENUE)
+  // = Doanh thu phí thuần + Lợi nhuận sinh ra từ phần vốn góp của Sàn trong Bot
+  const totalComprehensiveAdminRevenue = netFeeRevenue + platformCapitalProfit;
 
   // Filtered transactions for audit
   const filteredTxs = transactions.filter(tx => {
@@ -180,6 +247,184 @@ export const AccountingAuditTab: React.FC<AccountingAuditTabProps> = ({
           </div>
           <div className="text-[10px] text-gray-500 font-mono">
             Phí Rút Đã Thu (19%): <strong className="text-amber-400">+${totalWithdrawFees.toFixed(2)} USD</strong>
+          </div>
+        </div>
+      </div>
+
+      {/* 📊 BẢNG HẠCH TOÁN DOANH THU THUẦN & LỢI NHUẬN GÓP VỐN CỦA SÀN */}
+      <div className="spartan-card rounded-3xl p-5 border border-[#00df89]/30 space-y-4 shadow-2xl">
+        <div className="flex items-center justify-between border-b border-[#1f293d] pb-2.5">
+          <div className="flex items-center gap-2">
+            <PieChart className="w-5 h-5 text-[#00df89]" />
+            <div>
+              <h3 className="text-xs font-black text-white uppercase tracking-wider">
+                HẠCH TOÁN DOANH THU THUẦN & LỢI NHUẬN GÓP VỐN CỦA SÀN
+              </h3>
+              <span className="text-[9px] text-gray-400 font-mono block">
+                Phí cố định & 9% nạp/rút nằm trên tổng vốn được tính là Vốn Góp của Sàn để sinh lời cùng Bot
+              </span>
+            </div>
+          </div>
+          <span className="text-[10px] font-mono font-black text-[#00df89] bg-[#00df89]/10 px-2.5 py-1 rounded-full border border-[#00df89]/20 flex items-center gap-1">
+            <Radio className="w-3 h-3 animate-pulse" /> LIVE POOL: ${effectiveTotalPool.toLocaleString('en-US', { minimumFractionDigits: 2 })} USDT
+          </span>
+        </div>
+
+        {/* 1. CƠ CẤU NGUỒN VỐN TRONG MASTER POOL */}
+        <div className="bg-[#0b0e17] p-4 rounded-2xl border border-[#1f293d] space-y-3 font-mono">
+          <div className="flex items-center justify-between text-xs">
+            <span className="text-gray-400 font-bold uppercase text-[10px]">CƠ CẤU VỐN MASTER POOL (TÀI KHOẢN MT5 EXNESS):</span>
+            <span className="text-white font-black">${effectiveTotalPool.toLocaleString('en-US', { minimumFractionDigits: 2 })} USDT</span>
+          </div>
+
+          {/* Visual Percentage Bar */}
+          <div className="w-full h-3 bg-[#131927] rounded-full overflow-hidden flex border border-[#1f293d]">
+            <div 
+              style={{ width: `${Math.min(100, Math.max(0, investorSharePercent))}%` }} 
+              className="bg-gradient-to-r from-blue-500 to-cyan-400 h-full transition-all duration-500" 
+              title={`Vốn Khách: ${investorSharePercent.toFixed(1)}%`}
+            />
+            <div 
+              style={{ width: `${Math.min(100, Math.max(0, platformSharePercent))}%` }} 
+              className="bg-gradient-to-r from-amber-500 to-[#00df89] h-full transition-all duration-500" 
+              title={`Vốn Sàn: ${platformSharePercent.toFixed(1)}%`}
+            />
+          </div>
+
+          {/* 2 Cột Thống Kê Tỷ Lệ */}
+          <div className="grid grid-cols-2 gap-2 text-xs">
+            <div className="bg-[#131927] p-2.5 rounded-xl border border-blue-500/30">
+              <span className="text-[9px] text-gray-400 block">1. VỐN CỦA CÁC NHÀ ĐẦU TƯ:</span>
+              <div className="flex items-baseline justify-between mt-0.5">
+                <span className="text-sm font-black text-blue-400">${totalInvestorCapital.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                <span className="text-[10px] font-bold text-blue-300">({investorSharePercent.toFixed(1)}%)</span>
+              </div>
+              <span className="text-[9px] text-gray-500 block mt-0.5">({users.length} Nhà đầu tư góp vốn)</span>
+            </div>
+
+            <div className="bg-[#131927] p-2.5 rounded-xl border border-amber-500/30">
+              <span className="text-[9px] text-gray-400 block">2. VỐN GÓP CỦA SÀN (PHÍ + QUỸ TỔNG):</span>
+              <div className="flex items-baseline justify-between mt-0.5">
+                <span className="text-sm font-black text-amber-400">${platformCapitalContribution.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                <span className="text-[10px] font-bold text-[#00df89]">({platformSharePercent.toFixed(1)}%)</span>
+              </div>
+              <span className="text-[9px] text-gray-500 block mt-0.5">(Phí nạp/rút giữ lại để cùng chạy Bot)</span>
+            </div>
+          </div>
+        </div>
+
+        {/* 2. BẢNG HẠCH TOÁN DOANH THU THUẦN & LÃI GÓP VỐN CỦA ADMIN */}
+        <div className="bg-[#0b0e17] p-4 rounded-2xl border border-amber-500/40 space-y-3 font-mono text-xs">
+          <div className="flex items-center justify-between border-b border-[#1f293d] pb-2">
+            <span className="text-amber-400 font-black text-[11px] uppercase tracking-wider flex items-center gap-1.5">
+              <Trophy className="w-4 h-4 text-amber-400" /> BÁO CÁO TÀI CHÍNH ADMIN (DOANH THU THUẦN & LÃI GÓP VỐN)
+            </span>
+            <span className="text-[10px] text-gray-500">Kỳ hạch toán Realtime</span>
+          </div>
+
+          <div className="space-y-1.5 text-[11px]">
+            {/* Doanh thu phí gộp */}
+            <div className="flex justify-between text-gray-300">
+              <span>(+) Tổng Doanh Thu Phí Gộp Đã Thu:</span>
+              <strong className="text-white font-black">+${totalFeeCollected.toFixed(2)} USDT</strong>
+            </div>
+            <div className="pl-3 text-[10px] text-gray-400 space-y-0.5">
+              <div className="flex justify-between">
+                <span>  • Phí Nạp Tiền (9% Sàn + $3 Gas):</span>
+                <span className="text-amber-300/90">+${totalDepositFees.toFixed(2)} USDT</span>
+              </div>
+              <div className="flex justify-between">
+                <span>  • Phí Rút Tiền (9% Sàn + 10% Quỹ Dự Phòng + $5 Gas):</span>
+                <span className="text-amber-300/90">+${totalWithdrawFees.toFixed(2)} USDT</span>
+              </div>
+            </div>
+
+            {/* Chi phí trừ ra */}
+            <div className="flex justify-between text-red-400 pt-1 border-t border-[#1f293d]/50">
+              <span>(-) Chi Phí Mạng On-Chain Gas Thực Tế ($3 Nạp / $5 Rút):</span>
+              <strong className="text-red-400 font-bold">-${totalOnChainGasCost.toFixed(2)} USDT</strong>
+            </div>
+            <div className="flex justify-between text-amber-400">
+              <span>(-) Chi Trả Hoa Hồng Cho Đại Lý (Reseller):</span>
+              <strong className="text-amber-400 font-bold">-${totalNetworkResellerRebates.toFixed(2)} USDT</strong>
+            </div>
+
+            {/* Doanh thu phí thuần */}
+            <div className="flex justify-between text-cyan-400 font-bold pt-1 border-t border-[#1f293d]/50">
+              <span>(=) DOANH THU PHÍ THUẦN (NET FEE REVENUE):</span>
+              <span className="text-cyan-300 font-black">+${netFeeRevenue.toFixed(2)} USDT</span>
+            </div>
+
+            {/* Lợi nhuận sau khi góp vốn */}
+            <div className="flex justify-between text-[#00df89] font-bold pt-1 border-t border-[#1f293d]/50">
+              <div>
+                <span>(+) LỢI NHUẬN TỪ VỐN GÓP CỦA SÀN TRONG BOT ({platformSharePercent.toFixed(1)}% POOL):</span>
+                <span className="text-[9px] text-gray-500 block">(Bot chốt lãi +${totalBotProfit.toFixed(2)} USD x {platformSharePercent.toFixed(1)}% vốn sàn)</span>
+              </div>
+              <span className={`text-base font-black ${platformCapitalProfit >= 0 ? 'text-[#00df89]' : 'text-red-400'}`}>
+                {platformCapitalProfit >= 0 ? '+' : ''}${platformCapitalProfit.toFixed(2)} USDT
+              </span>
+            </div>
+
+            {/* TỔNG DOANH THU THUẦN TOÀN DIỆN */}
+            <div className="bg-gradient-to-r from-amber-500/20 via-[#00df89]/20 to-transparent p-3 rounded-xl border border-amber-500/50 flex items-center justify-between mt-2">
+              <div>
+                <span className="text-xs font-black text-amber-300 uppercase block">
+                  🏆 TỔNG LỢI NHUẬN THUẦN CỦA ADMIN (TOÀN DIỆN):
+                </span>
+                <span className="text-[9px] text-gray-400">
+                  (Doanh Thu Phí Thuần + Lợi Nhuận Góp Vốn Vào Bot)
+                </span>
+              </div>
+              <span className="text-xl font-black text-[#00df89] font-mono drop-shadow">
+                +${totalComprehensiveAdminRevenue.toLocaleString('en-US', { minimumFractionDigits: 2 })} USDT
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* 3. BẢNG PHÂN BỔ LỢI NHUẬN TỪNG NHÀ ĐẦU TƯ THEO % GÓP VỐN */}
+        <div className="bg-[#0b0e17] p-3.5 rounded-2xl border border-[#1f293d] space-y-2 font-mono text-xs">
+          <div className="flex items-center justify-between border-b border-[#1f293d] pb-2">
+            <span className="text-gray-300 font-bold uppercase text-[10px] flex items-center gap-1">
+              <Coins className="w-3.5 h-3.5 text-blue-400" /> DANH SÁCH % GÓP VỐN & LỢI NHUẬN TỪNG NHÀ ĐẦU TƯ ({users.length})
+            </span>
+            <span className="text-[9px] text-gray-500">
+              Tổng Lãi Bot Phân Bổ: +${investorProfitDistributed.toFixed(2)} USDT
+            </span>
+          </div>
+
+          <div className="max-h-56 overflow-y-auto space-y-1.5 pr-1">
+            {users.map((u) => {
+              const uCap = u.tradingBalance || 0;
+              const uShare = effectiveTotalPool > 0 ? (uCap / effectiveTotalPool) * 100 : 0;
+              const uProfit = totalBotProfit * (uShare / 100);
+
+              return (
+                <div key={u.telegramId} className="flex items-center justify-between p-2 rounded-xl bg-[#131927] border border-[#1f293d] hover:border-gray-600 text-[11px]">
+                  <div>
+                    <span className="font-black text-white">@{u.username || 'user'}</span>
+                    <span className="text-[9px] text-gray-500 ml-1.5">ID: {u.telegramId}</span>
+                  </div>
+                  <div className="flex items-center gap-4 text-right">
+                    <div>
+                      <span className="text-[9px] text-gray-500 block">VỐN GÓP:</span>
+                      <span className="font-bold text-white">${uCap.toFixed(2)}</span>
+                    </div>
+                    <div className="w-16">
+                      <span className="text-[9px] text-gray-500 block">TỶ LỆ:</span>
+                      <span className="font-black text-blue-400">{uShare.toFixed(2)}%</span>
+                    </div>
+                    <div className="w-20">
+                      <span className="text-[9px] text-gray-500 block">LÃI PHÂN BỔ:</span>
+                      <span className={`font-black ${uProfit >= 0 ? 'text-[#00df89]' : 'text-red-400'}`}>
+                        {uProfit >= 0 ? '+' : ''}${uProfit.toFixed(2)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>
