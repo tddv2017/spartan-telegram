@@ -49,6 +49,8 @@ import {
   Calculator
 } from 'lucide-react';
 
+export type AccountingSubTab = 'REVENUE_CAPITAL' | 'CUSTOMER_AUDIT' | 'TREASURY_VAULT' | 'TX_LOGS';
+
 interface AccountingAuditTabProps {
   transactions: TransactionData[];
   users: UserAuditItem[];
@@ -205,6 +207,9 @@ export const AccountingAuditTab: React.FC<AccountingAuditTabProps> = ({
   // = Doanh thu phí thuần + Lợi nhuận sinh ra từ phần vốn góp của Sàn trong Bot
   const totalComprehensiveAdminRevenue = netFeeRevenue + platformCapitalProfit;
 
+  // Sub-tab Navigation State for Accounting Modules
+  const [activeSubTab, setActiveSubTab] = useState<AccountingSubTab>('REVENUE_CAPITAL');
+
   // Customer Profit Audit & Reconciliation States
   const [userAuditSearch, setUserAuditSearch] = useState('');
   const [userAuditFilter, setUserAuditFilter] = useState<'ALL' | 'BALANCED' | 'DISCREPANCY'>('ALL');
@@ -352,14 +357,68 @@ export const AccountingAuditTab: React.FC<AccountingAuditTabProps> = ({
         </div>
       )}
 
-      {/* Financial Executive Summary Cards */}
-      <div className="grid grid-cols-2 gap-3">
-        {/* Total Inflow */}
-        <div className="bg-[#0b0e17] p-4 rounded-2xl border border-[#1f293d] space-y-1">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider">TỔNG TIỀN NẠP VÀO MASTER (GROSS)</span>
-            <ArrowDown className="w-3.5 h-3.5 text-[#00df89]" />
-          </div>
+      {/* 🧭 THANH CHUYỂN PHÂN HỆ NGHIỆP VỤ KẾ TOÁN (ACCOUNTING SUB-TABS) */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 p-1.5 bg-[#0b0e17] rounded-2xl border border-[#1f293d]">
+        <button
+          onClick={() => setActiveSubTab('REVENUE_CAPITAL')}
+          className={`py-2 px-2.5 rounded-xl text-[11px] font-black transition-all flex items-center justify-center gap-1.5 ${
+            activeSubTab === 'REVENUE_CAPITAL'
+              ? 'bg-gradient-to-r from-amber-500 to-[#ff5500] text-white shadow-lg shadow-orange-500/20 border border-amber-400/40'
+              : 'text-gray-400 hover:text-white hover:bg-[#131927]'
+          }`}
+        >
+          <PieChart className="w-3.5 h-3.5" />
+          <span>DOANH THU & VỐN</span>
+        </button>
+
+        <button
+          onClick={() => setActiveSubTab('CUSTOMER_AUDIT')}
+          className={`py-2 px-2.5 rounded-xl text-[11px] font-black transition-all flex items-center justify-center gap-1.5 ${
+            activeSubTab === 'CUSTOMER_AUDIT'
+              ? 'bg-gradient-to-r from-blue-600 to-cyan-500 text-white shadow-lg shadow-blue-500/20 border border-blue-400/40'
+              : 'text-gray-400 hover:text-white hover:bg-[#131927]'
+          }`}
+        >
+          <Calculator className="w-3.5 h-3.5" />
+          <span>ĐỐI SOÁT KHÁCH ({users.length})</span>
+        </button>
+
+        <button
+          onClick={() => setActiveSubTab('TREASURY_VAULT')}
+          className={`py-2 px-2.5 rounded-xl text-[11px] font-black transition-all flex items-center justify-center gap-1.5 ${
+            activeSubTab === 'TREASURY_VAULT'
+              ? 'bg-gradient-to-r from-purple-600 to-indigo-500 text-white shadow-lg shadow-purple-500/20 border border-purple-400/40'
+              : 'text-gray-400 hover:text-white hover:bg-[#131927]'
+          }`}
+        >
+          <Wallet className="w-3.5 h-3.5" />
+          <span>BỘ 2 VÍ & QUỸ</span>
+        </button>
+
+        <button
+          onClick={() => setActiveSubTab('TX_LOGS')}
+          className={`py-2 px-2.5 rounded-xl text-[11px] font-black transition-all flex items-center justify-center gap-1.5 ${
+            activeSubTab === 'TX_LOGS'
+              ? 'bg-gradient-to-r from-emerald-600 to-teal-500 text-white shadow-lg shadow-emerald-500/20 border border-emerald-400/40'
+              : 'text-gray-400 hover:text-white hover:bg-[#131927]'
+          }`}
+        >
+          <Receipt className="w-3.5 h-3.5" />
+          <span>NHẬT KÝ NẠP/RÚT</span>
+        </button>
+      </div>
+
+      {/* 1. PHÂN HỆ: DOANH THU & PHÂN BỔ VỐN MASTER POOL */}
+      {activeSubTab === 'REVENUE_CAPITAL' && (
+        <div className="space-y-4 animate-in fade-in duration-200">
+          {/* Financial Executive Summary Cards */}
+          <div className="grid grid-cols-2 gap-3">
+            {/* Total Inflow */}
+            <div className="bg-[#0b0e17] p-4 rounded-2xl border border-[#1f293d] space-y-1">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider">TỔNG TIỀN NẠP VÀO MASTER (GROSS)</span>
+                <ArrowDown className="w-3.5 h-3.5 text-[#00df89]" />
+              </div>
           <div className="text-lg font-black text-[#00df89] font-mono">
             ${totalGrossDeposit.toLocaleString('en-US', { minimumFractionDigits: 2 })}
           </div>
@@ -514,17 +573,22 @@ export const AccountingAuditTab: React.FC<AccountingAuditTabProps> = ({
             </div>
           </div>
         </div>
+      </div>
+      </div>
+      )}
 
-        {/* 3. BỘ PHẬN KẾ TOÁN: HỆ THỐNG KIỂM KÊ & ĐỐI SOÁT LỢI NHUẬN TỪNG KHÁCH HÀNG */}
-        <div className="bg-[#0b0e17] p-4 rounded-2xl border border-[#00df89]/40 space-y-3.5 font-mono text-xs shadow-xl">
-          {/* Header Bar */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-[#1f293d] pb-3 gap-2">
-            <div className="flex items-center gap-2">
-              <Calculator className="w-5 h-5 text-[#00df89]" />
-              <div>
-                <h4 className="text-xs font-black text-white uppercase tracking-wider flex items-center gap-1.5">
-                  BỘ PHẬN KẾ TOÁN: KIỂM KÊ & ĐỐI SOÁT LỢI NHUẬN KHÁCH HÀNG
-                </h4>
+      {/* 2. PHÂN HỆ: KIỂM KÊ & ĐỐI SOÁT LỢI NHUẬN KHÁCH HÀNG */}
+      {activeSubTab === 'CUSTOMER_AUDIT' && (
+        <div className="space-y-4 animate-in fade-in duration-200">
+          <div className="bg-[#0b0e17] p-4 rounded-2xl border border-[#00df89]/40 space-y-3.5 font-mono text-xs shadow-xl">
+            {/* Header Bar */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-[#1f293d] pb-3 gap-2">
+              <div className="flex items-center gap-2">
+                <Calculator className="w-5 h-5 text-[#00df89]" />
+                <div>
+                  <h4 className="text-xs font-black text-white uppercase tracking-wider flex items-center gap-1.5">
+                    BỘ PHẬN KẾ TOÁN: KIỂM KÊ & ĐỐI SOÁT LỢI NHUẬN KHÁCH HÀNG
+                  </h4>
                 <span className="text-[9px] text-gray-400 block">
                   Đối soát sòng phẳng: Tổng Lãi Bot = Lãi Khách Hưởng + Lợi Nhuận Vốn Góp Sàn
                 </span>
@@ -730,11 +794,15 @@ export const AccountingAuditTab: React.FC<AccountingAuditTabProps> = ({
             })}
           </div>
         </div>
-      </div>
+        </div>
+      )}
 
-      {/* BẢNG QUẢN LÝ 2 VÍ CỐT LÕI: MASTER EXNESS & QUỸ DỰ PHÒNG */}
-      <div className="spartan-card rounded-3xl p-5 border border-amber-500/40 space-y-4 shadow-xl">
-        <div className="flex items-center justify-between border-b border-[#1f293d] pb-2.5">
+      {/* 3. PHÂN HỆ: QUẢN LÝ BỘ 2 VÍ & QUỸ DỰ PHÒNG */}
+      {activeSubTab === 'TREASURY_VAULT' && (
+        <div className="space-y-4 animate-in fade-in duration-200">
+          {/* BẢNG QUẢN LÝ 2 VÍ CỐT LÕI: MASTER EXNESS & QUỸ DỰ PHÒNG */}
+          <div className="spartan-card rounded-3xl p-5 border border-amber-500/40 space-y-4 shadow-xl">
+            <div className="flex items-center justify-between border-b border-[#1f293d] pb-2.5">
           <div className="flex items-center gap-2">
             <Wallet className="w-4 h-4 text-amber-400" />
             <div>
@@ -988,10 +1056,15 @@ export const AccountingAuditTab: React.FC<AccountingAuditTabProps> = ({
           </div>
         </div>
       </div>
+      </div>
+      )}
 
-      {/* 3-Way Invoice Audit Table */}
-      <div className="spartan-card rounded-3xl p-4 border border-[#1f293d] space-y-3 shadow-lg">
-        <div className="flex items-center justify-between">
+      {/* 4. PHÂN HỆ: NHẬT KÝ ĐỐI SOÁT HÓA ĐƠN GIAO DỊCH (3-WAY AUDIT LOG) */}
+      {activeSubTab === 'TX_LOGS' && (
+        <div className="space-y-4 animate-in fade-in duration-200">
+          {/* 3-Way Invoice Audit Table */}
+          <div className="spartan-card rounded-3xl p-4 border border-[#1f293d] space-y-3 shadow-lg">
+            <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <FileSpreadsheet className="w-4 h-4 text-cyan-400" />
             <h3 className="text-xs font-black text-white uppercase tracking-wider">
@@ -1087,6 +1160,8 @@ export const AccountingAuditTab: React.FC<AccountingAuditTabProps> = ({
           )}
         </div>
       </div>
+      </div>
+      )}
 
       {/* MODAL CHI TIẾT SỔ CÁI ĐỐI SOÁT KHÁCH HÀNG (CUSTOMER AUDIT LEDGER DETAIL MODAL) */}
       {selectedAuditUser && (
