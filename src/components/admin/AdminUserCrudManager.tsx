@@ -22,7 +22,8 @@ import {
   ShieldCheck, 
   DollarSign, 
   Award,
-  RefreshCw
+  RefreshCw,
+  Save
 } from 'lucide-react';
 
 interface AdminUserCrudManagerProps {
