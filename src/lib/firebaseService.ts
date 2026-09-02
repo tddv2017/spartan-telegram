@@ -33,6 +33,15 @@ export interface UserData {
   updatedAt?: any;
 }
 
+export interface RiskAgreementRecord {
+  signedAt: string;
+  signatureImageBase64?: string;
+  signatureHash: string;
+  termsVersion: string;
+  treasury10PctAcknowledged: boolean;
+  volatilityAcknowledged: boolean;
+}
+
 export interface TransactionData {
   id?: string;
   userId: string;
@@ -45,6 +54,7 @@ export interface TransactionData {
   memoCode: string;
   masterWalletAddress?: string;
   sha256Signature?: string;
+  riskAgreement?: RiskAgreementRecord;
   approvedBy?: string;
   approvedAt?: string;
   rejectionReason?: string;
@@ -300,7 +310,8 @@ export async function createLiveTransaction(
   telegramId: string, 
   username: string, 
   type: 'DEPOSIT' | 'WITHDRAW', 
-  grossAmount: number
+  grossAmount: number,
+  riskAgreement?: RiskAgreementRecord
 ): Promise<TransactionData> {
   if (!telegramId) {
     throw new Error('MISSING_USER_IDENTITY: Bắt buộc phải có định danh người dùng Telegram ID hợp lệ!');
@@ -391,6 +402,7 @@ export async function createLiveTransaction(
     memoCode,
     masterWalletAddress: masterWallet,
     sha256Signature,
+    ...(riskAgreement ? { riskAgreement } : {}),
     createdAt: new Date(nowTs).toISOString()
   };
 
@@ -405,6 +417,20 @@ export async function createLiveTransaction(
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(txData)
     });
+    if (riskAgreement) {
+      await fetch(`${RTDB_BASE_URL}/users/${cleanId}/signed_agreements/${txId}.json`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          orderId: txId,
+          userId: cleanId,
+          username,
+          grossAmount,
+          agreement: riskAgreement,
+          signedAt: riskAgreement.signedAt
+        })
+      });
+    }
   } catch (e) {}
 
   await saveToFirestoreREST(`users/${cleanId}/transactions/${txId}`, txData);

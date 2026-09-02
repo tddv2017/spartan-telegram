@@ -28,9 +28,10 @@ import {
   Sparkles
 } from 'lucide-react';
 import { calculateDepositFee, calculateWithdrawFee } from '@/lib/feeCalculator';
-import { createLiveTransaction, withdrawReferralBalance, subscribeToUserTransactions, TransactionData } from '@/lib/firebaseService';
+import { createLiveTransaction, withdrawReferralBalance, subscribeToUserTransactions, TransactionData, RiskAgreementRecord } from '@/lib/firebaseService';
 import { fetchTreasuryVault, DEFAULT_TREASURY_VAULT } from '@/lib/walletConfig';
 import { ReceiptAiAppealModal } from '@/components/ReceiptAiAppealModal';
+import { RiskDisclosureModal } from '@/components/RiskDisclosureModal';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 interface WalletViewProps {
@@ -69,6 +70,7 @@ export const WalletView: React.FC<WalletViewProps> = ({
   const [txHashInput, setTxHashInput] = useState('');
   const [verifyingHash, setVerifyingHash] = useState(false);
   const [hashVerifyError, setHashVerifyError] = useState<string | null>(null);
+  const [isRiskModalOpen, setIsRiskModalOpen] = useState(false);
   const ITEMS_PER_PAGE = 5;
 
   const handleVerifyTxHash = async () => {
@@ -215,32 +217,42 @@ export const WalletView: React.FC<WalletViewProps> = ({
     setTimeout(() => setCopiedMemo(false), 2000);
   };
 
-  const handleDepositConfirm = async () => {
+  const handleDepositConfirm = () => {
     if (loading) return;
     setErrorMessage(null);
     const MIN_DEPOSIT = 50.0;
     if (numAmount <= 0) {
-      setErrorMessage('Deposit amount must be greater than $0.00 USD!');
+      setErrorMessage(lang === 'vi' ? 'Số tiền nạp phải lớn hơn $0.00 USD!' : 'Deposit amount must be greater than $0.00 USD!');
       return;
     }
     if (numAmount < MIN_DEPOSIT) {
       setErrorMessage(`⛔ MỨC NẠP TỐI THIỂU: Số tiền nạp tối thiểu là $${MIN_DEPOSIT.toFixed(2)} USDT (để đảm bảo tối ưu chi phí sàn 9% và phí On-Chain $3)!`);
       return;
     }
+    // Mở popup ký số tuyên bố miễn trừ trách nhiệm & rủi ro trước khi tạo hóa đơn
+    setIsRiskModalOpen(true);
+  };
+
+  const handleDepositAfterSigned = async (agreement: RiskAgreementRecord) => {
+    setIsRiskModalOpen(false);
     setLoading(true);
+    setErrorMessage(null);
 
     try {
-      const newTx = await createLiveTransaction(telegramId, username, 'DEPOSIT', numAmount);
+      const newTx = await createLiveTransaction(telegramId, username, 'DEPOSIT', numAmount, agreement);
       setActiveDepositTx(newTx);
       setLocalTxs((prev) => [newTx, ...prev]);
       setCurrentPage(1);
 
-      setNotification(`🎉 DEPOSIT ORDER CREATED: $${numAmount.toFixed(2)} USDT! Memo: ${newTx.memoCode}. Please scan QR code to complete transfer.`);
+      setNotification(
+        lang === 'vi'
+          ? `🎉 ĐÃ KÝ SỐ THÀNH CÔNG & TẠO ĐƠN NẠP: $${numAmount.toFixed(2)} USDT! Mã Memo: ${newTx.memoCode}. Quý khách vui lòng quét mã QR chuyển tiền.`
+          : `🎉 DIGITALLY SIGNED & DEPOSIT CREATED: $${numAmount.toFixed(2)} USDT! Memo: ${newTx.memoCode}. Please scan QR code to complete transfer.`
+      );
       setTimeout(() => setNotification(null), 8000);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Deposit error:', err);
-      setNotification(`Deposit order created: $${numAmount.toFixed(2)} USDT! Awaiting on-chain confirmation.`);
-      setTimeout(() => setNotification(null), 5000);
+      setErrorMessage(err?.message || 'Lỗi tạo đơn nạp.');
     } finally {
       setLoading(false);
     }
@@ -1148,6 +1160,16 @@ export const WalletView: React.FC<WalletViewProps> = ({
               .catch(() => {});
           }
         }}
+      />
+
+      {/* INSTITUTIONAL RISK DISCLOSURE & DIGITAL SIGNATURE AGREEMENT MODAL */}
+      <RiskDisclosureModal
+        isOpen={isRiskModalOpen}
+        onClose={() => setIsRiskModalOpen(false)}
+        depositAmount={numAmount}
+        userId={telegramId}
+        username={username}
+        onConfirm={handleDepositAfterSigned}
       />
     </div>
   );

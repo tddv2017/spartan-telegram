@@ -26,7 +26,8 @@ import {
   Clock,
   Radio,
   Flame,
-  X
+  X,
+  AlertCircle
 } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 
@@ -568,6 +569,51 @@ export const AdminOverviewTab: React.FC<AdminOverviewTabProps> = ({
                   </div>
                 </div>
               </div>
+
+              {/* Risk Agreement & Digital Signature Legal Evidence */}
+              {inspectedTx.riskAgreement ? (
+                <div className="bg-[#05070c] p-3 rounded-xl border border-[#d4af37]/40 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-black text-[#f5d77f] uppercase flex items-center gap-1.5">
+                      <span>✍️</span>
+                      <span>{lang === 'vi' ? 'CHỨNG THƯ KÝ SỐ ĐÃ KÝ' : 'LEGAL RISK AGREEMENT'}</span>
+                    </span>
+                    <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                      LEGAL BINDING
+                    </span>
+                  </div>
+
+                  <div className="text-[10px] font-mono text-gray-400 space-y-0.5">
+                    <div className="flex justify-between">
+                      <span>Mã băm SHA-256:</span>
+                      <span className="text-gray-300 truncate max-w-[140px]">{inspectedTx.riskAgreement.signatureHash}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Thời gian ký:</span>
+                      <span className="text-white">{new Date(inspectedTx.riskAgreement.signedAt).toLocaleString(lang === 'vi' ? 'vi-VN' : 'en-US')}</span>
+                    </div>
+                  </div>
+
+                  {/* Customer Handwriting Signature Preview */}
+                  {inspectedTx.riskAgreement.signatureImageBase64 && (
+                    <div className="pt-1">
+                      <span className="text-[9px] text-gray-400 block mb-1">Nét chữ ký khách hàng:</span>
+                      <div className="bg-[#080b12] border border-[#221c10] rounded-lg p-2 flex items-center justify-center">
+                        <img 
+                          src={inspectedTx.riskAgreement.signatureImageBase64} 
+                          alt="Customer Signature" 
+                          className="max-h-16 w-auto object-contain drop-shadow-[0_0_8px_rgba(212,175,55,0.4)]"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="bg-[#05070c] p-2.5 rounded-xl border border-[#221c10] text-[10px] text-gray-500 font-mono flex items-center gap-1.5">
+                  <AlertCircle className="w-3.5 h-3.5 text-gray-600" />
+                  <span>Đơn giao dịch nạp truyền thống (chưa ký số v2.0)</span>
+                </div>
+              )}
             </div>
 
             {/* Quick Action in Drawer */}
