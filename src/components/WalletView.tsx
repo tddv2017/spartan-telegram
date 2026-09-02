@@ -64,7 +64,47 @@ export const WalletView: React.FC<WalletViewProps> = ({
   const [localTxs, setLocalTxs] = useState<TransactionData[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [receivingWallet, setReceivingWallet] = useState<string>(DEFAULT_TREASURY_VAULT.exnessMasterWallet);
+  const [txHashInput, setTxHashInput] = useState('');
+  const [verifyingHash, setVerifyingHash] = useState(false);
+  const [hashVerifyError, setHashVerifyError] = useState<string | null>(null);
   const ITEMS_PER_PAGE = 5;
+
+  const handleVerifyTxHash = async () => {
+    if (!activeDepositTx || !txHashInput.trim()) return;
+    setVerifyingHash(true);
+    setHashVerifyError(null);
+
+    try {
+      const orderId = activeDepositTx.id || activeDepositTx.memoCode;
+      const res = await fetch('/api/verify-txhash', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          orderId,
+          txHash: txHashInput.trim(),
+          userId: telegramId,
+          username: username
+        })
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        setActiveDepositTx(null);
+        setTxHashInput('');
+        if (typeof data.newTradingBalance === 'number') {
+          onUpdateBalance(data.newTradingBalance);
+        }
+        setNotification(`🎉 XÁC THỰC MÃ BĂM THÀNH CÔNG! Đã khớp On-Chain +$${data.netAmount.toFixed(2)} USDT vào vốn Bot của bạn! Mã băm: ${data.txHash.slice(0, 12)}...`);
+        setTimeout(() => setNotification(null), 10000);
+      } else {
+        setHashVerifyError(data.message || 'Xác thực mã băm thất bại');
+      }
+    } catch (err: any) {
+      setHashVerifyError('Lỗi kết nối kiểm tra mã băm: ' + err.message);
+    } finally {
+      setVerifyingHash(false);
+    }
+  };
 
   // Realtime Listener for User Transactions & Treasury Wallet
   useEffect(() => {
@@ -589,13 +629,70 @@ export const WalletView: React.FC<WalletViewProps> = ({
                 </div>
               </div>
 
-              {/* Mandatory Fixed Memo Code Box */}
+              {/* PHƯƠNG THỨC XÁC THỰC MÃ BĂM TXID ON-CHAIN (KHÔNG CẦN MEMO - CHUYỂN TIỀN TRÒN) */}
+              <div className="bg-[#0b1320] border-2 border-cyan-500/60 rounded-2xl p-3.5 space-y-2.5 shadow-[0_0_20px_rgba(6,182,212,0.2)]">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 font-black text-xs text-cyan-300 uppercase tracking-wider">
+                    <Zap className="w-4 h-4 text-cyan-400 animate-pulse" />
+                    <span>XÁC THỰC MÃ BĂM TXID (CHUYỂN TRÒN - KHÔNG CẦN MEMO)</span>
+                  </div>
+                  <span className="text-[9px] font-mono font-bold text-cyan-400 bg-cyan-950/80 px-2 py-0.5 rounded border border-cyan-500/40">
+                    SHA-256 HASH
+                  </span>
+                </div>
+
+                <p className="text-[11px] text-gray-300 leading-relaxed">
+                  Rút từ <strong>Binance, Bybit, OKX</strong> không có ô Memo? Bạn chỉ cần copy mã <strong>TxID (Transaction Hash)</strong> trên sàn sau khi rút và dán vào đây:
+                </p>
+
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={txHashInput}
+                      onChange={(e) => setTxHashInput(e.target.value)}
+                      placeholder="Dán mã băm TxID SHA-256 (64 ký tự hex)..."
+                      className="flex-1 bg-[#050811] border border-[#1f293d] rounded-xl px-3 py-2.5 text-xs text-cyan-300 font-mono focus:border-cyan-400 outline-none"
+                    />
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        try {
+                          const text = await navigator.clipboard.readText();
+                          if (text) setTxHashInput(text.trim());
+                        } catch (e) {}
+                      }}
+                      className="px-3 py-2.5 rounded-xl bg-[#131927] hover:bg-[#1f293d] border border-[#1f293d] text-gray-300 text-xs font-bold shrink-0 transition-colors"
+                    >
+                      Dán
+                    </button>
+                  </div>
+
+                  {hashVerifyError && (
+                    <div className="bg-red-500/20 border border-red-500/40 p-2.5 rounded-xl text-xs text-red-300 font-bold leading-relaxed">
+                      {hashVerifyError}
+                    </div>
+                  )}
+
+                  <button
+                    type="button"
+                    disabled={verifyingHash || !txHashInput.trim()}
+                    onClick={handleVerifyTxHash}
+                    className="w-full py-3 rounded-xl bg-gradient-to-r from-cyan-600 via-blue-600 to-[#ff5500] hover:opacity-95 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-[0_4px_14px_rgba(6,182,212,0.3)] transition-all"
+                  >
+                    {verifyingHash ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
+                    <span>{verifyingHash ? 'Đang giải mã băm on-chain...' : '⚡ XÁC THỰC MÃ BĂM & DUYỆT TIỀN NGAY (1S)'}</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Optional Memo Code Box */}
               <div>
-                <label className="text-[10px] text-[#facc15] font-black block mb-1 uppercase tracking-wider flex items-center gap-1">
-                  <ShieldCheck className="w-3.5 h-3.5" /> 2. MANDATORY MEMO CODE (Paste into transfer note)
+                <label className="text-[10px] text-gray-400 font-bold block mb-1 uppercase tracking-wider flex items-center gap-1">
+                  <span>2. Mã Memo (Tùy chọn - Nếu ví của bạn có hỗ trợ ghi chú)</span>
                 </label>
-                <div className="flex items-center gap-2 bg-[#131927] border border-[#facc15]/60 p-2.5 rounded-xl">
-                  <span className="text-sm text-[#facc15] font-mono font-black truncate flex-1 tracking-wider">
+                <div className="flex items-center gap-2 bg-[#131927] border border-[#1f293d] p-2 rounded-xl">
+                  <span className="text-xs text-[#facc15] font-mono font-bold truncate flex-1 tracking-wider">
                     {activeMemo}
                   </span>
                   <button
@@ -609,7 +706,7 @@ export const WalletView: React.FC<WalletViewProps> = ({
               </div>
 
               <div className="text-[10px] text-gray-400 leading-relaxed bg-[#131927] p-2.5 rounded-xl border border-[#1f293d]">
-                💡 <strong>QUÉT BLOCKCHAIN TỰ ĐỘNG:</strong> Sau khi bạn chuyển USDT thành công từ sàn/ví, hệ thống sẽ tự động quét đối soát, trừ phí 9%+$3 và cộng số tiền Thực Nhận (Net) vào tài khoản của bạn ngay lập tức!
+                💡 <strong>XÁC THỰC MÃ BĂM AN TOÀN:</strong> Sau khi xác thực mã băm TxID on-chain thành công, hệ thống sẽ tự động trừ phí 9%+$3 và cộng số tiền Thực Nhận (Net) vào tài khoản của bạn ngay lập tức mà không cần chờ đợi!
               </div>
 
               {/* ACTION BUTTONS: ĐÃ THANH TOÁN & ĐÓNG QR */}
