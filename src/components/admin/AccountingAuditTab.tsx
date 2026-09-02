@@ -40,7 +40,8 @@ import {
   Coins,
   Percent,
   Trophy,
-  Briefcase
+  Briefcase,
+  Radio
 } from 'lucide-react';
 
 interface AccountingAuditTabProps {
