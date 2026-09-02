@@ -45,10 +45,12 @@ export interface TransactionData {
   masterWalletAddress?: string;
   sha256Signature?: string;
   approvedBy?: string;
+  approvedAt?: string;
   rejectionReason?: string;
   actualOnChainAmount?: number;
   adjustedOnChain?: boolean;
   createdAt?: any;
+  updatedAt?: any;
 }
 
 const RTDB_BASE_URL = "https://decisive-mapper-216306-default-rtdb.asia-southeast1.firebasedatabase.app";
