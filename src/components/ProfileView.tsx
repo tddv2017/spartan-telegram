@@ -1,8 +1,25 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { User, Share2, Copy, CheckCircle2, ShieldCheck, Users, Trophy, DollarSign, ArrowUpRight, Crown, Award, ChevronRight } from 'lucide-react';
-import { subscribeToReferredUsers } from '@/lib/firebaseService';
+import { 
+  User, 
+  Share2, 
+  Copy, 
+  CheckCircle2, 
+  ShieldCheck, 
+  Users, 
+  Trophy, 
+  DollarSign, 
+  ArrowUpRight, 
+  Crown, 
+  Award, 
+  ChevronRight,
+  RefreshCw,
+  Loader2,
+  Zap,
+  ArrowRight
+} from 'lucide-react';
+import { subscribeToReferredUsers, reinvestReferralBalance } from '@/lib/firebaseService';
 import { getUserRankInfo } from './Header';
 import { checkIsAdmin } from '@/lib/adminAuth';
 import { calculateResellerTier } from '@/lib/resellerEngine';
@@ -30,6 +47,56 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
 
   const isAdmin = checkIsAdmin(username) || checkIsAdmin(telegramId);
   const rank = getUserRankInfo(isAdmin, username, effectiveTier);
+
+  const [localRefBal, setLocalRefBal] = useState<number>(referralBalance);
+  const [localTradingBal, setLocalTradingBal] = useState<number>(tradingBalance);
+  const [isReinvestOpen, setIsReinvestOpen] = useState(false);
+  const [reinvestAmount, setReinvestAmount] = useState('');
+  const [reinvestLoading, setReinvestLoading] = useState(false);
+  const [reinvestSuccess, setReinvestSuccess] = useState<string | null>(null);
+  const [reinvestError, setReinvestError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setLocalRefBal(referralBalance);
+  }, [referralBalance]);
+
+  useEffect(() => {
+    setLocalTradingBal(tradingBalance);
+  }, [tradingBalance]);
+
+  const handleReinvestSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const val = parseFloat(reinvestAmount);
+    if (isNaN(val) || val <= 0) {
+      setReinvestError('Vui lòng nhập số tiền tái đầu tư hợp lệ!');
+      return;
+    }
+    if (val > localRefBal) {
+      setReinvestError(`Số tiền tái đầu tư vượt quá số dư hoa hồng ($${localRefBal.toFixed(2)} USDT)!`);
+      return;
+    }
+
+    setReinvestLoading(true);
+    setReinvestError(null);
+    try {
+      const res = await reinvestReferralBalance(telegramId, val);
+      if (res.success) {
+        setReinvestSuccess(res.message);
+        if (typeof res.newRefBal === 'number') setLocalRefBal(res.newRefBal);
+        if (typeof res.newTradingBal === 'number') setLocalTradingBal(res.newTradingBal);
+        setTimeout(() => {
+          setIsReinvestOpen(false);
+          setReinvestSuccess(null);
+        }, 2000);
+      } else {
+        setReinvestError(res.message);
+      }
+    } catch (err: any) {
+      setReinvestError('Lỗi tái đầu tư: ' + err.message);
+    } finally {
+      setReinvestLoading(false);
+    }
+  };
 
   // Realtime subscription for Referred Users under this Reseller's account
   useEffect(() => {
@@ -154,7 +221,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
           <div className="bg-[#0b0e17] p-3 rounded-2xl border border-[#1f293d]">
             <span className="text-[10px] text-gray-400 font-extrabold uppercase block mb-1">TOTAL RESELLER EARNINGS</span>
             <div className="text-lg font-black text-[#00df89]">
-              ${referralBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })} USDT
+              ${localRefBal.toLocaleString('en-US', { minimumFractionDigits: 2 })} USDT
             </div>
           </div>
 
@@ -167,6 +234,32 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
             </div>
           </div>
         </div>
+
+        {/* Action Buttons for Referral Earnings */}
+        {localRefBal > 0 && (
+          <div className="grid grid-cols-2 gap-2 pt-1">
+            <button
+              onClick={() => {
+                setIsReinvestOpen(true);
+                setReinvestAmount(String(localRefBal));
+                setReinvestError(null);
+              }}
+              className="py-2.5 px-3 rounded-xl bg-gradient-to-r from-[#00df89] to-[#00b06b] hover:opacity-90 text-black font-black text-[11px] uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-md transition-all"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              <span>TÁI ĐẦU TƯ (0% PHÍ)</span>
+            </button>
+            <button
+              onClick={() => {
+                alert("💡 Bạn có thể chuyển tiền hoa hồng vào Vốn Bot để sinh lãi ngay, hoặc rút về ví cá nhân tại tab WALLET!");
+              }}
+              className="py-2.5 px-3 rounded-xl bg-[#131927] hover:bg-[#1f293d] border border-[#1f293d] text-gray-300 font-bold text-[11px] uppercase flex items-center justify-center gap-1.5 transition-all"
+            >
+              <ArrowUpRight className="w-3.5 h-3.5 text-[#ff2d55]" />
+              <span>RÚT HOA HỒNG</span>
+            </button>
+          </div>
+        )}
 
         {/* Exclusive Referral Link Box */}
         <div>
@@ -227,6 +320,95 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
           </div>
         )}
       </div>
+
+      {/* Reinvest Modal Dialog */}
+      {isReinvestOpen && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-[#0b0e17] border border-[#1f293d] rounded-3xl p-6 max-w-sm w-full space-y-4 shadow-[0_0_30px_rgba(0,223,137,0.2)] animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between border-b border-[#1f293d] pb-3">
+              <div className="flex items-center gap-2">
+                <RefreshCw className="w-5 h-5 text-[#00df89]" />
+                <h3 className="text-sm font-black text-white uppercase tracking-wider">
+                  TÁI ĐẦU TƯ VÀO VỐN BOT
+                </h3>
+              </div>
+              <button
+                onClick={() => setIsReinvestOpen(false)}
+                className="text-gray-400 hover:text-white text-xs font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="bg-[#131927] p-3 rounded-2xl border border-[#1f293d] space-y-1">
+              <div className="flex justify-between text-xs">
+                <span className="text-gray-400">Hoa hồng hiện có:</span>
+                <span className="font-bold text-[#00df89]">${localRefBal.toFixed(2)} USDT</span>
+              </div>
+              <div className="flex justify-between text-xs">
+                <span className="text-gray-400">Phí tái đầu tư:</span>
+                <span className="font-bold text-[#00df89]">0% (MIỄN PHÍ 100%)</span>
+              </div>
+            </div>
+
+            {reinvestSuccess && (
+              <div className="p-3 bg-[#00df89]/20 border border-[#00df89] rounded-2xl text-[#00df89] text-xs font-bold text-center">
+                {reinvestSuccess}
+              </div>
+            )}
+
+            {reinvestError && (
+              <div className="p-3 bg-red-500/20 border border-red-500 rounded-2xl text-red-400 text-xs font-bold text-center">
+                {reinvestError}
+              </div>
+            )}
+
+            <form onSubmit={handleReinvestSubmit} className="space-y-3">
+              <div className="space-y-1">
+                <label className="text-xs text-gray-400 font-bold block">
+                  Nhập số tiền muốn chuyển vào Vốn Bot ($ USDT):
+                </label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    step="any"
+                    required
+                    value={reinvestAmount}
+                    onChange={(e) => setReinvestAmount(e.target.value)}
+                    className="w-full bg-[#131927] border border-[#1f293d] rounded-2xl py-3 px-4 text-white text-base font-black focus:outline-none focus:border-[#00df89]"
+                    placeholder="VD: 50"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setReinvestAmount(String(localRefBal))}
+                    className="absolute right-3 top-2.5 px-2 py-1 bg-[#00df89]/20 text-[#00df89] hover:bg-[#00df89]/30 text-[10px] font-bold rounded-lg transition-all"
+                  >
+                    TẤT CẢ
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 pt-2">
+                <button
+                  type="submit"
+                  disabled={reinvestLoading}
+                  className="flex-1 py-3 rounded-xl bg-gradient-to-r from-[#00df89] to-[#00b06b] hover:opacity-90 text-black font-black text-xs uppercase shadow-md transition-all flex items-center justify-center gap-1.5"
+                >
+                  {reinvestLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
+                  <span>XÁC NHẬN CHUYỂN VỐN</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsReinvestOpen(false)}
+                  className="px-4 py-3 rounded-xl bg-[#131927] text-gray-400 hover:text-white border border-[#1f293d] text-xs font-bold"
+                >
+                  HỦY
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -154,8 +154,13 @@ export const WalletView: React.FC<WalletViewProps> = ({
   const handleDepositConfirm = async () => {
     if (loading) return;
     setErrorMessage(null);
+    const MIN_DEPOSIT = 50.0;
     if (numAmount <= 0) {
       setErrorMessage('Deposit amount must be greater than $0.00 USD!');
+      return;
+    }
+    if (numAmount < MIN_DEPOSIT) {
+      setErrorMessage(`⛔ MỨC NẠP TỐI THIỂU: Số tiền nạp tối thiểu là $${MIN_DEPOSIT.toFixed(2)} USDT (để đảm bảo tối ưu chi phí sàn 9% và phí On-Chain $3)!`);
       return;
     }
     setLoading(true);
@@ -429,9 +434,14 @@ export const WalletView: React.FC<WalletViewProps> = ({
 
           {/* Amount Input */}
           <div>
-            <label className="text-xs text-gray-400 font-bold block mb-1.5">
-              Enter Deposit Amount ($ USD)
-            </label>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="text-xs text-gray-400 font-bold">
+                Enter Deposit Amount ($ USD)
+              </label>
+              <span className="text-[10px] font-mono font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
+                Tối thiểu: $50.00 USDT
+              </span>
+            </div>
             <div className="relative">
               <input
                 type="number"
@@ -445,6 +455,11 @@ export const WalletView: React.FC<WalletViewProps> = ({
                 USDT
               </span>
             </div>
+            {numAmount > 0 && numAmount < 50 && (
+              <span className="text-[10px] text-[#ff2d55] font-bold block mt-1.5 animate-pulse">
+                ⚠️ Số tiền nạp (${numAmount.toFixed(2)}) nhỏ hơn mức tối thiểu $50.00 USDT (để đảm bảo hiệu quả phí)!
+              </span>
+            )}
           </div>
 
           {/* Fee Engine Realtime Breakdown Card */}

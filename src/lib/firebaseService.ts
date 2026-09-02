@@ -649,6 +649,25 @@ export async function approveLiveTransaction(
         } catch (e) {}
       }
 
+      // Send Telegram notification directly to user
+      if (userId) {
+        try {
+          fetch('/api/notify-user', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              telegramId: userId,
+              type,
+              status: 'APPROVED',
+              grossAmount,
+              feeAmount,
+              netAmount,
+              txId: targetKey
+            })
+          }).catch(() => {});
+        } catch (e) {}
+      }
+
       return { success: true, message: `Phê duyệt giao dịch ${targetKey} thành công!` };
     }
   } catch (e) {
@@ -732,6 +751,25 @@ export async function rejectLiveTransaction(
       }
 
       await saveToFirestoreREST(`transactions/${targetKey}`, rejectPayload);
+
+      // Send Telegram notification directly to user
+      if (userId) {
+        try {
+          fetch('/api/notify-user', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              telegramId: userId,
+              type: tx.type,
+              status: 'REJECTED',
+              grossAmount: tx.grossAmount,
+              reason,
+              txId: targetKey
+            })
+          }).catch(() => {});
+        } catch (e) {}
+      }
+
       return { success: true, message: `Đã TỪ CHỐI thành công lệnh ${tx.type || ''} ${tx.id || targetKey}!` };
     }
   } catch (e) {
@@ -739,6 +777,74 @@ export async function rejectLiveTransaction(
   }
 
   return { success: false, message: 'Không tìm thấy giao dịch để từ chối!' };
+}
+
+// 9.1. Reinvest Referral Earnings to Bot Trading Balance (0% fee)
+export async function reinvestReferralBalance(
+  telegramId: string, 
+  amount: number
+): Promise<{ success: boolean; message: string; newTradingBal?: number; newRefBal?: number }> {
+  const cleanId = String(telegramId || '494232782');
+  try {
+    const res = await fetch(`${RTDB_BASE_URL}/users/${cleanId}.json`);
+    if (!res.ok) return { success: false, message: 'Không thể kết nối máy chủ dữ liệu.' };
+    const user = await res.json();
+    if (!user) return { success: false, message: 'Không tìm thấy thông tin tài khoản.' };
+
+    const currentRefBal = Number(user.referralBalance) || 0;
+    const currentTradingBal = Number(user.tradingBalance) || 0;
+
+    if (amount <= 0 || amount > currentRefBal) {
+      return { success: false, message: `Số tiền tái đầu tư không hợp lệ. Số dư hoa hồng hiện có: $${currentRefBal.toFixed(2)} USDT.` };
+    }
+
+    const newRefBal = Math.max(0, currentRefBal - amount);
+    const newTradingBal = currentTradingBal + amount;
+
+    const patchPayload = {
+      referralBalance: newRefBal,
+      tradingBalance: newTradingBal
+    };
+
+    await fetch(`${RTDB_BASE_URL}/users/${cleanId}.json`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(patchPayload)
+    });
+
+    await saveToFirestoreREST(`users/${cleanId}`, patchPayload);
+
+    // Record internal reinvestment transaction
+    const txId = `REINV_${cleanId}_${Date.now().toString().slice(-6)}`;
+    const txData: TransactionData = {
+      id: txId,
+      userId: cleanId,
+      username: user.username || 'user',
+      type: 'DEPOSIT',
+      grossAmount: amount,
+      feeAmount: 0,
+      netAmount: amount,
+      status: 'APPROVED',
+      memoCode: 'REINVEST_REFERRAL_0_FEE',
+      approvedBy: 'AUTO_REINVEST',
+      createdAt: new Date().toISOString()
+    };
+
+    await fetch(`${RTDB_BASE_URL}/users/${cleanId}/transactions/${txId}.json`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(txData)
+    });
+
+    return {
+      success: true,
+      message: `✓ Đã tái đầu tư $${amount.toFixed(2)} USDT từ hoa hồng vào Vốn Bot thành công (0% Phí)!`,
+      newTradingBal,
+      newRefBal
+    };
+  } catch (err: any) {
+    return { success: false, message: 'Lỗi xử lý tái đầu tư: ' + err.message };
+  }
 }
 
 // 10. REALTIME LISTENER FOR LIVE MT5 EA TRADING EXECUTIONS
