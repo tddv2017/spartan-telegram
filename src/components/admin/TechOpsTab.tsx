@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { UserAuditItem, setUserBotStatus, SystemConfig, updateSystemConfig } from '@/lib/adminService';
 import { 
   Activity, 
@@ -13,9 +13,14 @@ import {
   Search, 
   AlertTriangle, 
   ShieldCheck, 
-  Loader2,
-  Wrench,
-  Wifi
+  Loader2, 
+  Wrench, 
+  Wifi, 
+  Download, 
+  Copy, 
+  CheckCircle2, 
+  ExternalLink,
+  Zap
 } from 'lucide-react';
 
 interface TechOpsTabProps {
@@ -34,6 +39,31 @@ export const TechOpsTab: React.FC<TechOpsTabProps> = ({
   const [updatingSystem, setUpdatingSystem] = useState(false);
   const [statusMsg, setStatusMsg] = useState<string | null>(null);
   const [maintenanceNotice, setMaintenanceNotice] = useState(systemConfig.broadcastNotice || '');
+
+  // Live EA Master Pool State
+  const [masterPool, setMasterPool] = useState<any>(null);
+  const [copiedUrl, setCopiedUrl] = useState(false);
+  const [copiedKey, setCopiedKey] = useState(false);
+
+  useEffect(() => {
+    let isSubscribed = true;
+    const fetchMasterPool = async () => {
+      try {
+        const res = await fetch("https://decisive-mapper-216306-default-rtdb.asia-southeast1.firebasedatabase.app/master_pool.json");
+        if (res.ok) {
+          const data = await res.json();
+          if (isSubscribed && data) setMasterPool(data);
+        }
+      } catch (e) {}
+    };
+
+    fetchMasterPool();
+    const interval = setInterval(fetchMasterPool, 5000);
+    return () => {
+      isSubscribed = false;
+      clearInterval(interval);
+    };
+  }, []);
 
   // Toggle Global Bot Kill Switch
   const handleToggleGlobalBot = async () => {
@@ -98,6 +128,131 @@ export const TechOpsTab: React.FC<TechOpsTabProps> = ({
           <span>{statusMsg}</span>
         </div>
       )}
+
+      {/* 🚀 CẦU NỐI EA METATRADER 4/5 (EXNESS BRIDGE) */}
+      <div className="spartan-card rounded-3xl p-5 border border-amber-500/30 space-y-4 shadow-xl">
+        <div className="flex items-center justify-between border-b border-[#1f293d] pb-2.5">
+          <div className="flex items-center gap-2">
+            <Server className="w-4 h-4 text-amber-400" />
+            <h3 className="text-xs font-black text-white uppercase tracking-wider">
+              CẦU NỐI METATRADER 4/5 EA (EXNESS REALTIME BRIDGE)
+            </h3>
+          </div>
+          <div className="flex items-center gap-1.5 font-mono text-[10px] font-bold">
+            <span className={`w-2 h-2 rounded-full ${masterPool?.status === 'ONLINE' ? 'bg-[#00df89] animate-ping' : 'bg-gray-500'}`} />
+            <span className={masterPool?.status === 'ONLINE' ? 'text-[#00df89]' : 'text-gray-400'}>
+              {masterPool?.status === 'ONLINE' ? 'EA ONLINE (KẾT NỐI)' : 'CHƯA CÓ KẾT NỐI'}
+            </span>
+          </div>
+        </div>
+
+        {/* Master Pool Live Stats */}
+        {masterPool ? (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 bg-[#0b0e17] p-3.5 rounded-2xl border border-[#1f293d] font-mono text-xs">
+            <div>
+              <span className="text-[9px] text-gray-500 block uppercase">TÀI KHOẢN MASTER</span>
+              <span className="font-black text-white">{masterPool.accountNumber || '98240291'}</span>
+              <span className="text-[9px] text-gray-400 block">{masterPool.broker || 'Exness'}</span>
+            </div>
+            <div>
+              <span className="text-[9px] text-gray-500 block uppercase">SỐ DƯ (BALANCE)</span>
+              <span className="font-black text-[#00df89]">${Number(masterPool.balance || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+            </div>
+            <div>
+              <span className="text-[9px] text-gray-500 block uppercase">TÀI SẢN RÒNG (EQUITY)</span>
+              <span className="font-black text-amber-300">${Number(masterPool.equity || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+            </div>
+            <div>
+              <span className="text-[9px] text-gray-500 block uppercase">LÃI TẠM TÍNH (FLOAT PNL)</span>
+              <span className={`font-black ${Number(masterPool.floatingProfit || 0) >= 0 ? 'text-[#00df89]' : 'text-red-400'}`}>
+                {Number(masterPool.floatingProfit || 0) >= 0 ? '+' : ''}${Number(masterPool.floatingProfit || 0).toFixed(2)}
+              </span>
+            </div>
+          </div>
+        ) : (
+          <div className="p-3 rounded-2xl bg-[#0b0e17] border border-[#1f293d] text-center text-xs text-gray-400 font-mono">
+            Chưa nhận được tín hiệu Heartbeat từ EA MT5. Vui lòng cài đặt EA vào MT5 Exness bên dưới.
+          </div>
+        )}
+
+        {/* Webhook & API Key Copy Boxes */}
+        <div className="space-y-2 text-xs font-mono">
+          <div>
+            <label className="text-[10px] text-gray-400 font-bold block mb-1">
+              1. WEBHOOK API URL (Điền vào EA hoặc cho phép trong MT5 WebRequest):
+            </label>
+            <div className="flex items-center gap-2 bg-[#0b0e17] border border-[#1f293d] p-2 rounded-xl">
+              <span className="text-amber-300 text-[11px] truncate flex-1 select-all">
+                https://spartan-telegram.vercel.app/api/ea/webhook
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  navigator.clipboard.writeText("https://spartan-telegram.vercel.app/api/ea/webhook");
+                  setCopiedUrl(true);
+                  setTimeout(() => setCopiedUrl(false), 2000);
+                }}
+                className="px-2.5 py-1 rounded-lg bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 text-[10px] font-bold flex items-center gap-1"
+              >
+                {copiedUrl ? <CheckCircle2 className="w-3 h-3 text-[#00df89]" /> : <Copy className="w-3 h-3" />}
+                <span>{copiedUrl ? 'Đã chép' : 'Sao chép'}</span>
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <label className="text-[10px] text-gray-400 font-bold block mb-1">
+              2. KHÓA BẢO MẬT EA (API SECRET KEY):
+            </label>
+            <div className="flex items-center gap-2 bg-[#0b0e17] border border-[#1f293d] p-2 rounded-xl">
+              <span className="text-[#00df89] text-[11px] font-bold truncate flex-1 select-all">
+                SPARTAN_EA_LIVE_2026
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  navigator.clipboard.writeText("SPARTAN_EA_LIVE_2026");
+                  setCopiedKey(true);
+                  setTimeout(() => setCopiedKey(false), 2000);
+                }}
+                className="px-2.5 py-1 rounded-lg bg-[#00df89]/20 text-[#00df89] hover:bg-[#00df89]/30 text-[10px] font-bold flex items-center gap-1"
+              >
+                {copiedKey ? <CheckCircle2 className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                <span>{copiedKey ? 'Đã chép' : 'Sao chép'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Download Buttons for MQL5 and MQL4 */}
+        <div className="grid grid-cols-2 gap-2 pt-1">
+          <a
+            href="/ea/SpartanBridgeEA.mq5"
+            download="SpartanBridgeEA.mq5"
+            className="py-2.5 px-3 rounded-xl bg-gradient-to-r from-amber-500 to-[#ff5500] hover:opacity-90 text-black font-black text-xs uppercase flex items-center justify-center gap-2 shadow-md transition-all text-center"
+          >
+            <Download className="w-4 h-4" />
+            <span>TẢI EA CHO MT5 (.MQ5)</span>
+          </a>
+
+          <a
+            href="/ea/SpartanBridgeEA.mq4"
+            download="SpartanBridgeEA.mq4"
+            className="py-2.5 px-3 rounded-xl bg-[#131927] hover:bg-[#1f293d] border border-[#1f293d] text-white font-black text-xs uppercase flex items-center justify-center gap-2 transition-all text-center"
+          >
+            <Download className="w-4 h-4 text-amber-400" />
+            <span>TẢI EA CHO MT4 (.MQ4)</span>
+          </a>
+        </div>
+
+        {/* Quick Instructions */}
+        <div className="bg-[#0b0e17] p-3 rounded-2xl border border-[#1f293d] text-[10px] text-gray-400 leading-relaxed space-y-1">
+          <span className="font-bold text-white block">📖 HƯỚNG DẪN CÀI ĐẶT NHANH VÀO METATRADER:</span>
+          <div>1. Mở MT5/MT4 -&gt; Bấm <strong className="text-white">Ctrl + O</strong> -&gt; Tab <strong className="text-white">Expert Advisors</strong> -&gt; Tích chọn <strong className="text-amber-300">Allow WebRequest for listed URL</strong> -&gt; Thêm URL: <strong className="text-amber-300">https://spartan-telegram.vercel.app</strong></div>
+          <div>2. Tải file <strong className="text-white">SpartanBridgeEA.mq5</strong> ở trên -&gt; Bỏ vào thư mục <strong className="text-white">MQL5/Experts</strong> (hoặc MQL4/Experts) -&gt; Biên dịch (F7) -&gt; Kéo thả vào bất kỳ biểu đồ nào (VD: XAUUSD).</div>
+          <div>3. Điền Khóa API: <strong className="text-[#00df89]">SPARTAN_EA_LIVE_2026</strong> -&gt; Bấm OK. Mọi lệnh đóng và số dư sẽ tự động nhảy lên Mini App realtime 0.01s!</div>
+        </div>
+      </div>
 
       {/* Global Infrastructure Control Switches */}
       <div className="spartan-card rounded-3xl p-5 border border-[#1f293d] space-y-4 shadow-lg">
