@@ -416,12 +416,16 @@ export const AiAgentsCommandCenter: React.FC = () => {
             {ledgerLog && (
               <div className="bg-[#131927] p-3.5 rounded-2xl border border-[#1f293d] space-y-2 text-xs font-mono">
                 <div className="flex justify-between text-[10px] text-gray-400 border-b border-[#1f293d] pb-2">
-                  <span>Trạng thái: <strong className="text-[#00df89]">{ledgerLog.auditStatus}</strong></span>
-                  <span>Tổng Doanh Thu: <strong className="text-amber-400">${ledgerLog.metrics.totalOperationalRevenue.toFixed(2)} USD</strong></span>
+                  <span>Trạng thái: <strong className="text-[#00df89]">{ledgerLog.status}</strong></span>
+                  <span className="text-amber-400 font-bold">{ledgerLog.agent}</span>
                 </div>
-                <div className="space-y-1">
-                  {ledgerLog.discrepancies.map((d, i) => (
-                    <div key={i} className="text-[10px] text-gray-300">• {d}</div>
+                <p className="text-gray-300 font-sans text-[11px] leading-relaxed">
+                  {ledgerLog.aiCommentary}
+                </p>
+                <div className="space-y-1 pt-1">
+                  <span className="text-[9px] font-bold text-amber-400 uppercase block">KHUYẾN NGHỊ KẾ TOÁN:</span>
+                  {ledgerLog.report.recommendations.map((r, i) => (
+                    <div key={i} className="text-[10px] text-gray-300">• {r}</div>
                   ))}
                 </div>
               </div>
@@ -454,12 +458,16 @@ export const AiAgentsCommandCenter: React.FC = () => {
             {legionLog && (
               <div className="bg-[#131927] p-3.5 rounded-2xl border border-[#1f293d] space-y-2 text-xs font-mono">
                 <div className="flex justify-between text-[10px] text-gray-400 border-b border-[#1f293d] pb-2">
-                  <span>Tổng Resellers: <strong className="text-purple-300">{legionLog.networkSummary.totalResellers}</strong></span>
-                  <span>Tổng F1: <strong className="text-[#00df89]">{legionLog.networkSummary.totalF1s}</strong></span>
+                  <span>Trạng thái: <strong className="text-purple-300">{legionLog.status}</strong></span>
+                  <span className="text-purple-400 font-bold">{legionLog.agent}</span>
                 </div>
-                <div className="space-y-1">
-                  {legionLog.upgradesProposed.map((u, i) => (
-                    <div key={i} className="text-[10px] text-amber-300 font-bold">• {u.username}: Đề xuất Cấp {u.proposedTier} ({u.reason})</div>
+                <p className="text-gray-300 font-sans text-[11px] leading-relaxed">
+                  {legionLog.aiCommentary}
+                </p>
+                <div className="space-y-1 pt-1">
+                  <span className="text-[9px] font-bold text-purple-400 uppercase block">HÀNH ĐỘNG ĐỀ XUẤT:</span>
+                  {legionLog.report.recommendations.map((r, i) => (
+                    <div key={i} className="text-[10px] text-amber-300">• {r}</div>
                   ))}
                 </div>
               </div>
@@ -492,12 +500,16 @@ export const AiAgentsCommandCenter: React.FC = () => {
             {sentinelLog && (
               <div className="bg-[#131927] p-3.5 rounded-2xl border border-[#1f293d] space-y-2 text-xs font-mono">
                 <div className="flex justify-between text-[10px] text-gray-400 border-b border-[#1f293d] pb-2">
-                  <span>Khuyến Nghị Bot: <strong className="text-[#00df89]">{sentinelLog.recommendedBotState}</strong></span>
-                  <span>Mức Độ Rủi Ro: <strong className="text-cyan-300">{sentinelLog.marketVolatility}</strong></span>
+                  <span>Trạng thái: <strong className="text-[#00df89]">{sentinelLog.status}</strong></span>
+                  <span className="text-cyan-400 font-bold">{sentinelLog.agent}</span>
                 </div>
-                <div className="space-y-1">
-                  {sentinelLog.telemetryLogs.map((l, i) => (
-                    <div key={i} className="text-[10px] text-gray-300">• {l}</div>
+                <p className="text-gray-300 font-sans text-[11px] leading-relaxed">
+                  {sentinelLog.aiCommentary}
+                </p>
+                <div className="space-y-1 pt-1">
+                  <span className="text-[9px] font-bold text-cyan-400 uppercase block">KHUYẾN NGHỊ PHÒNG THỦ:</span>
+                  {sentinelLog.report.recommendations.map((r, i) => (
+                    <div key={i} className="text-[10px] text-gray-300">• {r}</div>
                   ))}
                 </div>
               </div>
