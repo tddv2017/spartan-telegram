@@ -81,6 +81,7 @@ export async function createAdminUser(user: {
       firstName: user.firstName?.trim() || user.username || 'Spartan Member',
       tradingBalance: user.tradingBalance || 0,
       referralBalance: user.referralBalance || 0,
+      referralCode: `ref_${cleanId}`,
       role: (user.role as any) || 'CLIENT',
       resellerTier: user.resellerTier || 1,
       botActive: true,
