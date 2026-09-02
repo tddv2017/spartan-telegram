@@ -17,13 +17,16 @@ import {
   RefreshCw,
   Loader2,
   Zap,
-  ArrowRight
+  ArrowRight,
+  FileText
 } from 'lucide-react';
 import { subscribeToReferredUsers, reinvestReferralBalance, withdrawReferralBalance } from '@/lib/firebaseService';
 import { getUserRankInfo } from './Header';
 import { checkIsAdmin } from '@/lib/adminAuth';
 import { calculateResellerTier } from '@/lib/resellerEngine';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { InvestorStatementModal } from '@/components/InvestorStatementModal';
+import { AffiliateLeaderboardCard } from '@/components/AffiliateLeaderboardCard';
 
 interface ProfileViewProps {
   telegramId?: string;
@@ -68,6 +71,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
   const [withdrawSuccess, setWithdrawSuccess] = useState<string | null>(null);
   const [withdrawError, setWithdrawError] = useState<string | null>(null);
   const [showTierMatrix, setShowTierMatrix] = useState(false);
+  const [isStatementOpen, setIsStatementOpen] = useState(false);
 
   useEffect(() => {
     setLocalRefBal(referralBalance);
@@ -183,9 +187,9 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
   return (
     <div className="w-full space-y-4 pb-20">
       {/* Profile Header Card */}
-      <div className="spartan-card rounded-3xl p-5 border border-[#1f293d] flex items-center justify-between shadow-lg">
+      <div className="spartan-card rounded-3xl p-5 border border-[#221c10] bg-[#080b12] flex items-center justify-between shadow-lg">
         <div className="flex items-center gap-3.5">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#ff5500] to-[#7c3aed] border border-[#facc15] flex items-center justify-center font-black text-white text-xl shadow-[0_4px_14px_rgba(255,85,0,0.4)]">
+          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#d4af37] to-[#8a6d1c] border border-[#facc15] flex items-center justify-center font-black text-black text-xl shadow-[0_4px_14px_rgba(212,175,55,0.3)]">
             {username.slice(0, 2).toUpperCase() || 'SP'}
           </div>
           <div>
@@ -199,6 +203,16 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
             </span>
           </div>
         </div>
+
+        {/* Export PDF Performance Statement Button */}
+        <button
+          onClick={() => setIsStatementOpen(true)}
+          className="px-3.5 py-2 rounded-2xl gold-btn-solid text-black text-xs font-black uppercase flex items-center gap-1.5 shadow-[0_0_12px_rgba(212,175,55,0.3)] hover:opacity-95 active:scale-95 transition-all"
+          title="Xuất bản sao kê lợi nhuận định chế"
+        >
+          <FileText className="w-3.5 h-3.5" />
+          <span>{lang === 'vi' ? 'SAO KÊ PDF' : 'PDF AUDIT'}</span>
+        </button>
       </div>
 
       {/* 1. Referral Program Overview Card (PRIMARY ACTIONS AT THE TOP) */}
@@ -347,6 +361,14 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
           </div>
         )}
       </div>
+
+      {/* 3. AFFILIATE & INVESTOR LEADERBOARD */}
+      <AffiliateLeaderboardCard
+        currentUsername={username}
+        currentUserId={telegramId}
+        userF1Count={referredUsers.length}
+        userVolume={localTradingBal}
+      />
 
       {/* Referred Clients Sub-List */}
       <div className="spartan-card rounded-3xl p-5 border border-[#221c10] bg-[#080b12] space-y-3 shadow-lg">
@@ -589,6 +611,17 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
           </div>
         </div>
       )}
+
+      {/* INVESTOR PERFORMANCE STATEMENT & CERTIFICATE MODAL */}
+      <InvestorStatementModal
+        isOpen={isStatementOpen}
+        onClose={() => setIsStatementOpen(false)}
+        username={username}
+        telegramId={telegramId}
+        tradingBalance={localTradingBal}
+        referralBalance={localRefBal}
+        effectiveTier={effectiveTier}
+      />
     </div>
   );
 };
