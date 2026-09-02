@@ -35,72 +35,18 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   const avgWin = winningTrades.length > 0 ? (grossProfit / winningTrades.length).toFixed(2) : '0.00';
   const avgLoss = losingTrades.length > 0 ? (grossLoss / losingTrades.length).toFixed(2) : '0.00';
 
-  // Capital Share & Allocated Profit
+  // Capital Share Ratio for this customer
   const effectivePool = Math.max(masterPoolBalance, 1);
-  const userShare = (tradingBalance / effectivePool) * 100;
-  const effectiveBotProfit = totalMasterProfit || grossProfit;
-  const userProfit = effectiveBotProfit * (userShare / 100);
+  const userRatio = (tradingBalance > 0 && effectivePool > 0) ? (tradingBalance / effectivePool) : 1;
+
+  // Personal Scaled PnL
+  const userGrossProfit = grossProfit * userRatio;
+  const userGrossLoss = grossLoss * userRatio;
+  const userAvgWin = Number(avgWin) * userRatio;
+  const userAvgLoss = Number(avgLoss) * userRatio;
 
   return (
     <div className="w-full space-y-4 pb-20">
-      {/* 🏛️ THỐNG KÊ CỔ PHẦN & LỢI NHUẬN GÓP VỐN CỦA BẠN */}
-      <div className="spartan-card rounded-3xl p-5 border border-amber-500/40 space-y-3.5 shadow-xl">
-        <div className="flex items-center justify-between border-b border-[#1f293d] pb-2.5">
-          <div>
-            <span className="text-[10px] text-amber-400 font-bold uppercase tracking-wider block font-mono">
-              BÁO CÁO CỔ PHẦN GÓP VỐN CÁ NHÂN
-            </span>
-            <h2 className="text-xs font-black text-white uppercase tracking-wider">
-              LỢI NHUẬN CHIA THEO % VỐN TRÊN TỔNG POOL
-            </h2>
-          </div>
-          <span className="text-[10px] font-mono font-black text-[#00df89] bg-[#00df89]/10 px-2.5 py-1 rounded-full border border-[#00df89]/20">
-            {userShare.toFixed(2)}% POOL
-          </span>
-        </div>
-
-        {/* 3 Metric Box */}
-        <div className="grid grid-cols-3 gap-2 font-mono text-xs">
-          <div className="bg-[#0b0e17] p-2.5 rounded-xl border border-[#1f293d]">
-            <span className="text-[9px] text-gray-400 block font-sans">VỐN GÓP CỦA BẠN:</span>
-            <span className="text-sm font-black text-white">${tradingBalance.toFixed(2)}</span>
-            <span className="text-[9px] text-gray-500 block">USDT</span>
-          </div>
-
-          <div className="bg-[#0b0e17] p-2.5 rounded-xl border border-[#1f293d]">
-            <span className="text-[9px] text-gray-400 block font-sans">TỔNG MASTER POOL:</span>
-            <span className="text-sm font-black text-amber-300">${effectivePool.toLocaleString('en-US', { minimumFractionDigits: 1 })}</span>
-            <span className="text-[9px] text-gray-500 block">Exness Live</span>
-          </div>
-
-          <div className="bg-[#0b0e17] p-2.5 rounded-xl border border-[#1f293d]">
-            <span className="text-[9px] text-gray-400 block font-sans">LÃI PHÂN BỔ:</span>
-            <span className={`text-sm font-black ${userProfit >= 0 ? 'text-[#00df89]' : 'text-red-400'}`}>
-              {userProfit >= 0 ? '+' : ''}${userProfit.toFixed(2)}
-            </span>
-            <span className="text-[9px] text-gray-500 block">USDT</span>
-          </div>
-        </div>
-
-        {/* PHÉP TÍNH CHIA LÃI CHI TIẾT (EXPLICIT MULTIPLICATION FORMULA) */}
-        <div className="bg-[#0b0e17] p-3 rounded-2xl border border-amber-500/30 space-y-1.5 font-mono text-xs">
-          <span className="text-[10px] text-gray-400 font-bold block uppercase tracking-wider">
-            📐 CÔNG THỨC PHÂN BỔ LỢI NHUẬN CỦA BẠN:
-          </span>
-          <div className="p-2.5 rounded-xl bg-[#131927] border border-[#1f293d] flex items-center justify-between text-[11px]">
-            <span className="text-gray-300">
-              ${effectiveBotProfit.toFixed(2)} <span className="text-gray-500">(Tổng Lãi Bot)</span> × {userShare.toFixed(2)}% <span className="text-gray-500">(Cổ phần của bạn)</span>
-            </span>
-            <span className={`font-black ${userProfit >= 0 ? 'text-[#00df89]' : 'text-red-400'}`}>
-              = {userProfit >= 0 ? '+' : ''}${userProfit.toFixed(2)} USDT
-            </span>
-          </div>
-          <span className="text-[9px] text-gray-500 block leading-tight">
-            * Lợi nhuận được chia sòng phẳng theo đúng tỷ lệ vốn góp của bạn trên tổng quy mô quỹ Master Pool Exness.
-          </span>
-        </div>
-      </div>
-
       {/* Overview Analytics Header Card */}
       <div className="spartan-card rounded-3xl p-5 border border-[#1f293d] space-y-3 shadow-lg">
         <div className="flex items-center justify-between border-b border-[#1f293d] pb-2.5">
@@ -156,29 +102,29 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
           </div>
         </div>
 
-        {/* Detailed Financial Stats Grid */}
+        {/* Detailed Financial Stats Grid - Scaled to user's capital share */}
         <div className="bg-[#0b0e17] rounded-2xl p-3.5 border border-[#1f293d] space-y-2 text-xs">
           <div className="flex justify-between text-gray-400">
             <span>Gross Profit:</span>
-            <span className="font-mono font-bold text-[#00df89]">+${grossProfit.toFixed(2)} USD</span>
+            <span className="font-mono font-bold text-[#00df89]">+${userGrossProfit.toFixed(2)} USD</span>
           </div>
           <div className="flex justify-between text-gray-400">
             <span>Gross Loss:</span>
-            <span className="font-mono font-bold text-[#ff2d55]">-${grossLoss.toFixed(2)} USD</span>
+            <span className="font-mono font-bold text-[#ff2d55]">-${userGrossLoss.toFixed(2)} USD</span>
           </div>
           <div className="flex justify-between text-gray-400">
             <span>Average Winning Trade:</span>
-            <span className="font-mono font-bold text-[#00df89]">+${avgWin} USD</span>
+            <span className="font-mono font-bold text-[#00df89]">+${userAvgWin.toFixed(2)} USD</span>
           </div>
           <div className="flex justify-between text-gray-400">
             <span>Average Losing Trade:</span>
-            <span className="font-mono font-bold text-[#ff2d55]">-${avgLoss} USD</span>
+            <span className="font-mono font-bold text-[#ff2d55]">-${userAvgLoss.toFixed(2)} USD</span>
           </div>
         </div>
       </div>
 
-      {/* TRADE HISTORY CARD INSIDE ANALYTICS TAB */}
-      <TradeHistoryCard />
+      {/* TRADE HISTORY CARD SCALED TO USER'S CAPITAL */}
+      <TradeHistoryCard shareRatio={userRatio} />
     </div>
   );
 };

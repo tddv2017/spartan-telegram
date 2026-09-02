@@ -16,11 +16,19 @@ export interface TradeOrder {
   timestamp: string;
 }
 
-export const TradeHistoryCard: React.FC = () => {
+interface TradeHistoryCardProps {
+  shareRatio?: number;
+}
+
+export const TradeHistoryCard: React.FC<TradeHistoryCardProps> = ({
+  shareRatio = 1,
+}) => {
   const [trades, setTrades] = useState<TradeOrder[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 5;
+
+  const userRatio = (typeof shareRatio === 'number' && shareRatio > 0 && shareRatio <= 1) ? shareRatio : 1;
 
   // Realtime Live Stream Listener for Trades executed on MT5 Exness
   useEffect(() => {
@@ -72,68 +80,73 @@ export const TradeHistoryCard: React.FC = () => {
         </div>
       ) : (
         <div className="space-y-2">
-          {paginatedOrders.map((trade) => (
-            <div
-              key={trade.id}
-              className="flex items-center justify-between p-3 rounded-2xl bg-[#0b0e17] border border-[#1f293d] hover:border-gray-700 transition-colors text-xs"
-            >
-              <div className="flex items-center gap-2.5">
-                <div
-                  className={`w-8 h-8 rounded-xl flex items-center justify-center font-black ${
-                    trade.type === 'BUY'
-                      ? 'bg-[#00df89]/15 text-[#00df89] border border-[#00df89]/30'
-                      : 'bg-[#ff2d55]/15 text-[#ff2d55] border border-[#ff2d55]/30'
-                  }`}
-                >
-                  {trade.type === 'BUY' ? (
-                    <ArrowUpRight className="w-4 h-4" />
-                  ) : (
-                    <ArrowDownRight className="w-4 h-4" />
-                  )}
+          {paginatedOrders.map((trade) => {
+            const effectiveLots = Math.max(0.01, Number((trade.lots * userRatio).toFixed(2)));
+            const effectivePnl = trade.pnl * userRatio;
+
+            return (
+              <div
+                key={trade.id}
+                className="flex items-center justify-between p-3 rounded-2xl bg-[#0b0e17] border border-[#1f293d] hover:border-gray-700 transition-colors text-xs"
+              >
+                <div className="flex items-center gap-2.5">
+                  <div
+                    className={`w-8 h-8 rounded-xl flex items-center justify-center font-black ${
+                      trade.type === 'BUY'
+                        ? 'bg-[#00df89]/15 text-[#00df89] border border-[#00df89]/30'
+                        : 'bg-[#ff2d55]/15 text-[#ff2d55] border border-[#ff2d55]/30'
+                    }`}
+                  >
+                    {trade.type === 'BUY' ? (
+                      <ArrowUpRight className="w-4 h-4" />
+                    ) : (
+                      <ArrowDownRight className="w-4 h-4" />
+                    )}
+                  </div>
+
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-black text-white">{trade.symbol}</span>
+                      <span
+                        className={`text-[9px] font-black px-1.5 py-0.2 rounded uppercase ${
+                          trade.type === 'BUY'
+                            ? 'bg-[#00df89]/20 text-[#00df89]'
+                            : 'bg-[#ff2d55]/20 text-[#ff2d55]'
+                        }`}
+                      >
+                        {trade.type} {effectiveLots} Lot
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 text-[10px] text-gray-500 font-mono mt-0.5">
+                      <span>{trade.openPrice} ➔ {trade.closePrice}</span>
+                      <span>•</span>
+                      <span className="flex items-center gap-0.5 text-gray-400">
+                        <Clock className="w-3 h-3 text-gray-500" />
+                        {trade.timestamp}
+                      </span>
+                    </div>
+                  </div>
                 </div>
 
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-black text-white">{trade.symbol}</span>
-                    <span
-                      className={`text-[9px] font-black px-1.5 py-0.2 rounded uppercase ${
-                        trade.type === 'BUY'
-                          ? 'bg-[#00df89]/20 text-[#00df89]'
-                          : 'bg-[#ff2d55]/20 text-[#ff2d55]'
-                      }`}
-                    >
-                      {trade.type} {trade.lots} Lot
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2 text-[10px] text-gray-500 font-mono mt-0.5">
-                    <span>{trade.openPrice} ➔ {trade.closePrice}</span>
-                    <span>•</span>
-                    <span className="flex items-center gap-0.5 text-gray-400">
-                      <Clock className="w-3 h-3 text-gray-500" />
-                      {trade.timestamp}
-                    </span>
-                  </div>
+                <div className="text-right font-mono">
+                  <span
+                    className={`font-black text-xs block ${
+                      effectivePnl >= 0 ? 'text-[#00df89]' : 'text-[#ff2d55]'
+                    }`}
+                  >
+                    {effectivePnl >= 0 ? `+$${effectivePnl.toFixed(2)}` : `-$${Math.abs(effectivePnl).toFixed(2)}`}
+                  </span>
+                  <span
+                    className={`text-[9px] font-bold block ${
+                      trade.pnlPercentage >= 0 ? 'text-[#00df89]' : 'text-[#ff2d55]'
+                    }`}
+                  >
+                    {trade.pnlPercentage >= 0 ? `+${trade.pnlPercentage.toFixed(2)}%` : `${trade.pnlPercentage.toFixed(2)}%`}
+                  </span>
                 </div>
               </div>
-
-              <div className="text-right font-mono">
-                <span
-                  className={`font-black text-xs block ${
-                    trade.pnl >= 0 ? 'text-[#00df89]' : 'text-[#ff2d55]'
-                  }`}
-                >
-                  {trade.pnl >= 0 ? `+$${trade.pnl.toFixed(2)}` : `-$${Math.abs(trade.pnl).toFixed(2)}`}
-                </span>
-                <span
-                  className={`text-[9px] font-bold block ${
-                    trade.pnlPercentage >= 0 ? 'text-[#00df89]' : 'text-[#ff2d55]'
-                  }`}
-                >
-                  {trade.pnlPercentage >= 0 ? `+${trade.pnlPercentage.toFixed(2)}%` : `${trade.pnlPercentage.toFixed(2)}%`}
-                </span>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
