@@ -302,11 +302,18 @@ export async function createLiveTransaction(
   type: 'DEPOSIT' | 'WITHDRAW', 
   grossAmount: number
 ): Promise<TransactionData> {
-  const cleanId = String(telegramId || '494232782');
+  if (!telegramId) {
+    throw new Error('MISSING_USER_IDENTITY: Bắt buộc phải có định danh người dùng Telegram ID hợp lệ!');
+  }
+  const cleanId = String(telegramId).trim();
 
   await forceSyncUserProfile(cleanId, username);
 
   if (type === 'WITHDRAW') {
+    if (isNaN(grossAmount) || grossAmount <= 0 || !isFinite(grossAmount)) {
+      throw new Error('INVALID_AMOUNT: Số tiền rút không hợp lệ!');
+    }
+
     let currentBal = 0;
     let pendingWithdrawTotal = 0;
 
@@ -322,12 +329,22 @@ export async function createLiveTransaction(
         const txData = await txRes.json();
         if (txData) {
           const list = Object.values(txData) as TransactionData[];
+          // 1. CHỐNG RACE-CONDITION / DOUBLE-SPENDING: Kiểm tra nếu đã có lệnh rút PENDING
+          const pendingWithdrawList = list.filter(t => t.type === 'WITHDRAW' && t.status === 'PENDING');
+          if (pendingWithdrawList.length > 0) {
+            throw new Error(`CONCURRENT_WITHDRAWAL_LOCK: Bạn đang có lệnh rút tiền (${pendingWithdrawList[0].id || pendingWithdrawList[0].memoCode}) đang chờ Admin duyệt. Để bảo đảm an toàn, vui lòng đợi hoàn tất trước khi tạo lệnh mới!`);
+          }
+
           pendingWithdrawTotal = list
             .filter(t => t.type === 'WITHDRAW' && t.status === 'PENDING')
             .reduce((acc, t) => acc + t.grossAmount, 0);
         }
       }
-    } catch (e) {}
+    } catch (e: any) {
+      if (e?.message?.includes('CONCURRENT_WITHDRAWAL_LOCK')) {
+        throw e;
+      }
+    }
 
     const availableBal = Math.max(0, currentBal - pendingWithdrawTotal);
     if (grossAmount > availableBal) {
@@ -849,7 +866,8 @@ export async function reinvestReferralBalance(
   telegramId: string, 
   amount: number
 ): Promise<{ success: boolean; message: string; newTradingBal?: number; newRefBal?: number }> {
-  const cleanId = String(telegramId || '494232782');
+  if (!telegramId) return { success: false, message: 'Thiếu định danh Telegram ID người dùng!' };
+  const cleanId = String(telegramId).trim();
   try {
     const res = await fetch(`${RTDB_BASE_URL}/users/${cleanId}.json`);
     if (!res.ok) return { success: false, message: 'Không thể kết nối máy chủ dữ liệu.' };

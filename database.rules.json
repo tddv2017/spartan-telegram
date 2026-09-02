@@ -1,0 +1,40 @@
+{
+  "rules": {
+    "users": {
+      "$uid": {
+        ".read": "auth != null || true",
+        ".write": "auth != null",
+        "tradingBalance": {
+          ".validate": "newData.isNumber() && newData.val() >= 0"
+        },
+        "referralBalance": {
+          ".validate": "newData.isNumber() && newData.val() >= 0"
+        }
+      }
+    },
+    "used_tx_hashes": {
+      ".read": true,
+      "$txHash": {
+        ".write": "!data.exists() && newData.exists()",
+        ".validate": "newData.hasChildren(['approvedAt', 'userId'])"
+      }
+    },
+    "trades": {
+      ".read": true,
+      "$tradeId": {
+        ".write": true,
+        ".validate": "newData.hasChildren(['id', 'symbol', 'lots', 'pnl', 'timestamp'])"
+      }
+    },
+    "system_config": {
+      ".read": true,
+      ".write": "auth != null"
+    },
+    "security_alerts": {
+      ".read": false,
+      "$alertId": {
+        ".write": "!data.exists()"
+      }
+    }
+  }
+}

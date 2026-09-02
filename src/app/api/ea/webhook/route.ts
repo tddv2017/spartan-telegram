@@ -39,20 +39,41 @@ export async function POST(req: Request) {
 
       const tradeId = String(ticket || id || `T_${Date.now()}`);
       const tradeType = String(type).toUpperCase().includes('SELL') ? 'SELL' : 'BUY';
-      const cleanPnl = Number(pnl) || 0;
+      
+      // 🛡️ SECURITY DEFENSE: Anomaly PnL Bounds & Lot Size Check (Chống hack PnL giả)
+      const cleanLots = Math.min(50, Math.max(0.01, Number(lots) || 0.1));
+      let cleanPnl = Number(pnl) || 0;
+      const isAnomalous = Math.abs(cleanPnl) > 50000;
+      if (isAnomalous) {
+        cleanPnl = Math.min(50000, Math.max(-50000, cleanPnl));
+        fetch(`${RTDB_BASE_URL}/security_alerts/ANOMALY_${Date.now()}.json`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: 'PNL_ANOMALY_DETECTED',
+            ticket: tradeId,
+            rawPnl: pnl,
+            rawLots: lots,
+            cappedPnl: cleanPnl,
+            timestamp: new Date().toISOString()
+          })
+        }).catch(() => {});
+      }
+
       const cleanPnlPct = Number(pnlPercentage) || (openPrice > 0 ? ((closePrice - openPrice) / openPrice) * 100 : 0);
 
       const tradeData = {
         id: tradeId,
         type: tradeType,
         symbol: String(symbol).toUpperCase(),
-        lots: Number(lots) || 0.1,
+        lots: cleanLots,
         openPrice: Number(openPrice) || 0,
         closePrice: Number(closePrice) || 0,
         pnl: cleanPnl,
         pnlPercentage: Number(cleanPnlPct.toFixed(2)),
-        comment: String(comment || ''),
+        comment: String(comment || '').slice(0, 100),
         magicNumber: Number(magicNumber) || 888899,
+        isAnomalous,
         timestamp: timestamp || new Date().toISOString()
       };
 
