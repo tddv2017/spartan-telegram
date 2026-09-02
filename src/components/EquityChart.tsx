@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { TrendingUp, TrendingDown, Radio, Activity } from 'lucide-react';
+import { TrendingUp, TrendingDown, Radio } from 'lucide-react';
 
 interface HourlyDataPoint {
   timeLabel: string;
@@ -179,8 +179,9 @@ export const EquityChart: React.FC<EquityChartProps> = ({
   // Coordinate mapping for SVG (Width: 260, Height: 90)
   const svgWidth = 260;
   const svgHeight = 90;
-  const topPadding = 8;
-  const bottomPadding = 8;
+  const topPadding = 10;
+  const bottomPadding = 10;
+  const paddingX = 14; // Safe horizontal padding from container edges
   const availableHeight = svgHeight - topPadding - bottomPadding;
 
   const mappedPoints = useMemo(() => {
@@ -188,7 +189,7 @@ export const EquityChart: React.FC<EquityChartProps> = ({
     const count = hourlyPoints.length;
 
     return hourlyPoints.map((pt, idx) => {
-      const x = count > 1 ? 8 + (idx / (count - 1)) * (svgWidth - 16) : svgWidth / 2;
+      const x = count > 1 ? paddingX + (idx / (count - 1)) * (svgWidth - (paddingX * 2)) : svgWidth / 2;
       const normalizedY = (pt.equity - minVal) / range;
       // Invert Y because SVG coordinates (0,0) is top-left
       const y = topPadding + (1 - normalizedY) * availableHeight;
@@ -229,17 +230,16 @@ export const EquityChart: React.FC<EquityChartProps> = ({
   const activePoint = activePointIndex !== null ? mappedPoints[activePointIndex] : null;
   const isPositiveGrowth = dayGrowthPercent >= 0;
   const primaryColor = isPositiveGrowth ? '#ff5500' : '#ff2d55';
-  const glowColor = isPositiveGrowth ? 'rgba(255,85,0,0.35)' : 'rgba(255,45,85,0.35)';
 
   return (
-    <div className="w-full bg-[#131927] rounded-3xl p-4 border border-[#1f293d] space-y-2 shadow-md relative transition-all">
+    <div className="w-full bg-[#131927] rounded-3xl p-4 border border-[#1f293d] space-y-2.5 shadow-md relative transition-all overflow-hidden">
       {/* Chart Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <span className="text-xs font-black text-gray-200 uppercase tracking-wider">
             Account Growth Curve
           </span>
-          <span className="text-[9px] font-bold text-gray-500 bg-[#0b0e17] px-2 py-0.5 rounded-full border border-[#1f293d] flex items-center gap-1 font-mono">
+          <span className="text-[9px] font-bold text-gray-400 bg-[#0b0e17] px-2 py-0.5 rounded-full border border-[#1f293d] flex items-center gap-1 font-mono">
             <Radio className="w-2.5 h-2.5 text-[#00df89] animate-pulse" />
             <span>24H THEO GIỜ</span>
           </span>
@@ -258,25 +258,32 @@ export const EquityChart: React.FC<EquityChartProps> = ({
         </div>
       </div>
 
-      {/* Interactive Tooltip Card (Appears on Hover / Tap) */}
-      {activePoint && (
-        <div className="bg-[#0b0e17]/95 border border-[#ff5500]/50 rounded-2xl p-2.5 shadow-xl flex items-center justify-between text-xs animate-in fade-in duration-150">
-          <div>
-            <div className="flex items-center gap-1.5">
-              <span className="font-mono font-bold text-amber-300">{activePoint.timeLabel}</span>
-              <span className="text-[10px] text-gray-400 font-sans">• {activePoint.note}</span>
+      {/* Fixed-Height Info & Tooltip Bar (Zero Layout Shift!) */}
+      <div className="h-7 flex items-center justify-between px-2.5 rounded-xl bg-[#0b0e17] border border-[#1f293d] text-[10px] select-none transition-colors">
+        {activePoint ? (
+          <>
+            <div className="flex items-center gap-1.5 overflow-hidden">
+              <span className="font-mono font-black text-amber-300 shrink-0">{activePoint.timeLabel}</span>
+              <span className="text-gray-400 truncate">• {activePoint.note}</span>
             </div>
-            <span className="text-[10px] text-gray-400 block mt-0.5">
-              Tài sản: <strong className="text-white font-mono">${activePoint.equity.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD</strong>
+            <div className="flex items-center gap-2 shrink-0 font-mono font-bold">
+              <span className="text-white font-black">${activePoint.equity.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}</span>
+              <span className={activePoint.growthPercent >= 0 ? 'text-[#00df89]' : 'text-red-400'}>
+                {activePoint.growthPercent >= 0 ? '+' : ''}{activePoint.growthPercent.toFixed(2)}%
+              </span>
+            </div>
+          </>
+        ) : (
+          <>
+            <span className="text-gray-500 font-medium flex items-center gap-1">
+              <span>Chạm / rê chuột vào các điểm để xem chi tiết theo giờ</span>
             </span>
-          </div>
-          <span className={`font-black font-mono text-xs ${
-            activePoint.growthPercent >= 0 ? 'text-[#00df89]' : 'text-red-400'
-          }`}>
-            {activePoint.growthPercent >= 0 ? '+' : ''}{activePoint.growthPercent.toFixed(2)}%
-          </span>
-        </div>
-      )}
+            <span className="text-gray-400 font-mono">
+              Live Equity: <strong className="text-white">${liveEquity.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}</strong>
+            </span>
+          </>
+        )}
+      </div>
 
       {/* Chart Body with Left Y-Axis & Bottom X-Axis */}
       <div className="flex items-stretch gap-2 pt-1 h-36">
@@ -288,16 +295,16 @@ export const EquityChart: React.FC<EquityChartProps> = ({
         </div>
 
         {/* SVG Curve Canvas */}
-        <div className="flex-1 relative flex flex-col justify-between">
+        <div className="flex-1 relative flex flex-col justify-between overflow-hidden">
           <div className="flex-1 relative">
             <svg 
-              className="w-full h-full overflow-visible" 
+              className="w-full h-full" 
               viewBox={`0 0 ${svgWidth} ${svgHeight}`} 
               preserveAspectRatio="none"
             >
               <defs>
                 <linearGradient id="realtimeGrowthGlow" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor={primaryColor} stopOpacity="0.38" />
+                  <stop offset="0%" stopColor={primaryColor} stopOpacity="0.35" />
                   <stop offset="100%" stopColor={primaryColor} stopOpacity="0.0" />
                 </linearGradient>
               </defs>
@@ -331,20 +338,34 @@ export const EquityChart: React.FC<EquityChartProps> = ({
                     onMouseLeave={() => setActivePointIndex(null)}
                   >
                     {/* Invisible Larger Hit Area for easy touch on mobile */}
-                    <circle cx={pt.x} cy={pt.y} r="10" fill="transparent" />
+                    <circle cx={pt.x} cy={pt.y} r="12" fill="transparent" />
 
-                    {/* Pulse animation for current realtime point */}
+                    {/* Pure SVG Animated Ripple Ring for current realtime point (Zero Drift, perfectly centered) */}
                     {isLatest && (
                       <circle 
                         cx={pt.x} 
                         cy={pt.y} 
-                        r="5" 
-                        fill={isPositiveGrowth ? '#00df89' : '#ff2d55'} 
-                        className="animate-ping opacity-75" 
-                      />
+                        r="3.5" 
+                        fill="none" 
+                        stroke={isPositiveGrowth ? '#00df89' : '#ff2d55'} 
+                        strokeWidth="1.5"
+                      >
+                        <animate 
+                          attributeName="r" 
+                          values="3.5;8;3.5" 
+                          dur="2s" 
+                          repeatCount="indefinite" 
+                        />
+                        <animate 
+                          attributeName="opacity" 
+                          values="0.9;0.1;0.9" 
+                          dur="2s" 
+                          repeatCount="indefinite" 
+                        />
+                      </circle>
                     )}
 
-                    {/* Main Node Point */}
+                    {/* Main Point Dot */}
                     <circle
                       cx={pt.x}
                       cy={pt.y}
@@ -352,7 +373,6 @@ export const EquityChart: React.FC<EquityChartProps> = ({
                       fill={isLatest ? (isPositiveGrowth ? '#00df89' : '#ff2d55') : isSelected ? '#ffffff' : '#facc15'}
                       stroke={isSelected ? '#ff5500' : 'none'}
                       strokeWidth={isSelected ? 1.5 : 0}
-                      className="transition-all duration-200 shadow-lg"
                     />
                   </g>
                 );
@@ -384,7 +404,7 @@ export const EquityChart: React.FC<EquityChartProps> = ({
       </div>
 
       {/* Bottom Context Footnote */}
-      <div className="flex items-center justify-between text-[9px] text-gray-500 pt-1">
+      <div className="flex items-center justify-between text-[9px] text-gray-500 pt-0.5">
         <span className="font-mono">Tài sản Exness MT5: <strong className="text-gray-300">${liveEquity.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD</strong></span>
         <span className="text-[#00df89] font-mono">Lệnh chạy: +${liveFloating.toFixed(2)} USD</span>
       </div>
