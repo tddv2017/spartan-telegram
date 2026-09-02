@@ -22,6 +22,7 @@ import { TechOpsTab } from '@/components/admin/TechOpsTab';
 import { AiAgentsCommandCenter } from '@/components/admin/AiAgentsCommandCenter';
 import { AdminUserCrudManager } from '@/components/admin/AdminUserCrudManager';
 import { AdminTransactionCrudManager } from '@/components/admin/AdminTransactionCrudManager';
+import { AdminPinAuthModal } from '@/components/admin/AdminPinAuthModal';
 import { 
   ShieldCheck, 
   Layers, 
@@ -36,7 +37,10 @@ import {
   Wallet,
   Activity,
   ArrowRight,
-  TrendingUp
+  TrendingUp,
+  Lock,
+  LogOut,
+  KeyRound
 } from 'lucide-react';
 
 type AdminNavSection = 
@@ -47,7 +51,11 @@ type AdminNavSection =
   | 'techops' 
   | 'agents';
 
+const PIN_STORAGE_KEY = 'spartan_admin_master_pin_v2';
+const SESSION_AUTH_KEY = 'spartan_admin_session_auth_token';
+
 export default function StandaloneAdminPortalPage() {
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [activeSection, setActiveSection] = useState<AdminNavSection>('overview');
   const [pendingTxs, setPendingTxs] = useState<TransactionData[]>([]);
   const [allTransactions, setAllTransactions] = useState<TransactionData[]>([]);
@@ -69,6 +77,11 @@ export default function StandaloneAdminPortalPage() {
   const [adminStatusMsg, setAdminStatusMsg] = useState<string | null>(null);
   const [broadcastMsg, setBroadcastMsg] = useState<string>('');
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Change PIN Modal State
+  const [isChangePinOpen, setIsChangePinOpen] = useState(false);
+  const [newPinInput, setNewPinInput] = useState('');
+  const [pinChangeSuccess, setPinChangeSuccess] = useState<string | null>(null);
 
   // Load All System Data
   const loadSystemData = async () => {
@@ -92,12 +105,34 @@ export default function StandaloneAdminPortalPage() {
   };
 
   useEffect(() => {
-    loadSystemData();
-    const unsub = subscribeToPendingTransactions((txs) => {
-      setPendingTxs(txs);
-    });
-    return () => unsub();
-  }, []);
+    if (isAuthenticated) {
+      loadSystemData();
+      const unsub = subscribeToPendingTransactions((txs) => {
+        setPendingTxs(txs);
+      });
+      return () => unsub();
+    }
+  }, [isAuthenticated]);
+
+  const handleLogout = () => {
+    sessionStorage.removeItem(SESSION_AUTH_KEY);
+    setIsAuthenticated(false);
+  };
+
+  const handleChangePinSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newPinInput.length !== 6 || !/^\d+$/.test(newPinInput)) {
+      alert('Mã PIN mới phải gồm đúng 6 chữ số');
+      return;
+    }
+    localStorage.setItem(PIN_STORAGE_KEY, newPinInput);
+    setPinChangeSuccess('✅ ĐÃ ĐỔI MÃ MASTER PIN THÀNH CÔNG!');
+    setTimeout(() => {
+      setPinChangeSuccess(null);
+      setIsChangePinOpen(false);
+      setNewPinInput('');
+    }, 2000);
+  };
 
   const handleApprove = async (tx: TransactionData) => {
     const key = tx.id || tx.memoCode;
@@ -158,6 +193,11 @@ export default function StandaloneAdminPortalPage() {
     { id: 'agents' as AdminNavSection, label: 'AI AGENTS (3 BỘ PHẬN)', icon: Bot },
   ];
 
+  // If not authenticated, render 6-digit military Master PIN Gate
+  if (!isAuthenticated) {
+    return <AdminPinAuthModal onSuccess={() => setIsAuthenticated(true)} />;
+  }
+
   return (
     <div className="min-h-screen bg-[#07090e] text-white flex flex-col font-sans">
       {/* Top Universal Institutional Header Bar */}
@@ -182,8 +222,8 @@ export default function StandaloneAdminPortalPage() {
           </div>
         </div>
 
-        {/* Live Gold Ticker & Quick Actions */}
-        <div className="flex items-center gap-2 md:gap-4">
+        {/* Live Gold Ticker & Security Controls */}
+        <div className="flex items-center gap-2 md:gap-3">
           {/* Gold Ticker */}
           <div className="hidden lg:flex items-center gap-2 bg-[#131927] border border-[#1f293d] px-3 py-1.5 rounded-xl font-mono text-xs">
             <span className="text-gray-400 text-[10px]">XAUUSD:</span>
@@ -203,6 +243,15 @@ export default function StandaloneAdminPortalPage() {
             <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin text-amber-400' : ''}`} />
           </button>
 
+          {/* Change PIN Button */}
+          <button
+            onClick={() => setIsChangePinOpen(true)}
+            className="p-2.5 rounded-xl bg-[#131927] hover:bg-amber-500/20 border border-[#1f293d] text-amber-400 hover:text-amber-300 text-xs font-bold transition-all"
+            title="Đổi mã Master PIN"
+          >
+            <KeyRound className="w-4 h-4" />
+          </button>
+
           {/* Link back to Mini App */}
           <a
             href="/"
@@ -212,6 +261,16 @@ export default function StandaloneAdminPortalPage() {
             <ExternalLink className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">Mini App</span>
           </a>
+
+          {/* Emergency Lock / Logout Button */}
+          <button
+            onClick={handleLogout}
+            className="px-3 py-2 rounded-xl bg-red-500/20 hover:bg-red-500/30 border border-red-500/40 text-red-400 hover:text-red-300 text-xs font-black uppercase flex items-center gap-1.5 transition-all"
+            title="Khóa cổng quản trị ngay lập tức"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Khóa Cổng</span>
+          </button>
         </div>
       </header>
 
@@ -262,10 +321,10 @@ export default function StandaloneAdminPortalPage() {
               </span>
             </div>
             <div className="flex items-center justify-between text-[10px] text-gray-400 px-1">
-              <span>HẠ TẦNG:</span>
+              <span>HẠ TẦNG AN NINH:</span>
               <span className="text-[#00df89] font-black flex items-center gap-1">
                 <span className="w-2 h-2 rounded-full bg-[#00df89] shadow-[0_0_6px_#00df89] animate-pulse" />
-                ONLINE
+                PROTECTED
               </span>
             </div>
           </div>
@@ -330,6 +389,60 @@ export default function StandaloneAdminPortalPage() {
           )}
         </main>
       </div>
+
+      {/* MODAL ĐỔI MÃ MASTER PIN */}
+      {isChangePinOpen && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-[#0b0e17] border border-amber-500/50 rounded-3xl p-6 max-w-sm w-full space-y-4 shadow-2xl animate-in zoom-in-95 duration-200 text-center">
+            <div className="w-12 h-12 mx-auto rounded-2xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 font-black">
+              <KeyRound className="w-6 h-6" />
+            </div>
+
+            <div>
+              <h3 className="text-sm font-black text-white uppercase tracking-wider">
+                THIẾT LẬP MÃ MASTER PIN MỚI
+              </h3>
+              <span className="text-[10px] text-gray-400 font-mono block">
+                Nhập 6 chữ số bí mật để khóa cổng Admin
+              </span>
+            </div>
+
+            {pinChangeSuccess && (
+              <div className="p-3 bg-[#00df89]/20 border border-[#00df89] rounded-2xl text-[#00df89] text-xs font-bold">
+                {pinChangeSuccess}
+              </div>
+            )}
+
+            <form onSubmit={handleChangePinSubmit} className="space-y-3">
+              <input
+                type="password"
+                maxLength={6}
+                required
+                value={newPinInput}
+                onChange={(e) => setNewPinInput(e.target.value.replace(/\D/g, ''))}
+                placeholder="VD: 998877"
+                className="w-full bg-[#131927] border border-amber-500/40 rounded-2xl py-3 text-center text-xl font-mono tracking-[0.4em] text-white focus:outline-none focus:border-amber-400"
+              />
+
+              <div className="flex items-center gap-2 pt-2">
+                <button
+                  type="submit"
+                  className="flex-1 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-[#ff5500] text-black font-black text-xs uppercase shadow-md hover:opacity-90 transition-all"
+                >
+                  LƯU MÃ PIN MỚI
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setIsChangePinOpen(false); setNewPinInput(''); }}
+                  className="px-4 py-3 rounded-xl bg-[#131927] text-gray-400 hover:text-white border border-[#1f293d] text-xs font-bold"
+                >
+                  HỦY
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
