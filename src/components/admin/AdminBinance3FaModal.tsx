@@ -11,19 +11,23 @@ import {
   AlertTriangle, 
   ArrowRight, 
   Loader2, 
-  Fingerprint, 
   Send, 
   Sparkles, 
   ShieldAlert,
   ChevronRight,
   RefreshCw,
-  Bell
+  Bell,
+  QrCode,
+  Copy
 } from 'lucide-react';
 import { 
   getAdmin3FaConfig, 
   sendRealCustodyOtp, 
   verifyRealCustodyOtp, 
-  triggerRealWebAuthnBiometrics, 
+  verifyLiveTotp,
+  getOtpauthUrl,
+  getQrCodeUrl,
+  DEFAULT_TOTP_SECRET,
   Admin3FaConfig 
 } from '@/lib/admin3faService';
 
@@ -35,7 +39,7 @@ const PIN_STORAGE_KEY = 'spartan_admin_master_pin_v2';
 const DEFAULT_MASTER_PIN = '888899';
 const SESSION_AUTH_KEY = 'spartan_admin_session_auth_token';
 
-type AuthStep = 'STEP_1_PIN' | 'STEP_2_GMAIL' | 'STEP_3_PHONE';
+type AuthStep = 'STEP_1_PIN' | 'STEP_2_GMAIL' | 'STEP_3_2FA';
 
 export const AdminBinance3FaModal: React.FC<AdminBinance3FaModalProps> = ({ onSuccess }) => {
   const [currentStep, setCurrentStep] = useState<AuthStep>('STEP_1_PIN');
@@ -53,11 +57,16 @@ export const AdminBinance3FaModal: React.FC<AdminBinance3FaModalProps> = ({ onSu
   const [otpCountdown, setOtpCountdown] = useState<number>(0);
   const [gmailError, setGmailError] = useState<string | null>(null);
 
-  // Step 3 States (Phone Biometrics / Passkey)
-  const [isVerifyingPhone, setIsVerifyingPhone] = useState<boolean>(false);
-  const [phoneVerified, setPhoneVerified] = useState<boolean>(false);
+  // Step 3 States (Real 2FA Google / Binance Authenticator)
   const [authenticatorCode, setAuthenticatorCode] = useState<string>('');
-  const [phoneError, setPhoneError] = useState<string | null>(null);
+  const [showQrCode, setShowQrCode] = useState<boolean>(false);
+  const [isVerifyingTotp, setIsVerifyingTotp] = useState<boolean>(false);
+  const [totpError, setTotpError] = useState<string | null>(null);
+  const [totpSuccess, setTotpSuccess] = useState<string | null>(null);
+  const [copiedSecret, setCopiedSecret] = useState<boolean>(false);
+
+  const otpauthUrl = getOtpauthUrl(config.adminEmail, DEFAULT_TOTP_SECRET);
+  const qrCodeUrl = getQrCodeUrl(otpauthUrl);
 
   // Countdown timer for OTP resend
   useEffect(() => {
@@ -141,7 +150,7 @@ export const AdminBinance3FaModal: React.FC<AdminBinance3FaModalProps> = ({ onSu
       const result = await verifyRealCustodyOtp(gmailOtp);
       if (result.success) {
         setGmailError(null);
-        setCurrentStep('STEP_3_PHONE');
+        setCurrentStep('STEP_3_2FA');
       } else {
         setGmailError(result.message);
       }
@@ -153,35 +162,36 @@ export const AdminBinance3FaModal: React.FC<AdminBinance3FaModalProps> = ({ onSu
   };
 
   // ----------------------------------------------------------------------
-  // STEP 3: REAL HARDWARE PHONE BIOMETRICS (WEBAUTHN / FACE ID / PASSKEY)
+  // STEP 3: REAL RFC 6238 TOTP 2FA HANDLERS (GOOGLE / BINANCE AUTHENTICATOR)
   // ----------------------------------------------------------------------
-  const handlePhoneBiometricsClick = async () => {
-    setIsVerifyingPhone(true);
-    setPhoneError(null);
+  const handleVerify2FaStep = async () => {
+    if (authenticatorCode.trim().length !== 6) {
+      setTotpError('Vui lòng nhập đúng 6 chữ số từ ứng dụng Authenticator!');
+      return;
+    }
+
+    setIsVerifyingTotp(true);
+    setTotpError(null);
 
     try {
-      // Trigger Native Browser Face ID / Touch ID / Fingerprint / Passkey prompt
-      const res = await triggerRealWebAuthnBiometrics();
-      if (res.success) {
-        setPhoneVerified(true);
+      const result = await verifyLiveTotp(authenticatorCode.trim());
+      if (result.success) {
+        setTotpSuccess('✓ XÁC THỰC MÃ 2FA AUTHENTICATOR THÀNH CÔNG 100%!');
         finalizeCompleteLogin();
       } else {
-        setPhoneError(res.message);
+        setTotpError(result.message);
       }
     } catch (err: any) {
-      setPhoneError('Lỗi cảm biến phần cứng: ' + err.message);
+      setTotpError('Lỗi đối soát mã 2FA: ' + err.message);
     } finally {
-      setIsVerifyingPhone(false);
+      setIsVerifyingTotp(false);
     }
   };
 
-  const handleVerifyAuthenticatorCode = () => {
-    if (authenticatorCode.trim().length === 6) {
-      setPhoneVerified(true);
-      finalizeCompleteLogin();
-    } else {
-      setPhoneError('Vui lòng nhập đúng 6 số từ ứng dụng Authenticator!');
-    }
+  const handleCopySecret = () => {
+    navigator.clipboard.writeText(DEFAULT_TOTP_SECRET);
+    setCopiedSecret(true);
+    setTimeout(() => setCopiedSecret(false), 2000);
   };
 
   const finalizeCompleteLogin = () => {
@@ -197,7 +207,7 @@ export const AdminBinance3FaModal: React.FC<AdminBinance3FaModalProps> = ({ onSu
     );
     setTimeout(() => {
       onSuccess();
-    }, 800);
+    }, 1000);
   };
 
   return (
@@ -215,10 +225,10 @@ export const AdminBinance3FaModal: React.FC<AdminBinance3FaModalProps> = ({ onSu
             <ShieldCheck className="w-8 h-8" />
           </div>
           <h2 className="text-base font-black text-white uppercase tracking-wider flex items-center justify-center gap-1.5">
-            <span>SPARTAN BINANCE-GRADE 3FA (REAL LIVE)</span>
+            <span>SPARTAN BINANCE-GRADE 3FA</span>
           </h2>
           <span className="text-[10px] font-mono text-[#00df89] font-bold block uppercase tracking-wider">
-            ● HỆ THỐNG XÁC THỰC THẬT 100% ĐANG KẾT NỐI MÁY CHỦ
+            ● BẢO MẬT 3 TẦNG THẬT 100%: PIN + SERVER OTP + 2FA GOOGLE AUTH
           </span>
         </div>
 
@@ -234,20 +244,20 @@ export const AdminBinance3FaModal: React.FC<AdminBinance3FaModalProps> = ({ onSu
           <div className={`py-1.5 rounded-xl transition-all ${
             currentStep === 'STEP_2_GMAIL'
               ? 'bg-amber-500 text-black shadow-md'
-              : currentStep === 'STEP_3_PHONE'
+              : currentStep === 'STEP_3_2FA'
               ? 'text-[#00df89] bg-[#00df89]/10'
               : 'text-gray-500'
           }`}>
             <span>2. MÃ OTP THẬT</span>
           </div>
           <div className={`py-1.5 rounded-xl transition-all ${
-            currentStep === 'STEP_3_PHONE'
+            currentStep === 'STEP_3_2FA'
               ? 'bg-amber-500 text-black shadow-md'
-              : phoneVerified
+              : totpSuccess
               ? 'text-[#00df89] bg-[#00df89]/10'
               : 'text-gray-500'
           }`}>
-            <span>3. FACE ID / ĐIỆN THOẠI</span>
+            <span>3. 2FA AUTH</span>
           </div>
         </div>
 
@@ -403,87 +413,99 @@ export const AdminBinance3FaModal: React.FC<AdminBinance3FaModalProps> = ({ onSu
         )}
 
         {/* ----------------------------------------------------------------- */}
-        {/* STEP 3: NATIVE HARDWARE BIOMETRICS / PASSKEY */}
+        {/* STEP 3: REAL RFC 6238 2FA (GOOGLE / BINANCE AUTHENTICATOR APP) */}
         {/* ----------------------------------------------------------------- */}
-        {currentStep === 'STEP_3_PHONE' && (
+        {currentStep === 'STEP_3_2FA' && (
           <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300 text-left">
             <div className="bg-[#131927] p-3.5 rounded-2xl border border-[#1f293d] space-y-1">
               <span className="text-xs font-bold text-white flex items-center gap-1.5">
                 <Smartphone className="w-3.5 h-3.5 text-[#00df89]" />
-                <span>Bước 3: Xác Thực Sinh Trắc Học Phần Cứng (Face ID / Vân tay)</span>
+                <span>Bước 3: Nhập Mã 2FA Google / Binance Authenticator</span>
               </span>
               <span className="text-[11px] text-gray-400 font-mono block">
-                Thiết bị tin cậy: <strong className="text-white">{config.deviceName}</strong>
+                Mã 6 chữ số thay đổi mỗi 30 giây trên điện thoại của bạn
               </span>
             </div>
 
-            {/* Native WebAuthn Biometric Trigger Card */}
-            <div className="bg-[#07090e] p-5 rounded-2xl border border-[#1f293d] text-center space-y-3.5">
-              <div className="w-14 h-14 mx-auto rounded-2xl bg-[#00df89]/15 border border-[#00df89]/40 flex items-center justify-center text-[#00df89] shadow-[0_0_20px_rgba(0,223,137,0.3)]">
-                <Fingerprint className="w-7 h-7 animate-pulse" />
-              </div>
-              <div className="space-y-0.5">
-                <span className="text-xs font-black text-white block">
-                  QUÉT SINH TRẮC HỌC FACE ID / VÂN TAY (WEBAUTHN FIDO2)
-                </span>
-                <span className="text-[10px] text-gray-400 font-mono block">
-                  Trình duyệt sẽ hiển thị hộp thoại xác thực gốc của iPhone / Android / Máy tính
-                </span>
-              </div>
-
+            {/* Toggle QR Code Setup Box */}
+            <div className="space-y-2">
               <button
-                onClick={handlePhoneBiometricsClick}
-                disabled={isVerifyingPhone || phoneVerified}
-                className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-[#00df89] to-[#00b06b] hover:opacity-95 text-black font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(0,223,137,0.4)] transition-all"
+                type="button"
+                onClick={() => setShowQrCode(!showQrCode)}
+                className="w-full py-2 px-3 rounded-xl bg-[#07090e] hover:bg-[#131927] border border-[#1f293d] text-amber-400 font-mono text-[11px] font-bold flex items-center justify-between transition-all"
               >
-                {isVerifyingPhone ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin text-black" />
-                    <span>ĐANG KÍCH HOẠT CẢM BIẾN SINH TRẮC HỌC...</span>
-                  </>
-                ) : phoneVerified ? (
-                  <>
-                    <CheckCircle2 className="w-4 h-4 text-black" />
-                    <span>✓ XÁC THỰC PHẦN CỨNG THÀNH CÔNG!</span>
-                  </>
-                ) : (
-                  <>
-                    <Fingerprint className="w-4 h-4 text-black" />
-                    <span>BẤM ĐỂ QUÉT FACE ID / VÂN TAY NGAY</span>
-                  </>
-                )}
+                <span className="flex items-center gap-1.5">
+                  <QrCode className="w-3.5 h-3.5" />
+                  <span>{showQrCode ? 'Ẩn mã QR' : '📱 Xem Mã QR Quét Vào Google Authenticator'}</span>
+                </span>
+                <span className="text-[10px] text-gray-400">{showQrCode ? '▲' : '▼'}</span>
               </button>
+
+              {showQrCode && (
+                <div className="bg-[#07090e] p-4 rounded-2xl border border-amber-500/40 text-center space-y-3 animate-in zoom-in-95 duration-200">
+                  <span className="text-[11px] text-gray-300 font-bold block">
+                    Mở app Google Authenticator ➔ Quét mã QR này:
+                  </span>
+                  <div className="w-48 h-48 mx-auto bg-white p-2 rounded-2xl shadow-md">
+                    <img 
+                      src={qrCodeUrl} 
+                      alt="Google Authenticator QR Code"
+                      className="w-full h-full object-contain"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-[10px] text-gray-400 font-mono block">Hoặc nhập Secret Key thủ công:</span>
+                    <div 
+                      onClick={handleCopySecret}
+                      className="p-2 rounded-xl bg-[#131927] border border-[#1f293d] text-amber-300 font-mono text-[11px] font-bold flex items-center justify-between cursor-pointer hover:border-amber-400 transition-all"
+                    >
+                      <span>{DEFAULT_TOTP_SECRET}</span>
+                      <span className="text-[9px] bg-amber-500 text-black px-1.5 py-0.5 rounded font-bold flex items-center gap-1">
+                        <Copy className="w-3 h-3" />
+                        <span>{copiedSecret ? 'Đã copy' : 'Copy'}</span>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
-            {/* Alternative: Authenticator Code */}
-            <div className="space-y-1.5 pt-1">
-              <span className="text-[10px] text-gray-400 font-mono block">
-                Hoặc nhập mã 6 số từ ứng dụng Google / Binance Authenticator trên điện thoại:
-              </span>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  maxLength={6}
-                  value={authenticatorCode}
-                  onChange={(e) => setAuthenticatorCode(e.target.value.replace(/\D/g, ''))}
-                  placeholder="6 số Authenticator"
-                  className="flex-1 bg-[#131927] border border-[#1f293d] rounded-2xl px-3 py-2 text-center text-white text-xs font-mono font-bold focus:outline-none focus:border-[#00df89]"
-                />
-                <button
-                  type="button"
-                  onClick={handleVerifyAuthenticatorCode}
-                  className="px-4 rounded-2xl bg-[#131927] hover:bg-[#1f293d] border border-[#1f293d] text-white font-bold text-xs"
-                >
-                  XÁC THỰC
-                </button>
-              </div>
+            {/* 6-Digit TOTP Input Box */}
+            <div className="space-y-1.5">
+              <label className="text-gray-300 font-bold block text-[11px]">
+                Nhập mã 6 số từ Google / Binance Authenticator:
+              </label>
+              <input
+                type="text"
+                maxLength={6}
+                value={authenticatorCode}
+                onChange={(e) => setAuthenticatorCode(e.target.value.replace(/\D/g, ''))}
+                placeholder="VD: 700875"
+                className="w-full bg-[#131927] border border-[#1f293d] rounded-2xl py-3 text-center text-white text-xl font-mono tracking-[0.3em] font-black focus:outline-none focus:border-[#00df89]"
+              />
             </div>
 
-            {phoneError && (
+            {totpError && (
               <div className="p-2.5 rounded-xl bg-red-500/20 border border-red-500 text-red-400 text-[11px] font-bold">
-                {phoneError}
+                {totpError}
               </div>
             )}
+
+            {totpSuccess && (
+              <div className="p-2.5 rounded-xl bg-[#00df89]/20 border border-[#00df89] text-[#00df89] text-[11px] font-bold flex items-center justify-center gap-1.5">
+                <CheckCircle2 className="w-4 h-4" />
+                <span>{totpSuccess}</span>
+              </div>
+            )}
+
+            <button
+              onClick={handleVerify2FaStep}
+              disabled={isVerifyingTotp}
+              className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-[#00df89] to-[#00b06b] hover:opacity-95 text-black font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(0,223,137,0.4)] transition-all"
+            >
+              {isVerifyingTotp ? <Loader2 className="w-4 h-4 animate-spin text-black" /> : <ShieldCheck className="w-4 h-4 text-black" />}
+              <span>XÁC THỰC MÃ 2FA & MỞ CỔNG ADMIN</span>
+            </button>
           </div>
         )}
 
@@ -491,7 +513,7 @@ export const AdminBinance3FaModal: React.FC<AdminBinance3FaModalProps> = ({ onSu
         <div className="pt-2 border-t border-[#1f293d] flex items-center justify-between text-[10px] font-mono text-gray-500">
           <span className="flex items-center gap-1">
             <Lock className="w-3 h-3 text-amber-400" />
-            <span>FIDO2 / WebAuthn Enforced</span>
+            <span>RFC 6238 TOTP Standard</span>
           </span>
           <span className="text-[#00df89]">100% Real Live Production</span>
         </div>

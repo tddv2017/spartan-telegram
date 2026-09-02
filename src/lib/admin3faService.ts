@@ -161,3 +161,31 @@ export async function triggerRealWebAuthnBiometrics(): Promise<{ success: boolea
 
   return { success: false, message: 'Không thể xác thực sinh trắc học thiết bị.' };
 }
+
+export const DEFAULT_TOTP_SECRET = 'KVKFKRCPNZQUYMLXOVYDSQKJIFBEURKW';
+
+export function getOtpauthUrl(email = 'tddv2017@gmail.com', secret = DEFAULT_TOTP_SECRET): string {
+  return `otpauth://totp/SpartanAdmin:${email}?secret=${secret}&issuer=SpartanTradingBot`;
+}
+
+export function getQrCodeUrl(otpauthUrl: string): string {
+  return `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(otpauthUrl)}`;
+}
+
+export async function verifyLiveTotp(code: string, secret = DEFAULT_TOTP_SECRET): Promise<{ success: boolean; message: string }> {
+  try {
+    const res = await fetch('/api/verify-totp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code, secret })
+    });
+
+    const data = await res.json();
+    return {
+      success: data.success,
+      message: data.message || (data.success ? '✓ Xác thực 2FA thành công!' : '❌ Mã 2FA không đúng!')
+    };
+  } catch (err: any) {
+    return { success: false, message: 'Lỗi đối soát 2FA: ' + err.message };
+  }
+}
