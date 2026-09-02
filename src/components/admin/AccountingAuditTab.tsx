@@ -402,26 +402,29 @@ export const AccountingAuditTab: React.FC<AccountingAuditTabProps> = ({
               const uProfit = totalBotProfit * (uShare / 100);
 
               return (
-                <div key={u.telegramId} className="flex items-center justify-between p-2 rounded-xl bg-[#131927] border border-[#1f293d] hover:border-gray-600 text-[11px]">
+                <div key={u.telegramId} className="flex items-center justify-between p-2.5 rounded-xl bg-[#131927] border border-[#1f293d] hover:border-gray-600 text-[11px]">
                   <div>
-                    <span className="font-black text-white">@{u.username || 'user'}</span>
-                    <span className="text-[9px] text-gray-500 ml-1.5">ID: {u.telegramId}</span>
-                  </div>
-                  <div className="flex items-center gap-4 text-right">
-                    <div>
-                      <span className="text-[9px] text-gray-500 block">VỐN GÓP:</span>
-                      <span className="font-bold text-white">${uCap.toFixed(2)}</span>
-                    </div>
-                    <div className="w-16">
-                      <span className="text-[9px] text-gray-500 block">TỶ LỆ:</span>
-                      <span className="font-black text-blue-400">{uShare.toFixed(2)}%</span>
-                    </div>
-                    <div className="w-20">
-                      <span className="text-[9px] text-gray-500 block">LÃI PHÂN BỔ:</span>
-                      <span className={`font-black ${uProfit >= 0 ? 'text-[#00df89]' : 'text-red-400'}`}>
-                        {uProfit >= 0 ? '+' : ''}${uProfit.toFixed(2)}
+                    <div className="flex items-center gap-2">
+                      <span className="font-black text-white">@{u.username || 'user'}</span>
+                      <span className="text-[9px] text-gray-400 font-mono">ID: {u.telegramId}</span>
+                      <span className="text-[9px] font-bold text-blue-300 bg-blue-500/10 px-1.5 py-0.2 rounded border border-blue-500/20 font-mono">
+                        {uShare.toFixed(2)}% Pool
                       </span>
                     </div>
+                    <div className="text-[10px] text-gray-400 font-mono mt-0.5 flex items-center gap-1.5 flex-wrap">
+                      <span>Vốn góp: <strong className="text-white">${uCap.toFixed(2)} USD</strong></span>
+                      <span className="text-gray-600">•</span>
+                      <span className="text-amber-300">
+                        Phép tính: <strong>${totalBotProfit.toFixed(2)} × {uShare.toFixed(2)}%</strong>
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="text-right font-mono">
+                    <span className="text-[9px] text-gray-400 block uppercase font-bold">LÃI PHÂN BỔ:</span>
+                    <span className={`text-sm font-black ${uProfit >= 0 ? 'text-[#00df89]' : 'text-red-400'}`}>
+                      {uProfit >= 0 ? '+' : ''}${uProfit.toFixed(2)} USDT
+                    </span>
                   </div>
                 </div>
               );

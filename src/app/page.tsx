@@ -331,6 +331,7 @@ export default function Home() {
             referralsIncome={referralsIncome} 
             poolSharePercentage={masterPoolBalance > 0 ? (tradingBalance / masterPoolBalance) * 100 : 0}
             estimatedPoolProfit={masterPoolProfit * (masterPoolBalance > 0 ? (tradingBalance / masterPoolBalance) : 0)}
+            totalMasterProfit={masterPoolProfit}
           />
 
           <ActionButtons 
@@ -363,7 +364,11 @@ export default function Home() {
 
       {activeTab === 'analytics' && (
         <div className="p-4">
-          <AnalyticsView />
+          <AnalyticsView 
+            tradingBalance={tradingBalance}
+            masterPoolBalance={masterPoolBalance}
+            totalMasterProfit={masterPoolProfit}
+          />
         </div>
       )}
 
