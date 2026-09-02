@@ -124,7 +124,7 @@ export const AdminUserCrudManager: React.FC<AdminUserCrudManagerProps> = ({
     if (!editingUser) return;
     setIsSubmitting(true);
     try {
-      const success = await updateUserDetails(editingUser.telegramId, editForm);
+      const success = await updateUserDetails(editingUser.telegramId, editForm as any);
       if (success) {
         setStatusMsg(`✅ Đã cập nhật thành công tài khoản @${editForm.username} (ID: ${editingUser.telegramId})!`);
         setEditingUser(null);
