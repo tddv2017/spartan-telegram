@@ -41,9 +41,25 @@ export const translations = {
     en: 'Running Spartan 300 Multi-TF Pro on Exness ECN. Multi-tier risk defense: Automated breakeven at 1.0R, hard stop-loss on 100% of deals.'
   },
 
+  // Equity Chart
+  chart_account_growth: { vi: 'ĐƯỜNG CONG TĂNG TRƯỞNG TÀI SẢN', en: 'ACCOUNT GROWTH CURVE' },
+  chart_hourly: { vi: '24H THEO GIỜ', en: '24H HOURLY' },
+  chart_my_share: { vi: 'CỦA TÔI', en: 'MY SHARE' },
+  chart_pool_share: { vi: 'POOL ($50k)', en: 'POOL ($50k)' },
+  chart_today: { vi: 'Hôm nay', en: 'Today' },
+  chart_touch_hint: { vi: 'Chạm vào các điểm để xem chi tiết', en: 'Tap data points to inspect details' },
+  chart_your_equity: { vi: 'Tài sản của bạn:', en: 'Your Equity:' },
+  chart_live_equity: { vi: 'Tài sản Pool:', en: 'Pool Equity:' },
+  chart_share_ratio_hint: { vi: 'Tài sản theo % vốn góp', en: 'Scaled by your capital share' },
+  chart_pool_ratio_hint: { vi: 'Tài sản Master Pool Exness', en: 'Exness Master Pool Equity' },
+
   // Wallet View
-  tab_deposit: { vi: 'NẠP TIỀN / DEPOSIT', en: 'DEPOSIT' },
-  tab_withdraw: { vi: 'RÚT TIỀN / WITHDRAW', en: 'WITHDRAW' },
+  tab_deposit: { vi: 'NẠP TIỀN / DEPOSIT', en: 'DEPOSIT CAPITAL' },
+  tab_withdraw: { vi: 'RÚT TIỀN / WITHDRAW', en: 'WITHDRAW FUNDS' },
+  wallet_available_balance: { vi: 'SỐ DƯ VỐN BOT HIỆN TẠI', en: 'CURRENT TRADING BALANCE' },
+  net_deposited: { vi: 'Tổng Đã Nạp:', en: 'Total Deposited:' },
+  net_withdrawn: { vi: 'Tổng Đã Rút:', en: 'Total Withdrawn:' },
+  total_requests: { vi: 'Tổng Lệnh:', en: 'Total Requests:' },
   deposit_qr_title: { vi: 'NẠP TIỀN QUA MÃ QR (USDT TRC20)', en: 'DEPOSIT VIA QR CODE (USDT TRC20)' },
   deposit_qr_sub: { vi: 'Chuyển trực tiếp từ Binance, OKX, Bybit, Remitano hoặc Ví cá nhân', en: 'Transfer directly from Binance, OKX, Bybit, or personal wallets' },
   deposit_fee_badge: { vi: 'Phí: 9% + $3.00 USD', en: 'Fee: 9% + $3.00 USD' },
@@ -60,18 +76,59 @@ export const translations = {
   btn_verify_txid: { vi: '⚡ XÁC THỰC MÃ BĂM & DUYỆT TIỀN NGAY (1S)', en: '⚡ VERIFY TXID HASH & AUTO-APPROVE (1S)' },
   btn_paid: { vi: 'TÔI ĐÃ CHUYỂN TIỀN XONG (ĐÃ THANH TOÁN)', en: 'I HAVE COMPLETED PAYMENT' },
   btn_close_qr: { vi: 'ĐÓNG MÃ QR', en: 'CLOSE QR CODE' },
+  wallet_withdraw_source_label: { vi: 'Chọn nguồn rút tiền:', en: 'Select Withdrawal Source:' },
+  wallet_withdraw_from_trading: { vi: 'Vốn Bot Giao Dịch (Phí 9% + $3)', en: 'Trading Capital (Fee 9% + $3)' },
+  wallet_withdraw_from_rebate: { vi: 'Hoa Hồng Đối Tác (Phí $5 cố định)', en: 'Affiliate Rebate (Fixed $5 Fee)' },
+  wallet_withdraw_addr_label: { vi: 'Địa chỉ ví nhận USDT TRC20:', en: 'Destination USDT TRC20 Address:' },
+  wallet_btn_confirm_withdraw: { vi: 'XÁC NHẬN TẠO ĐƠN RÚT TIỀN', en: 'CONFIRM WITHDRAWAL REQUEST' },
+  wallet_ledger_title: { vi: 'SỔ CÁI ĐỐI SOÁT GIAO DỊCH (REALTIME)', en: 'TRANSACTION AUDIT LEDGER (REALTIME)' },
+  wallet_withdraw_locked_hint: { vi: 'Đang khóa chờ duyệt:', en: 'Locked pending approval:' },
+  wallet_available_to_withdraw: { vi: 'Khả dụng rút:', en: 'Available to withdraw:' },
 
   // Reseller / Profile
   reseller_title: { vi: 'CHƯƠNG TRÌNH ĐỐI TÁC RESELLER', en: 'RESELLER AFFILIATE PROGRAM' },
   reseller_rebate_badge: { vi: 'Hoa hồng tới 20%', en: 'Up to 20% Rebate' },
   total_rebate: { vi: 'TỔNG HOA HỒNG CỦA BẠN', en: 'YOUR TOTAL REBATE' },
   direct_clients: { vi: 'KHÁCH TRỰC TIẾP (F1)', en: 'DIRECT CLIENTS (F1)' },
+  direct_clients_count: { vi: 'Thành viên', en: 'Members' },
   reinvest_btn: { vi: 'TÁI ĐẦU TƯ (0% PHÍ)', en: 'REINVEST (0% FEE)' },
   withdraw_rebate_btn: { vi: 'RÚT HOA HỒNG', en: 'WITHDRAW REBATE' },
   ref_link_label: { vi: 'LINK GIỚI THIỆU CỦA BẠN (GỬI BẠN BÈ ĐỂ NHẬN HOA HỒNG):', en: 'YOUR REFERRAL LINK (SHARE TO EARN REBATES):' },
   btn_copy: { vi: 'Sao chép', en: 'Copy' },
   btn_copied: { vi: 'Đã chép', en: 'Copied' },
   tier_matrix_title: { vi: 'BẢNG 10 CẤP ĐỘ HOA HỒNG RESELLER', en: '10-TIER RESELLER REBATE MATRIX' },
+  ref_current_tier: { vi: 'Cấp hiện tại', en: 'Current Tier' },
+  ref_your_tier: { vi: 'CẤP CỦA BẠN', en: 'YOUR TIER' },
+  direct_clients_title: { vi: 'DANH SÁCH F1 TRỰC TIẾP', en: 'DIRECT F1 CLIENTS' },
+  reinvest_modal_title: { vi: 'TÁI ĐẦU TƯ VÀO VỐN BOT', en: 'REINVEST INTO BOT CAPITAL' },
+  reinvest_available: { vi: 'Hoa hồng hiện có:', en: 'Available Rebate:' },
+  reinvest_fee_free: { vi: '0% (MIỄN PHÍ 100%)', en: '0% (100% FREE)' },
+  reinvest_confirm_btn: { vi: 'XÁC NHẬN TÁI ĐẦU TƯ NGAY', en: 'CONFIRM REINVEST NOW' },
+  withdraw_modal_title: { vi: 'RÚT HOA HỒNG VỀ VÍ USDT TRC20', en: 'WITHDRAW REBATE (USDT TRC20)' },
+  withdraw_wallet_label: { vi: 'Địa chỉ ví nhận tiền (USDT TRC20):', en: 'Receiving USDT TRC20 Address:' },
+  withdraw_confirm_btn: { vi: 'XÁC NHẬN RÚT HOA HỒNG', en: 'CONFIRM WITHDRAWAL' },
+
+  // Analytics View
+  analytics_title: { vi: 'HIỆU SUẤT ĐỊNH LƯỢNG QUANT AI (LIVE)', en: 'QUANT AI LIVE PERFORMANCE' },
+  analytics_win_rate: { vi: 'TỶ LỆ THẮNG (WIN RATE)', en: 'WIN RATE' },
+  analytics_profit_factor: { vi: 'HỆ SỐ LÃI/LỖ (PROFIT FACTOR)', en: 'PROFIT FACTOR' },
+  analytics_sharpe: { vi: 'CHỈ SỐ SHARPE (SHARPE RATIO)', en: 'SHARPE RATIO' },
+  analytics_max_dd: { vi: 'SỤT GIẢM TỐI ĐA (MAX DRAWDOWN)', en: 'MAX DRAWDOWN' },
+  analytics_gross_profit: { vi: 'Tổng Lãi (Lệnh Thắng):', en: 'Gross Profit (Winning):' },
+  analytics_gross_loss: { vi: 'Tổng Lỗ (Lệnh Thua):', en: 'Gross Loss (Losing):' },
+  analytics_avg_win: { vi: 'Lãi Trung Bình / Lệnh:', en: 'Average Win / Trade:' },
+  analytics_avg_loss: { vi: 'Lỗ Trung Bình / Lệnh:', en: 'Average Loss / Trade:' },
+  btn_create_viral_poster: { vi: '📸 TẠO POSTER KHOE LÃI & CHIA SẺ TELEGRAM (NHẬN REF)', en: '📸 GENERATE VIRAL PNL POSTER & SHARE (EARN REBATE)' },
+
+  // Trade History Card
+  trades_live_title: { vi: 'LỊCH SỬ GIAO DỊCH REALTIME (LIVE EXNESS)', en: 'REALTIME TRADE HISTORY (LIVE EXNESS)' },
+  trades_no_trades: { vi: 'CHƯA CÓ LỆNH MỚI', en: 'NO RECENT TRADES' },
+  trades_no_trades_sub: {
+    vi: 'Thuật toán Quant AI đang rà quét thị trường Vàng (XAU/USD). Các lệnh khớp từ tài khoản Master Exness sẽ xuất hiện ngay tại đây.',
+    en: 'Quant AI is scanning Gold (XAU/USD) markets. Filled orders from Master Exness accounts will appear here automatically.'
+  },
+  trades_not_joined: { vi: 'Chưa góp vốn', en: 'Pre-Deposit' },
+  trades_share_pnl: { vi: 'Khoe Lãi', en: 'Share PnL' },
 
   // Viral Poster
   viral_share_title: { vi: 'POSTER KHOE LÃI SPARTAN PRO', en: 'SPARTAN PRO VIRAL PNL POSTER' },
@@ -132,7 +189,6 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
 export const useLanguage = () => {
   const context = useContext(LanguageContext);
   if (!context) {
-    // Fallback if rendered outside provider
     return {
       lang: 'vi' as Language,
       setLang: () => {},

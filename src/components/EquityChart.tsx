@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { TrendingUp, TrendingDown, Radio, User, Layers } from 'lucide-react';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface HourlyDataPoint {
   timeLabel: string;
@@ -26,6 +27,7 @@ export const EquityChart: React.FC<EquityChartProps> = ({
   masterPoolEquity: propEquity,
   trades: propTrades,
 }) => {
+  const { t } = useLanguage();
   const [liveEquity, setLiveEquity] = useState<number>(propEquity || 49969.52);
   const [liveBalance, setLiveBalance] = useState<number>(propBalance || 49790.30);
   const [liveFloating, setLiveFloating] = useState<number>(179.22);
@@ -339,11 +341,11 @@ export const EquityChart: React.FC<EquityChartProps> = ({
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-2">
           <span className="text-xs font-black text-[#f5d77f] uppercase tracking-wider">
-            Account Growth Curve
+            {t('chart_account_growth')}
           </span>
           <span className="text-[9px] font-bold text-gray-400 bg-[#05070c] px-2 py-0.5 rounded-full border border-[#221c10] flex items-center gap-1 font-mono">
             <Radio className="w-2.5 h-2.5 text-emerald-400 animate-pulse" />
-            <span>24H THEO GIỜ</span>
+            <span>{t('chart_hourly')}</span>
           </span>
         </div>
 
@@ -361,7 +363,7 @@ export const EquityChart: React.FC<EquityChartProps> = ({
                 title="Xem theo tỷ lệ vốn góp của bạn"
               >
                 <User className="w-2.5 h-2.5" />
-                <span>CỦA TÔI ({userSharePercent.toFixed(1)}%)</span>
+                <span>{t('chart_my_share')} ({userSharePercent.toFixed(1)}%)</span>
               </button>
               <button
                 onClick={() => setViewMode('MASTER_POOL')}
@@ -373,7 +375,7 @@ export const EquityChart: React.FC<EquityChartProps> = ({
                 title="Xem biểu đồ tổng Master Pool Exness"
               >
                 <Layers className="w-2.5 h-2.5" />
-                <span>POOL ($50k)</span>
+                <span>{t('chart_pool_share')}</span>
               </button>
             </div>
           )}
@@ -385,7 +387,7 @@ export const EquityChart: React.FC<EquityChartProps> = ({
               : 'text-red-400 bg-red-500/15 border-red-500/40'
           }`}>
             {isPositiveGrowth ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-            <span>{isPositiveGrowth ? '+' : ''}{dayGrowthPercent.toFixed(2)}% Today</span>
+            <span>{isPositiveGrowth ? '+' : ''}{dayGrowthPercent.toFixed(2)}% {t('chart_today')}</span>
           </span>
         </div>
       </div>
@@ -400,7 +402,7 @@ export const EquityChart: React.FC<EquityChartProps> = ({
             </div>
             <div className="flex items-center gap-2 shrink-0 font-mono font-bold">
               <span className="text-white font-black">${activePoint.equity.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-              <span className={activePoint.growthPercent >= 0 ? 'text-[#00df89]' : 'text-red-400'}>
+              <span className={activePoint.growthPercent >= 0 ? 'text-emerald-400' : 'text-red-400'}>
                 {activePoint.growthPercent >= 0 ? '+' : ''}{activePoint.growthPercent.toFixed(2)}%
               </span>
             </div>
@@ -408,10 +410,10 @@ export const EquityChart: React.FC<EquityChartProps> = ({
         ) : (
           <>
             <span className="text-gray-500 font-medium flex items-center gap-1">
-              <span>{viewMode === 'PERSONAL' ? 'Tài sản theo % vốn góp' : 'Tài sản Master Pool Exness'} • Chạm vào các điểm để xem</span>
+              <span>{viewMode === 'PERSONAL' ? t('chart_share_ratio_hint') : t('chart_pool_ratio_hint')} • {t('chart_touch_hint')}</span>
             </span>
             <span className="text-gray-400 font-mono">
-              {viewMode === 'PERSONAL' ? 'Tài sản của bạn:' : 'Live Equity:'} <strong className="text-white">${displayEquity.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD</strong>
+              {viewMode === 'PERSONAL' ? t('chart_your_equity') : t('chart_live_equity')} <strong className="text-white">${displayEquity.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD</strong>
             </span>
           </>
         )}

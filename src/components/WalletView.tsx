@@ -31,6 +31,7 @@ import { calculateDepositFee, calculateWithdrawFee } from '@/lib/feeCalculator';
 import { createLiveTransaction, withdrawReferralBalance, subscribeToUserTransactions, TransactionData } from '@/lib/firebaseService';
 import { fetchTreasuryVault, DEFAULT_TREASURY_VAULT } from '@/lib/walletConfig';
 import { ReceiptAiAppealModal } from '@/components/ReceiptAiAppealModal';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface WalletViewProps {
   currentBalance: number;
@@ -47,6 +48,7 @@ export const WalletView: React.FC<WalletViewProps> = ({
   telegramId = '494232782',
   username = 'tddv2017',
 }) => {
+  const { t, lang } = useLanguage();
   const [mode, setMode] = useState<'deposit' | 'withdraw'>('deposit');
   const [withdrawSource, setWithdrawSource] = useState<'trading' | 'referral'>('trading');
   const [amount, setAmount] = useState<string>('100');
@@ -345,22 +347,22 @@ export const WalletView: React.FC<WalletViewProps> = ({
   return (
     <div className="w-full space-y-4 pb-20">
       {/* Balance & Overview Card */}
-      <div className="spartan-card rounded-3xl p-5 border border-[#1f293d] shadow-lg">
+      <div className="spartan-card rounded-3xl p-5 border border-[#221c10] bg-[#080b12] shadow-lg">
         <div className="flex items-center justify-between mb-3">
-          <span className="text-xs text-gray-400 font-bold uppercase tracking-wider">AVAILABLE TRADING BALANCE</span>
-          <span className="px-3 py-1 rounded-full bg-[#ff5500]/15 border border-[#ff5500]/30 text-[#ff5500] text-xs font-black">
+          <span className="text-xs text-gray-400 font-bold uppercase tracking-wider">{t('wallet_available_balance')}</span>
+          <span className="px-3 py-1 rounded-full bg-[#d4af37]/15 border border-[#d4af37]/35 text-[#f5d77f] text-xs font-black">
             USDT TRC20
           </span>
         </div>
-        <div className="text-3xl font-black text-white truncate">
-          ${currentBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <span className="text-xs text-gray-400 font-bold">USDT</span>
+        <div className="text-3xl font-black text-white truncate font-mono">
+          <span className="gold-text-metallic">${currentBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span> <span className="text-xs text-gray-400 font-bold">USDT</span>
         </div>
 
         {pendingWithdrawalTotal > 0 && (
           <div className="mt-3 p-2 bg-amber-500/10 border border-amber-500/30 rounded-xl flex items-center justify-between text-[11px] font-bold text-amber-400">
             <span className="flex items-center gap-1">
               <Lock className="w-3.5 h-3.5 flex-shrink-0" />
-              Locked in pending withdrawal:
+              {t('wallet_withdraw_locked_hint')}
             </span>
             <span className="font-mono font-black text-amber-300">-${pendingWithdrawalTotal.toFixed(2)} USD</span>
           </div>
@@ -369,30 +371,30 @@ export const WalletView: React.FC<WalletViewProps> = ({
 
       {/* Summary Banner */}
       <div className="grid grid-cols-2 gap-3">
-        <div className="spartan-card rounded-2xl p-4 border border-[#1f293d] flex items-center justify-between transition-all">
+        <div className="spartan-card rounded-2xl p-4 border border-[#221c10] bg-[#080b12] flex items-center justify-between transition-all">
           <div>
             <span className="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider block mb-0.5">
-              TOTAL DEPOSIT (NET)
+              {t('net_deposited')}
             </span>
-            <span className="text-base font-black text-[#00df89]">
+            <span className="text-base font-black text-emerald-400 font-mono">
               +${totalDepositedNet.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </span>
-            <span className="text-[9px] text-gray-500 font-bold block mt-0.5">{depositCount} Deposits</span>
+            <span className="text-[9px] text-gray-500 font-bold block mt-0.5 font-mono">{depositCount} {lang === 'vi' ? 'Lệnh Nạp' : 'Deposits'}</span>
           </div>
-          <div className="w-8 h-8 rounded-xl bg-[#00df89]/15 border border-[#00df89]/30 flex items-center justify-center text-[#00df89]">
+          <div className="w-8 h-8 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
             <ArrowDown className="w-4 h-4" />
           </div>
         </div>
 
-        <div className="spartan-card rounded-2xl p-4 border border-[#1f293d] flex items-center justify-between transition-all">
+        <div className="spartan-card rounded-2xl p-4 border border-[#221c10] bg-[#080b12] flex items-center justify-between transition-all">
           <div>
             <span className="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider block mb-0.5">
-              TOTAL WITHDRAWAL (NET)
+              {t('net_withdrawn')}
             </span>
-            <span className="text-base font-black text-[#ff2d55]">
+            <span className="text-base font-black text-[#ff2d55] font-mono">
               -${totalWithdrawnNet.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </span>
-            <span className="text-[9px] text-gray-500 font-bold block mt-0.5">{withdrawCount} Withdrawals</span>
+            <span className="text-[9px] text-gray-500 font-bold block mt-0.5 font-mono">{withdrawCount} {lang === 'vi' ? 'Lệnh Rút' : 'Withdrawals'}</span>
           </div>
           <div className="w-8 h-8 rounded-xl bg-[#ff2d55]/15 border border-[#ff2d55]/30 flex items-center justify-center text-[#ff2d55]">
             <ArrowUp className="w-4 h-4" />
@@ -473,48 +475,48 @@ export const WalletView: React.FC<WalletViewProps> = ({
       )}
 
       {/* Primary Mode Switcher: Deposit vs Withdraw */}
-      <div className="grid grid-cols-2 p-1.5 bg-[#0b0e17] rounded-2xl border border-[#1f293d]">
+      <div className="grid grid-cols-2 p-1.5 bg-[#05070c] rounded-2xl border border-[#221c10]">
         <button
           onClick={() => { setMode('deposit'); setErrorMessage(null); }}
           className={`py-2.5 rounded-xl text-xs font-black flex items-center justify-center gap-2 transition-all ${
             mode === 'deposit'
-              ? 'bg-[#ff5500] text-white shadow-md'
+              ? 'spartan-cta-btn text-white shadow-md'
               : 'text-gray-400 hover:text-white'
           }`}
         >
           <ArrowDownLeft className="w-4 h-4" />
-          <span>DEPOSIT USDT (QR CODE)</span>
+          <span>{t('tab_deposit')}</span>
         </button>
 
         <button
           onClick={() => { setMode('withdraw'); setErrorMessage(null); }}
           className={`py-2.5 rounded-xl text-xs font-black flex items-center justify-center gap-2 transition-all ${
             mode === 'withdraw'
-              ? 'bg-[#ff2d55] text-white shadow-md'
+              ? 'spartan-cta-btn text-white shadow-md'
               : 'text-gray-400 hover:text-white'
           }`}
         >
           <ArrowUpRight className="w-4 h-4" />
-          <span>WITHDRAW USDT (TRC20)</span>
+          <span>{t('tab_withdraw')}</span>
         </button>
       </div>
 
       {/* FORM CONTENT */}
       {mode === 'deposit' ? (
         /* PURE QR CODE DEPOSIT FORM */
-        <div className="spartan-card rounded-3xl p-5 border border-[#1f293d] space-y-4 shadow-lg">
+        <div className="spartan-card rounded-3xl p-5 border border-[#221c10] bg-[#080b12] space-y-4 shadow-lg">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-xl bg-[#ff5500]/15 border border-[#ff5500]/30 flex items-center justify-center text-[#ff5500]">
+              <div className="w-8 h-8 rounded-xl bg-[#d4af37]/15 border border-[#d4af37]/30 flex items-center justify-center text-[#f5d77f]">
                 <QrCode className="w-4 h-4" />
               </div>
               <div>
-                <h3 className="text-xs font-black text-white uppercase tracking-wider">NẠP TIỀN QUA MÃ QR (USDT TRC20)</h3>
-                <span className="text-[10px] text-gray-400 font-bold block">Chuyển trực tiếp từ Binance, OKX, Bybit, Remitano hoặc Ví cá nhân</span>
+                <h3 className="text-xs font-black text-white uppercase tracking-wider">{t('deposit_qr_title')}</h3>
+                <span className="text-[10px] text-gray-400 font-bold block">{t('deposit_qr_sub')}</span>
               </div>
             </div>
-            <span className="text-[10px] font-bold text-[#ff5500] bg-[#ff5500]/10 px-2.5 py-0.5 rounded-full border border-[#ff5500]/20">
-              Phí: 9% + $3.00 USD
+            <span className="text-[10px] font-bold text-[#f5d77f] bg-[#d4af37]/10 px-2.5 py-0.5 rounded-full border border-[#d4af37]/30">
+              {t('deposit_fee_badge')}
             </span>
           </div>
 
@@ -522,10 +524,10 @@ export const WalletView: React.FC<WalletViewProps> = ({
           <div>
             <div className="flex items-center justify-between mb-1.5">
               <label className="text-xs text-gray-400 font-bold">
-                Nhập Số Tiền Muốn Nạp ($ USDT)
+                {t('deposit_amount_label')}
               </label>
               <span className="text-[10px] font-mono font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
-                Tối thiểu: $50.00 USDT
+                {t('deposit_min_badge')}
               </span>
             </div>
             <div className="relative">
@@ -534,7 +536,7 @@ export const WalletView: React.FC<WalletViewProps> = ({
                 value={amount}
                 maxLength={10}
                 onChange={(e) => setAmount(e.target.value.slice(0, 10))}
-                className="w-full bg-[#0b0e17] border border-[#1f293d] rounded-2xl py-3 px-4 text-white text-base font-black focus:outline-none focus:border-[#ff5500]"
+                className="w-full bg-[#05070c] border border-[#221c10] rounded-2xl py-3 px-4 text-white text-base font-black font-mono focus:outline-none focus:border-[#d4af37]"
                 placeholder="100"
               />
               <span className="absolute right-4 top-3.5 text-xs font-bold text-gray-400">
@@ -551,8 +553,8 @@ export const WalletView: React.FC<WalletViewProps> = ({
                   onClick={() => setAmount(preset.toString())}
                   className={`px-3 py-1.5 rounded-xl text-xs font-mono font-bold transition-all ${
                     amount === preset.toString()
-                      ? 'bg-[#ff5500] text-white shadow-md'
-                      : 'bg-[#0b0e17] hover:bg-[#131927] text-gray-300 border border-[#1f293d]'
+                      ? 'gold-btn-solid text-black shadow-md'
+                      : 'bg-[#05070c] hover:bg-[#141924] text-gray-300 border border-[#221c10]'
                   }`}
                 >
                   ${preset}
@@ -562,28 +564,28 @@ export const WalletView: React.FC<WalletViewProps> = ({
 
             {numAmount > 0 && numAmount < 50 && (
               <span className="text-[10px] text-[#ff2d55] font-bold block mt-1.5 animate-pulse">
-                ⚠️ Số tiền nạp (${numAmount.toFixed(2)}) nhỏ hơn mức tối thiểu $50.00 USDT (để đảm bảo hiệu quả phí)!
+                ⚠️ {lang === 'vi' ? `Số tiền nạp ($${numAmount.toFixed(2)}) nhỏ hơn mức tối thiểu $50.00 USDT!` : `Deposit amount ($${numAmount.toFixed(2)}) is less than min $50.00 USDT!`}
               </span>
             )}
           </div>
 
           {/* Fee Engine Realtime Breakdown Card */}
-          <div className="bg-[#0b0e17] rounded-2xl p-4 border border-[#1f293d] text-xs space-y-2">
+          <div className="bg-[#05070c] rounded-2xl p-4 border border-[#221c10] text-xs space-y-2">
             <div className="flex justify-between text-gray-400">
-              <span>Số Tiền Nạp Gốc (Gross):</span>
-              <span className="font-bold text-gray-200">${depositBreakdown.grossAmount.toFixed(2)} USDT</span>
+              <span>{t('gross_deposit')}</span>
+              <span className="font-bold text-gray-200 font-mono">${depositBreakdown.grossAmount.toFixed(2)} USDT</span>
             </div>
             <div className="flex justify-between text-gray-400">
-              <span>Phí Vận Hành Quỹ (9%):</span>
-              <span className="font-bold text-[#ff2d55]">-${depositBreakdown.percentageFee.toFixed(2)} USDT</span>
+              <span>{t('fee_percentage')}</span>
+              <span className="font-bold text-[#ff2d55] font-mono">-${depositBreakdown.percentageFee.toFixed(2)} USDT</span>
             </div>
             <div className="flex justify-between text-gray-400">
-              <span>Phí Mạng Blockchain ($3.00 USD):</span>
-              <span className="font-bold text-[#ff2d55]">-$3.00 USDT</span>
+              <span>{t('fee_network')}</span>
+              <span className="font-bold text-[#ff2d55] font-mono">-$3.00 USDT</span>
             </div>
-            <div className="border-t border-[#1f293d] pt-2 flex justify-between font-black text-sm text-white">
-              <span className="text-[#00df89]">Thực Nhận Cộng Vốn Bot:</span>
-              <span className="text-[#00df89]">${depositBreakdown.netAmount.toFixed(2)} USDT</span>
+            <div className="border-t border-[#221c10] pt-2 flex justify-between font-black text-sm text-white">
+              <span className="text-emerald-400">{t('net_credited')}</span>
+              <span className="text-emerald-400 font-mono">${depositBreakdown.netAmount.toFixed(2)} USDT</span>
             </div>
           </div>
 
@@ -592,10 +594,10 @@ export const WalletView: React.FC<WalletViewProps> = ({
             <button
               onClick={handleDepositConfirm}
               disabled={loading}
-              className="w-full py-3.5 rounded-2xl spartan-orange-btn font-black text-xs uppercase tracking-wider hover:opacity-95 transition-opacity flex items-center justify-center gap-2 shadow-[0_4px_16px_rgba(255,85,0,0.4)]"
+              className="w-full py-3.5 rounded-2xl spartan-cta-btn font-black text-xs uppercase tracking-wider hover:opacity-95 transition-opacity flex items-center justify-center gap-2 shadow-[0_4px_18px_rgba(255,69,0,0.4)] active:scale-[0.98]"
             >
               {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
-              <span>🚀 TẠO LỆNH NẠP & LẤY MÃ QR (Thực Nhận: +${depositBreakdown.netAmount.toFixed(2)} USDT)</span>
+              <span>{t('btn_create_order')} (+${depositBreakdown.netAmount.toFixed(2)} USDT)</span>
             </button>
           ) : (
             /* ON-CHAIN AUTO-APPROVE CLEAN QR CODE & FIXED MEMO CARD */
@@ -649,19 +651,19 @@ export const WalletView: React.FC<WalletViewProps> = ({
               </div>
 
               {/* PHƯƠNG THỨC XÁC THỰC MÃ BĂM TXID ON-CHAIN (KHÔNG CẦN MEMO - CHUYỂN TIỀN TRÒN) */}
-              <div className="bg-[#0b1320] border-2 border-cyan-500/60 rounded-2xl p-3.5 space-y-2.5 shadow-[0_0_20px_rgba(6,182,212,0.2)]">
+              <div className="bg-[#05070c] border border-[#221c10] rounded-2xl p-3.5 space-y-2.5 shadow-[0_0_20px_rgba(212,175,55,0.15)]">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5 font-black text-xs text-cyan-300 uppercase tracking-wider">
-                    <Zap className="w-4 h-4 text-cyan-400 animate-pulse" />
-                    <span>XÁC THỰC MÃ BĂM TXID (CHUYỂN TRÒN - KHÔNG CẦN MEMO)</span>
+                  <div className="flex items-center gap-1.5 font-black text-xs text-[#f5d77f] uppercase tracking-wider">
+                    <Zap className="w-4 h-4 text-[#d4af37] animate-pulse" />
+                    <span>{t('txid_verify_title')}</span>
                   </div>
-                  <span className="text-[9px] font-mono font-bold text-cyan-400 bg-cyan-950/80 px-2 py-0.5 rounded border border-cyan-500/40">
+                  <span className="text-[9px] font-mono font-bold text-[#f5d77f] bg-[#d4af37]/15 px-2 py-0.5 rounded border border-[#d4af37]/35">
                     SHA-256 HASH
                   </span>
                 </div>
 
                 <p className="text-[11px] text-gray-300 leading-relaxed">
-                  Rút từ <strong>Binance, Bybit, OKX</strong> không có ô Memo? Bạn chỉ cần copy mã <strong>TxID (Transaction Hash)</strong> trên sàn sau khi rút và dán vào đây:
+                  {t('txid_verify_desc')}
                 </p>
 
                 <div className="space-y-2">
@@ -671,7 +673,7 @@ export const WalletView: React.FC<WalletViewProps> = ({
                       value={txHashInput}
                       onChange={(e) => setTxHashInput(e.target.value)}
                       placeholder="Dán mã băm TxID SHA-256 (64 ký tự hex)..."
-                      className="flex-1 bg-[#050811] border border-[#1f293d] rounded-xl px-3 py-2.5 text-xs text-cyan-300 font-mono focus:border-cyan-400 outline-none"
+                      className="flex-1 bg-[#080b12] border border-[#221c10] rounded-xl px-3 py-2.5 text-xs text-[#f5d77f] font-mono focus:border-[#d4af37] outline-none"
                     />
                     <button
                       type="button"
@@ -681,9 +683,9 @@ export const WalletView: React.FC<WalletViewProps> = ({
                           if (text) setTxHashInput(text.trim());
                         } catch (e) {}
                       }}
-                      className="px-3 py-2.5 rounded-xl bg-[#131927] hover:bg-[#1f293d] border border-[#1f293d] text-gray-300 text-xs font-bold shrink-0 transition-colors"
+                      className="px-3 py-2.5 rounded-xl bg-[#0c0f17] hover:bg-[#141924] border border-[#221c10] text-gray-300 text-xs font-bold shrink-0 transition-colors"
                     >
-                      Dán
+                      {t('btn_paste')}
                     </button>
                   </div>
 
@@ -697,10 +699,10 @@ export const WalletView: React.FC<WalletViewProps> = ({
                     type="button"
                     disabled={verifyingHash || !txHashInput.trim()}
                     onClick={handleVerifyTxHash}
-                    className="w-full py-3 rounded-xl bg-gradient-to-r from-cyan-600 via-blue-600 to-[#ff5500] hover:opacity-95 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-[0_4px_14px_rgba(6,182,212,0.3)] transition-all"
+                    className="w-full py-3 rounded-xl gold-btn-solid hover:opacity-95 text-black font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-[0_4px_14px_rgba(212,175,55,0.3)] transition-all active:scale-[0.98]"
                   >
-                    {verifyingHash ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
-                    <span>{verifyingHash ? 'Đang giải mã băm on-chain...' : '⚡ XÁC THỰC MÃ BĂM & DUYỆT TIỀN NGAY (1S)'}</span>
+                    {verifyingHash ? <Loader2 className="w-4 h-4 animate-spin text-black" /> : <ShieldCheck className="w-4 h-4 text-black" />}
+                    <span>{verifyingHash ? (lang === 'vi' ? 'Đang giải mã băm on-chain...' : 'Verifying on-chain hash...') : t('btn_verify_txid')}</span>
                   </button>
                 </div>
               </div>
@@ -708,24 +710,20 @@ export const WalletView: React.FC<WalletViewProps> = ({
               {/* Optional Memo Code Box */}
               <div>
                 <label className="text-[10px] text-gray-400 font-bold block mb-1 uppercase tracking-wider flex items-center gap-1">
-                  <span>2. Mã Memo (Tùy chọn - Nếu ví của bạn có hỗ trợ ghi chú)</span>
+                  <span>2. {lang === 'vi' ? 'Mã Memo (Tùy chọn - Nếu ví của bạn có hỗ trợ)' : 'Memo Code (Optional - If your wallet supports memo)'}</span>
                 </label>
-                <div className="flex items-center gap-2 bg-[#131927] border border-[#1f293d] p-2 rounded-xl">
-                  <span className="text-xs text-[#facc15] font-mono font-bold truncate flex-1 tracking-wider">
+                <div className="flex items-center gap-2 bg-[#05070c] border border-[#221c10] p-2 rounded-xl">
+                  <span className="text-xs text-[#f5d77f] font-mono font-bold truncate flex-1 tracking-wider">
                     {activeMemo}
                   </span>
                   <button
                     onClick={handleCopyMemo}
-                    className="px-2.5 py-1 rounded-lg bg-[#facc15] text-black text-xs font-black flex items-center gap-1 hover:opacity-90"
+                    className="px-2.5 py-1 rounded-lg gold-btn-solid text-black text-xs font-black flex items-center gap-1 hover:opacity-90 active:scale-95"
                   >
                     {copiedMemo ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
                     <span>Copy Memo</span>
                   </button>
                 </div>
-              </div>
-
-              <div className="text-[10px] text-gray-400 leading-relaxed bg-[#131927] p-2.5 rounded-xl border border-[#1f293d]">
-                💡 <strong>XÁC THỰC MÃ BĂM AN TOÀN:</strong> Sau khi xác thực mã băm TxID on-chain thành công, hệ thống sẽ tự động trừ phí 9%+$3 và cộng số tiền Thực Nhận (Net) vào tài khoản của bạn ngay lập tức mà không cần chờ đợi!
               </div>
 
               {/* ACTION BUTTONS: ĐÃ THANH TOÁN & ĐÓNG QR */}
@@ -736,20 +734,23 @@ export const WalletView: React.FC<WalletViewProps> = ({
                     const net = activeDepositTx.netAmount || (gross * 0.91 - 3);
                     const orderId = activeDepositTx.id || activeDepositTx.memoCode;
                     setActiveDepositTx(null);
-                    setNotification(`🎉 ĐÃ GHI NHẬN THANH TOÁN! Đơn nạp #${orderId} ($${gross.toFixed(2)} USDT) đang được hệ thống quét Blockchain TRON để cộng vốn (Net +$${net.toFixed(2)} USDT) hoặc Quản trị viên đối soát phê duyệt.`);
+                    setNotification(lang === 'vi' 
+                      ? `🎉 ĐÃ GHI NHẬN THANH TOÁN! Đơn nạp #${orderId} ($${gross.toFixed(2)} USDT) đang được hệ thống quét Blockchain TRON để cộng vốn (Net +$${net.toFixed(2)} USDT).`
+                      : `🎉 PAYMENT CONFIRMED! Order #${orderId} ($${gross.toFixed(2)} USDT) is being verified on TRON Blockchain to credit Net +$${net.toFixed(2)} USDT.`
+                    );
                     setTimeout(() => setNotification(null), 10000);
                   }}
-                  className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-[#00df89] to-[#00b368] text-black font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(0,223,137,0.3)] hover:opacity-95 transition-all"
+                  className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-emerald-500 to-emerald-600 text-black font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(16,185,129,0.3)] hover:opacity-95 transition-all active:scale-[0.98]"
                 >
                   <CheckCircle2 className="w-4 h-4 text-black" />
-                  <span>TÔI ĐÃ CHUYỂN TIỀN XONG (ĐÃ THANH TOÁN)</span>
+                  <span>{t('btn_paid')}</span>
                 </button>
 
                 <button
                   onClick={() => setActiveDepositTx(null)}
-                  className="w-full py-2.5 rounded-xl bg-[#131927] hover:bg-[#1f293d] border border-[#1f293d] text-gray-400 hover:text-white text-xs font-bold uppercase transition-all"
+                  className="w-full py-2.5 rounded-xl bg-[#05070c] hover:bg-[#141924] border border-[#221c10] text-gray-400 hover:text-white text-xs font-bold uppercase transition-all active:scale-95"
                 >
-                  ĐÓNG MÃ QR
+                  {t('btn_close_qr')}
                 </button>
               </div>
             </div>
@@ -757,63 +758,63 @@ export const WalletView: React.FC<WalletViewProps> = ({
         </div>
       ) : (
         /* WITHDRAW MODE */
-        <div className="spartan-card rounded-3xl p-5 border border-[#1f293d] space-y-4 shadow-lg">
+        <div className="spartan-card rounded-3xl p-5 border border-[#221c10] bg-[#080b12] space-y-4 shadow-lg">
           {/* NGUỒN TIỀN RÚT (SOURCE SELECTOR) */}
           <div className="space-y-1.5">
-            <label className="text-xs text-gray-400 font-bold block">CHỌN NGUỒN TIỀN CẦN RÚT:</label>
-            <div className="grid grid-cols-2 gap-2 p-1 bg-[#0b0e17] rounded-2xl border border-[#1f293d]">
+            <label className="text-xs text-gray-400 font-bold block">{t('wallet_withdraw_source_label')}</label>
+            <div className="grid grid-cols-2 gap-2 p-1 bg-[#05070c] rounded-2xl border border-[#221c10]">
               <button
                 type="button"
                 onClick={() => { setWithdrawSource('trading'); setErrorMessage(null); }}
                 className={`py-2 px-3 rounded-xl text-xs font-black transition-all flex flex-col items-center gap-0.5 ${
                   withdrawSource === 'trading'
-                    ? 'bg-[#ff2d55] text-white shadow-md'
+                    ? 'spartan-cta-btn text-white shadow-md'
                     : 'text-gray-400 hover:text-white'
                 }`}
               >
-                <span>VỐN BOT ĐẦU TƯ</span>
-                <span className="text-[10px] font-mono opacity-80">${availableForWithdraw.toFixed(2)} USDT</span>
+                <span>{lang === 'vi' ? 'VỐN BOT ĐẦU TƯ' : 'TRADING CAPITAL'}</span>
+                <span className="text-[10px] font-mono opacity-90">${availableForWithdraw.toFixed(2)} USDT</span>
               </button>
               <button
                 type="button"
                 onClick={() => { setWithdrawSource('referral'); setErrorMessage(null); }}
                 className={`py-2 px-3 rounded-xl text-xs font-black transition-all flex flex-col items-center gap-0.5 ${
                   withdrawSource === 'referral'
-                    ? 'bg-[#00df89] text-black shadow-md'
+                    ? 'gold-btn-solid text-black shadow-md'
                     : 'text-gray-400 hover:text-white'
                 }`}
               >
-                <span>HOA HỒNG ĐẠI LÝ</span>
-                <span className="text-[10px] font-mono opacity-80">${currentRefBalance.toFixed(2)} USDT</span>
+                <span>{lang === 'vi' ? 'HOA HỒNG ĐẠI LÝ' : 'AFFILIATE REBATE'}</span>
+                <span className="text-[10px] font-mono opacity-90">${currentRefBalance.toFixed(2)} USDT</span>
               </button>
             </div>
           </div>
 
           <div className="flex items-center justify-between">
             <h3 className="text-xs font-black text-white uppercase tracking-wider">
-              {isRefSource ? 'RÚT HOA HỒNG ĐẠI LÝ' : 'WITHDRAW USDT (SPARTAN TREASURY POLICY)'}
+              {isRefSource ? (lang === 'vi' ? 'RÚT HOA HỒNG ĐẠI LÝ' : 'WITHDRAW AFFILIATE REBATE') : (lang === 'vi' ? 'RÚT VỐN BOT (CHÍNH SÁCH SPARTAN TREASURY)' : 'WITHDRAW BOT CAPITAL (TREASURY POLICY)')}
             </h3>
             <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${
               isRefSource 
-                ? 'text-[#00df89] bg-[#00df89]/10 border-[#00df89]/30' 
-                : 'text-[#ff2d55] bg-[#ff2d55]/10 border-[#ff2d55]/20'
+                ? 'text-emerald-400 bg-emerald-500/15 border-emerald-500/30' 
+                : 'text-[#f5d77f] bg-[#d4af37]/15 border-[#d4af37]/35'
             }`}>
-              {isRefSource ? '0% Phí Sàn (Không chịu phí 19%)' : 'Fee: 19% + $5.00 USD'}
+              {isRefSource ? (lang === 'vi' ? '0% Phí Sàn (Miễn phí)' : '0% Fee (Free)') : (lang === 'vi' ? 'Phí: 19% + $5.00 USD' : 'Fee: 19% + $5.00 USD')}
             </span>
           </div>
 
-          <div className="bg-[#0b0e17] p-3 rounded-2xl border border-[#1f293d] flex items-center justify-between text-xs font-bold">
+          <div className="bg-[#05070c] p-3 rounded-2xl border border-[#221c10] flex items-center justify-between text-xs font-bold">
             <span className="text-gray-400">
-              {isRefSource ? 'Hoa Hồng Khả Dụng Để Rút:' : 'Available Balance for Withdrawal:'}
+              {isRefSource ? (lang === 'vi' ? 'Hoa Hồng Khả Dụng Để Rút:' : 'Available Rebate for Withdrawal:') : (lang === 'vi' ? 'Số Dư Khả Dụng Để Rút:' : 'Available Balance for Withdrawal:')}
             </span>
-            <span className="text-[#00df89] font-mono text-sm font-black">
+            <span className="text-emerald-400 font-mono text-sm font-black">
               ${currentAvailableWithdraw.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USDT
             </span>
           </div>
 
           <div>
             <label className="text-xs text-gray-400 font-bold block mb-1.5">
-              {isRefSource ? 'Số Tiền Hoa Hồng Muốn Rút ($ USD):' : 'Enter Withdrawal Amount ($ USD)'}
+              {isRefSource ? (lang === 'vi' ? 'Số Tiền Hoa Hồng Muốn Rút ($ USD):' : 'Rebate Withdrawal Amount ($ USD):') : (lang === 'vi' ? 'Nhập Số Tiền Muốn Rút ($ USD):' : 'Enter Withdrawal Amount ($ USD):')}
             </label>
             <div className="relative">
               <input
@@ -821,18 +822,12 @@ export const WalletView: React.FC<WalletViewProps> = ({
                 value={amount}
                 maxLength={10}
                 onChange={(e) => { setAmount(e.target.value.slice(0, 10)); setErrorMessage(null); }}
-                className={`w-full bg-[#0b0e17] border border-[#1f293d] rounded-2xl py-3 px-4 text-white text-base font-black focus:outline-none ${
-                  isRefSource ? 'focus:border-[#00df89]' : 'focus:border-[#ff2d55]'
-                }`}
+                className="w-full bg-[#05070c] border border-[#221c10] rounded-2xl py-3 px-4 text-white text-base font-black font-mono focus:outline-none focus:border-[#d4af37]"
                 placeholder="1000"
               />
               <button
                 onClick={() => setAmount(currentAvailableWithdraw.toString())}
-                className={`absolute right-3 top-2.5 px-2.5 py-1 rounded-lg text-xs font-black border ${
-                  isRefSource 
-                    ? 'bg-[#00df89]/20 text-[#00df89] border-[#00df89]/30' 
-                    : 'bg-[#ff2d55]/20 text-[#ff2d55] border-[#ff2d55]/30'
-                }`}
+                className="absolute right-3 top-2.5 px-2.5 py-1 rounded-lg text-xs font-black border bg-[#d4af37]/20 text-[#f5d77f] border-[#d4af37]/40 active:scale-95"
               >
                 MAX
               </button>
@@ -841,54 +836,37 @@ export const WalletView: React.FC<WalletViewProps> = ({
 
           <div>
             <label className="text-xs text-gray-400 font-bold block mb-1.5">
-              Destination Wallet Address (USDT TRC20)
+              {t('wallet_withdraw_addr_label')}
             </label>
             <input
               type="text"
               value={withdrawAddress}
               onChange={(e) => { setWithdrawAddress(e.target.value); setErrorMessage(null); }}
-              className={`w-full bg-[#0b0e17] border border-[#1f293d] rounded-2xl py-3 px-4 text-white text-xs font-mono focus:outline-none ${
-                isRefSource ? 'focus:border-[#00df89]' : 'focus:border-[#ff2d55]'
-              }`}
-              placeholder="Paste your TRC20 address (starts with T...)"
+              placeholder="VD: TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t"
+              className="w-full bg-[#05070c] border border-[#221c10] rounded-2xl py-3 px-4 text-white text-xs font-mono focus:outline-none focus:border-[#d4af37]"
             />
           </div>
 
-          <div className="bg-[#0b0e17] rounded-2xl p-4 border border-[#1f293d] text-xs space-y-2">
+          {/* Fee Engine Realtime Breakdown Card */}
+          <div className="bg-[#05070c] rounded-2xl p-4 border border-[#221c10] text-xs space-y-2">
             <div className="flex justify-between text-gray-400">
-              <span>Gross Withdrawal Amount:</span>
-              <span className="font-bold text-gray-200">${withdrawBreakdown.grossAmount.toFixed(2)} USDT</span>
+              <span>{lang === 'vi' ? 'Số Tiền Rút Gốc:' : 'Gross Withdrawal Amount:'}</span>
+              <span className="font-bold text-gray-200 font-mono">${withdrawBreakdown.grossAmount.toFixed(2)} USDT</span>
             </div>
             <div className="flex justify-between text-gray-400">
-              <span>{isRefSource ? 'Phí Sàn (Treasury Policy):' : 'Percentage Fee (19%):'}</span>
-              <span className={isRefSource ? "font-bold text-[#00df89]" : "font-bold text-[#ff2d55]"}>
-                {isRefSource ? '0% (MIỄN PHÍ - KHÔNG MẤT 19%)' : `-$${withdrawBreakdown.percentageFee.toFixed(2)} USDT`}
+              <span>{isRefSource ? (lang === 'vi' ? 'Phí Sàn (Treasury Policy):' : 'Treasury Fee:') : (lang === 'vi' ? 'Phí Quản Trị Quỹ (19%):' : 'Percentage Fee (19%):')}</span>
+              <span className={isRefSource ? "font-bold text-emerald-400 font-mono" : "font-bold text-[#ff2d55] font-mono"}>
+                {isRefSource ? (lang === 'vi' ? '0% (MIỄN PHÍ - KHÔNG MẤT 19%)' : '0% (FREE - NO 19% FEE)') : `-$${withdrawBreakdown.percentageFee.toFixed(2)} USDT`}
               </span>
             </div>
             <div className="flex justify-between text-gray-400">
-              <span>Fixed On-Chain Network Fee ($5.00 USD):</span>
-              <span className="font-bold text-amber-400">-$5.00 USDT</span>
+              <span>{lang === 'vi' ? 'Phí Mạng On-chain ($5.00 USD):' : 'Fixed On-Chain Network Fee ($5.00 USD):'}</span>
+              <span className="font-bold text-amber-400 font-mono">-$5.00 USDT</span>
             </div>
 
-            {isRefSource ? (
-              <div className="bg-[#131927] p-2.5 rounded-xl border border-[#1f293d] space-y-1 my-1 text-[10px] text-gray-400 leading-relaxed">
-                🛡️ <strong className="text-white">BẢO TOÀN DOANH THU ĐẠI LÝ:</strong> Tiền hoa hồng là doanh thu của bạn nên được miễn 100% phí sàn (hoàn toàn không chịu phí 19% chính sách Treasury). Bạn chỉ chi trả $5.00 phí truyền mạng On-chain TRC20.
-              </div>
-            ) : (
-              <div className="bg-[#131927] p-2.5 rounded-xl border border-[#1f293d] space-y-1 my-1">
-                <div className="flex justify-between text-amber-400 font-bold text-[11px]">
-                  <span>Treasury Reserve Retention (10% included in 19% fee):</span>
-                  <span className="font-mono">${withdrawBreakdown.effectiveRetainedFee?.toFixed(2)} USDT</span>
-                </div>
-                <span className="text-[9px] text-gray-500 block leading-tight">
-                  (Allocated to liquidity reserve & reseller affiliate pool)
-                </span>
-              </div>
-            )}
-
-            <div className="border-t border-[#1f293d] pt-2 flex justify-between font-black text-sm text-white">
-              <span className={isRefSource ? "text-[#00df89]" : "text-[#ff2d55]"}>Net Payout to Your Wallet:</span>
-              <span className={withdrawBreakdown.netAmount <= 0 ? "text-red-500 font-black" : (isRefSource ? "text-[#00df89]" : "text-[#ff2d55]")}>
+            <div className="border-t border-[#221c10] pt-2 flex justify-between font-black text-sm text-white">
+              <span className={isRefSource ? "text-emerald-400" : "text-[#f5d77f]"}>{lang === 'vi' ? 'Thực Nhận Về Ví:' : 'Net Received:'}</span>
+              <span className={withdrawBreakdown.netAmount <= 0 ? "text-red-500 font-black font-mono" : (isRefSource ? "text-emerald-400 font-mono" : "text-[#f5d77f] font-mono")}>
                 ${withdrawBreakdown.netAmount.toFixed(2)} USDT
               </span>
             </div>
@@ -897,50 +875,50 @@ export const WalletView: React.FC<WalletViewProps> = ({
           {withdrawBreakdown.netAmount <= 0 && (
             <div className="bg-red-500/20 border border-red-500 p-3 rounded-2xl text-xs font-bold text-red-400 flex items-center gap-2">
               <AlertCircle className="w-4 h-4 flex-shrink-0" />
-              <span>⛔ Negative payout amount! Please enter a withdrawal amount greater than $6.50 USD.</span>
+              <span>⛔ {lang === 'vi' ? 'Số tiền thực nhận nhỏ hơn $0! Vui lòng nhập số tiền rút tối thiểu $6.50 USD.' : 'Negative payout amount! Please enter a withdrawal amount greater than $6.50 USD.'}</span>
             </div>
           )}
 
           <button
             onClick={handleWithdrawConfirm}
             disabled={loading || withdrawBreakdown.netAmount <= 0 || numAmount > currentAvailableWithdraw}
-            className={`w-full py-3.5 rounded-2xl font-black text-sm uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${
+            className={`w-full py-3.5 rounded-2xl font-black text-sm uppercase tracking-wider transition-all flex items-center justify-center gap-2 active:scale-[0.98] ${
               loading || withdrawBreakdown.netAmount <= 0 || numAmount > currentAvailableWithdraw
-                ? 'bg-gray-700 text-gray-400 cursor-not-allowed border border-gray-600'
+                ? 'bg-gray-800 text-gray-500 cursor-not-allowed border border-gray-700'
                 : isRefSource
-                ? 'bg-gradient-to-r from-[#00df89] to-[#00b06b] text-black shadow-[0_4px_14px_rgba(0,223,137,0.4)] hover:opacity-95'
-                : 'bg-[#ff2d55] text-white shadow-[0_4px_14px_rgba(255,45,85,0.4)] hover:opacity-95'
+                ? 'bg-gradient-to-r from-emerald-500 to-emerald-600 text-black shadow-[0_4px_14px_rgba(16,185,129,0.3)] hover:opacity-95'
+                : 'spartan-cta-btn text-white shadow-[0_4px_18px_rgba(255,69,0,0.4)] hover:opacity-95'
             }`}
           >
             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
             <span>
               {numAmount > currentAvailableWithdraw
-                ? (isRefSource ? 'LOCKED (VƯỢT QUÁ HOA HỒNG KHẢ DỤNG)' : 'LOCKED (INSUFFICIENT AVAILABLE BALANCE)')
+                ? (isRefSource ? (lang === 'vi' ? 'KHÓA (VƯỢT QUÁ HOA HỒNG KHẢ DỤNG)' : 'LOCKED (EXCEEDS AVAILABLE REBATE)') : (lang === 'vi' ? 'KHÓA (SỐ DƯ KHÔNG ĐỦ)' : 'LOCKED (INSUFFICIENT BALANCE)'))
                 : withdrawBreakdown.netAmount <= 0
-                ? 'CANNOT WITHDRAW (NEGATIVE AMOUNT)'
+                ? (lang === 'vi' ? 'KHÔNG THỂ RÚT (SỐ TIỀN ÂM)' : 'CANNOT WITHDRAW (NEGATIVE AMOUNT)')
                 : isRefSource
-                ? `XÁC NHẬN RÚT HOA HỒNG (THỰC NHẬN $${withdrawBreakdown.netAmount.toFixed(2)} USDT)`
-                : `Confirm Withdrawal (Net Payout $${withdrawBreakdown.netAmount.toFixed(2)} USDT)`}
+                ? (lang === 'vi' ? `XÁC NHẬN RÚT HOA HỒNG (THỰC NHẬN $${withdrawBreakdown.netAmount.toFixed(2)} USDT)` : `CONFIRM REBATE WITHDRAWAL (NET $${withdrawBreakdown.netAmount.toFixed(2)} USDT)`)
+                : (lang === 'vi' ? `XÁC NHẬN RÚT VỐN (THỰC NHẬN $${withdrawBreakdown.netAmount.toFixed(2)} USDT)` : `CONFIRM WITHDRAWAL (NET $${withdrawBreakdown.netAmount.toFixed(2)} USDT)`)}
             </span>
           </button>
         </div>
       )}
 
       {/* TRANSACTION HISTORY (PAGINATED 5 ITEMS PER PAGE) */}
-      <div className="spartan-card rounded-3xl p-4 border border-[#1f293d] space-y-3 shadow-lg">
-        <div className="flex items-center justify-between border-b border-[#1f293d] pb-2.5">
+      <div className="spartan-card rounded-3xl p-4 border border-[#221c10] bg-[#080b12] space-y-3 shadow-lg">
+        <div className="flex items-center justify-between border-b border-[#221c10] pb-2.5">
           <h3 className="text-xs font-black text-white uppercase tracking-wider flex items-center gap-1.5">
-            <History className="w-4 h-4 text-[#ff5500]" /> TRANSACTION HISTORY (REALTIME)
+            <History className="w-4 h-4 text-[#f5d77f]" /> {t('wallet_ledger_title')}
           </h3>
-          <span className="text-[10px] text-gray-400 font-bold">
-            Total {allTransactions.length} Transactions
+          <span className="text-[10px] text-gray-400 font-bold font-mono">
+            {lang === 'vi' ? `Tổng ${allTransactions.length} giao dịch` : `Total ${allTransactions.length} Transactions`}
           </span>
         </div>
 
         <div className="space-y-2">
           {paginatedTxs.length === 0 ? (
-            <div className="text-center py-6 text-xs font-bold text-gray-500">
-              Chưa có giao dịch nào được ghi nhận.
+            <div className="text-center py-6 text-xs font-bold text-gray-500 bg-[#05070c] rounded-2xl border border-[#221c10]">
+              {lang === 'vi' ? 'Chưa có giao dịch nào được ghi nhận.' : 'No transactions recorded yet.'}
             </div>
           ) : (
             paginatedTxs.map((tx) => {
@@ -950,18 +928,18 @@ export const WalletView: React.FC<WalletViewProps> = ({
               return (
                 <div
                   key={txKey}
-                  className="rounded-2xl bg-[#0b0e17] border border-[#1f293d] hover:border-gray-700 transition-all text-xs animate-in fade-in slide-in-from-top-2 duration-300 overflow-hidden"
+                  className="rounded-2xl bg-[#05070c] border border-[#221c10] hover:border-[#d4af37]/30 transition-all text-xs animate-in fade-in slide-in-from-top-2 duration-300 overflow-hidden"
                 >
                   {/* Summary Header Row (Clickable) */}
                   <div 
                     onClick={() => setExpandedTxId(isExpanded ? null : txKey)}
-                    className="p-3 flex items-center justify-between cursor-pointer hover:bg-[#131927]/60 transition-colors select-none"
+                    className="p-3 flex items-center justify-between cursor-pointer hover:bg-[#0c0f17] transition-colors select-none"
                   >
                     <div className="flex items-center gap-2.5">
                       <div
                         className={`w-8 h-8 rounded-xl flex items-center justify-center font-black ${
                           tx.type === 'DEPOSIT'
-                            ? 'bg-[#00df89]/15 text-[#00df89] border border-[#00df89]/30'
+                            ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
                             : 'bg-[#ff2d55]/15 text-[#ff2d55] border border-[#ff2d55]/30'
                         }`}
                       >
@@ -970,16 +948,16 @@ export const WalletView: React.FC<WalletViewProps> = ({
                       <div>
                         <div className="flex items-center gap-2">
                           <span className="font-extrabold text-white">
-                            {tx.type === 'DEPOSIT' ? 'NẠP TIỀN' : 'RÚT TIỀN'}
+                            {tx.type === 'DEPOSIT' ? (lang === 'vi' ? 'NẠP TIỀN' : 'DEPOSIT') : (lang === 'vi' ? 'RÚT TIỀN' : 'WITHDRAW')}
                           </span>
                           <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded border font-black ${
                             tx.status === 'APPROVED' 
-                              ? 'text-[#00df89] bg-[#00df89]/10 border-[#00df89]/20' 
+                              ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' 
                               : tx.status === 'PENDING' 
-                              ? 'text-[#facc15] bg-[#facc15]/10 border-[#facc15]/20' 
+                              ? 'text-[#f5d77f] bg-[#d4af37]/10 border-[#d4af37]/30' 
                               : 'text-[#ff2d55] bg-[#ff2d55]/10 border-[#ff2d55]/20'
                           }`}>
-                            {tx.status === 'APPROVED' ? 'ĐÃ DUYỆT' : tx.status === 'PENDING' ? 'CHỜ DUYỆT' : 'TỪ CHỐI'}
+                            {tx.status === 'APPROVED' ? (lang === 'vi' ? 'ĐÃ DUYỆT' : 'APPROVED') : tx.status === 'PENDING' ? (lang === 'vi' ? 'CHỜ DUYỆT' : 'PENDING') : (lang === 'vi' ? 'TỪ CHỐI' : 'REJECTED')}
                           </span>
                         </div>
                         <div className="flex items-center gap-2 text-[10px] text-gray-500 font-mono mt-0.5">
@@ -994,20 +972,20 @@ export const WalletView: React.FC<WalletViewProps> = ({
                     </div>
 
                     <div className="flex items-center gap-2">
-                      <div className="text-right">
+                      <div className="text-right font-mono">
                         <span
                           className={`font-black text-xs block ${
-                            tx.type === 'DEPOSIT' ? 'text-[#00df89]' : 'text-[#ff2d55]'
+                            tx.type === 'DEPOSIT' ? 'text-emerald-400' : 'text-[#ff2d55]'
                           }`}
                         >
                           {tx.type === 'DEPOSIT' ? `+$${tx.netAmount.toFixed(2)}` : `-$${tx.netAmount.toFixed(2)}`}
                         </span>
                         <span className="text-[9px] text-gray-400 font-bold block">
-                          Phí: -${tx.feeAmount.toFixed(2)}
+                          {lang === 'vi' ? 'Phí:' : 'Fee:'} -${tx.feeAmount.toFixed(2)}
                         </span>
                       </div>
                       <button className="p-1 rounded-lg text-gray-400 hover:text-white transition-colors">
-                        {isExpanded ? <ChevronUp className="w-4 h-4 text-[#ff5500]" /> : <ChevronDown className="w-4 h-4" />}
+                        {isExpanded ? <ChevronUp className="w-4 h-4 text-[#f5d77f]" /> : <ChevronDown className="w-4 h-4" />}
                       </button>
                     </div>
                   </div>

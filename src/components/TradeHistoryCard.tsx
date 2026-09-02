@@ -24,12 +24,15 @@ interface TradeHistoryCardProps {
   telegramId?: string;
 }
 
+import { useLanguage } from '@/contexts/LanguageContext';
+
 export const TradeHistoryCard: React.FC<TradeHistoryCardProps> = ({
   shareRatio = 1,
   userCapitalJoinedAt,
   username = 'spartan_trader',
   telegramId = '494232782',
 }) => {
+  const { t } = useLanguage();
   const [trades, setTrades] = useState<TradeOrder[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [currentPage, setCurrentPage] = useState(1);
@@ -53,16 +56,16 @@ export const TradeHistoryCard: React.FC<TradeHistoryCardProps> = ({
   const paginatedOrders = trades.slice((validPage - 1) * ITEMS_PER_PAGE, validPage * ITEMS_PER_PAGE);
 
   return (
-    <div className="w-full spartan-card rounded-3xl p-4 border border-[#1f293d] space-y-3 shadow-lg">
+    <div className="w-full spartan-card rounded-3xl p-4 border border-[#221c10] bg-[#080b12] space-y-3 shadow-lg">
       {/* Card Header */}
-      <div className="flex items-center justify-between border-b border-[#1f293d] pb-2.5">
+      <div className="flex items-center justify-between border-b border-[#221c10] pb-2.5">
         <div className="flex items-center gap-2">
-          <History className="w-4 h-4 text-[#ff5500]" />
+          <History className="w-4 h-4 text-[#f5d77f]" />
           <h3 className="text-xs font-black text-white uppercase tracking-wider">
-            EXECUTED ORDER HISTORY (EXNESS MT5 LIVE)
+            {t('trades_live_title')}
           </h3>
         </div>
-        <div className="flex items-center gap-1 text-[10px] font-black text-[#00df89] bg-[#00df89]/10 px-2 py-0.5 rounded-full border border-[#00df89]/20 font-mono">
+        <div className="flex items-center gap-1 text-[10px] font-black text-emerald-400 bg-emerald-500/15 px-2 py-0.5 rounded-full border border-emerald-500/30 font-mono">
           <Radio className="w-3 h-3 animate-pulse" />
           <span>LIVE FEED</span>
         </div>
@@ -71,19 +74,19 @@ export const TradeHistoryCard: React.FC<TradeHistoryCardProps> = ({
       {/* Orders Sub-List or Empty State */}
       {isLoading ? (
         <div className="py-8 text-center text-xs text-gray-500 font-bold flex items-center justify-center gap-2">
-          <Activity className="w-4 h-4 animate-spin text-[#ff5500]" />
+          <Activity className="w-4 h-4 animate-spin text-[#d4af37]" />
           <span>Syncing real-time order execution stream from Exness...</span>
         </div>
       ) : trades.length === 0 ? (
-        <div className="py-8 px-4 text-center rounded-2xl bg-[#0b0e17] border border-[#1f293d] space-y-2">
-          <div className="w-10 h-10 mx-auto rounded-xl bg-[#ff5500]/10 border border-[#ff5500]/20 flex items-center justify-center text-[#ff5500]">
+        <div className="py-8 px-4 text-center rounded-2xl bg-[#05070c] border border-[#221c10] space-y-2">
+          <div className="w-10 h-10 mx-auto rounded-xl bg-[#d4af37]/10 border border-[#d4af37]/25 flex items-center justify-center text-[#f5d77f]">
             <Activity className="w-5 h-5 animate-pulse" />
           </div>
           <h4 className="text-xs font-black text-white uppercase tracking-wider">
-            NO NEW TRADES EXECUTED
+            {t('trades_no_trades')}
           </h4>
           <p className="text-[11px] text-gray-400 max-w-xs mx-auto leading-relaxed">
-            Quant AI is scanning Gold (XAU/USD) markets. Live filled orders from Master Exness accounts will automatically appear here upon position trigger.
+            {t('trades_no_trades_sub')}
           </p>
         </div>
       ) : (
@@ -99,13 +102,13 @@ export const TradeHistoryCard: React.FC<TradeHistoryCardProps> = ({
             return (
               <div
                 key={trade.id}
-                className="flex items-center justify-between p-3 rounded-2xl bg-[#0b0e17] border border-[#1f293d] hover:border-gray-700 transition-colors text-xs"
+                className="flex items-center justify-between p-3 rounded-2xl bg-[#05070c] border border-[#221c10] hover:border-[#d4af37]/30 transition-colors text-xs"
               >
                 <div className="flex items-center gap-2.5">
                   <div
                     className={`w-8 h-8 rounded-xl flex items-center justify-center font-black ${
                       trade.type === 'BUY'
-                        ? 'bg-[#00df89]/15 text-[#00df89] border border-[#00df89]/30'
+                        ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
                         : 'bg-[#ff2d55]/15 text-[#ff2d55] border border-[#ff2d55]/30'
                     }`}
                   >
@@ -122,7 +125,7 @@ export const TradeHistoryCard: React.FC<TradeHistoryCardProps> = ({
                       <span
                         className={`text-[9px] font-black px-1.5 py-0.2 rounded uppercase ${
                           trade.type === 'BUY'
-                            ? 'bg-[#00df89]/20 text-[#00df89]'
+                            ? 'bg-emerald-500/20 text-emerald-400'
                             : 'bg-[#ff2d55]/20 text-[#ff2d55]'
                         }`}
                       >
@@ -144,22 +147,22 @@ export const TradeHistoryCard: React.FC<TradeHistoryCardProps> = ({
                   {isTradeBeforeJoin ? (
                     <div>
                       <span className="font-bold text-gray-500 text-xs block">$0.00</span>
-                      <span className="text-[8px] font-bold text-amber-400/90 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20 block mt-0.5" title="Lệnh mở trước khi bạn nạp vốn vào Pool">
-                        Chưa góp vốn
+                      <span className="text-[8px] font-bold text-amber-400/90 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20 block mt-0.5">
+                        {t('trades_not_joined')}
                       </span>
                     </div>
                   ) : (
                     <div>
                       <span
                         className={`font-black text-xs block ${
-                          effectivePnl >= 0 ? 'text-[#00df89]' : 'text-[#ff2d55]'
+                          effectivePnl >= 0 ? 'text-emerald-400' : 'text-[#ff2d55]'
                         }`}
                       >
                         {effectivePnl >= 0 ? `+$${effectivePnl.toFixed(2)}` : `-$${Math.abs(effectivePnl).toFixed(2)}`}
                       </span>
                       <span
                         className={`text-[9px] font-bold block ${
-                          trade.pnlPercentage >= 0 ? 'text-[#00df89]' : 'text-[#ff2d55]'
+                          trade.pnlPercentage >= 0 ? 'text-emerald-400' : 'text-[#ff2d55]'
                         }`}
                       >
                         {trade.pnlPercentage >= 0 ? `+${trade.pnlPercentage.toFixed(2)}%` : `${trade.pnlPercentage.toFixed(2)}%`}
@@ -169,11 +172,11 @@ export const TradeHistoryCard: React.FC<TradeHistoryCardProps> = ({
                       {trade.pnl > 0 && (
                         <button
                           onClick={() => setSelectedTradeForShare(trade)}
-                          className="mt-1 px-2 py-0.5 rounded-lg bg-gradient-to-r from-[#ff5500]/20 to-amber-500/20 hover:from-[#ff5500] hover:to-amber-500 border border-[#ff5500]/40 text-[#ff5500] hover:text-white text-[9px] font-black flex items-center gap-1 transition-all ml-auto shadow-sm"
-                          title="Tạo ảnh poster khoe lãi để chia sẻ nhận hoa hồng"
+                          className="mt-1 px-2 py-0.5 rounded-lg bg-[#d4af37]/15 hover:bg-[#d4af37]/30 border border-[#d4af37]/40 text-[#f5d77f] text-[9px] font-black flex items-center gap-1 transition-all ml-auto shadow-sm"
+                          title="Tạo ảnh poster khoe lãi"
                         >
                           <Share2 className="w-2.5 h-2.5" />
-                          <span>Khoe Lãi</span>
+                          <span>{t('trades_share_pnl')}</span>
                         </button>
                       )}
                     </div>

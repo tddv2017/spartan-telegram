@@ -23,6 +23,7 @@ import { subscribeToReferredUsers, reinvestReferralBalance, withdrawReferralBala
 import { getUserRankInfo } from './Header';
 import { checkIsAdmin } from '@/lib/adminAuth';
 import { calculateResellerTier } from '@/lib/resellerEngine';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface ProfileViewProps {
   telegramId?: string;
@@ -39,6 +40,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
   resellerTier = 1,
   tradingBalance = 0.00,
 }) => {
+  const { t, lang } = useLanguage();
   const [copied, setCopied] = useState(false);
   const [referredUsers, setReferredUsers] = useState<any[]>([]);
 
@@ -46,7 +48,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
   const effectiveTier = referredUsers.length > 0 ? dynamicTier.tier : (resellerTier || 1);
 
   const isAdmin = checkIsAdmin(username) || checkIsAdmin(telegramId);
-  const rank = getUserRankInfo(isAdmin, username, effectiveTier);
+  const rank = getUserRankInfo(isAdmin, username, effectiveTier, 'CLIENT', lang);
 
   const [localRefBal, setLocalRefBal] = useState<number>(referralBalance);
   const [localTradingBal, setLocalTradingBal] = useState<number>(tradingBalance);
@@ -200,34 +202,34 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
       </div>
 
       {/* 1. Referral Program Overview Card (PRIMARY ACTIONS AT THE TOP) */}
-      <div className="spartan-card rounded-3xl p-5 border border-[#1f293d] space-y-4 shadow-lg">
-        <div className="flex items-center justify-between border-b border-[#1f293d] pb-3">
+      <div className="spartan-card rounded-3xl p-5 border border-[#221c10] bg-[#080b12] space-y-4 shadow-lg">
+        <div className="flex items-center justify-between border-b border-[#221c10] pb-3">
           <div className="flex items-center gap-2">
-            <Share2 className="w-4 h-4 text-[#ff5500]" />
+            <Share2 className="w-4 h-4 text-[#f5d77f]" />
             <h3 className="text-xs font-black text-white uppercase tracking-wider">
-              CHƯƠNG TRÌNH ĐỐI TÁC RESELLER
+              {t('reseller_title')}
             </h3>
           </div>
-          <span className="text-[10px] font-extrabold text-[#00df89] bg-[#00df89]/10 px-2.5 py-0.5 rounded-full border border-[#00df89]/20">
-            Hoa hồng tới 20%
+          <span className="text-[10px] font-extrabold text-emerald-400 bg-emerald-500/15 px-2.5 py-0.5 rounded-full border border-emerald-500/30">
+            {t('reseller_rebate_badge')}
           </span>
         </div>
 
         {/* Stats Grid */}
         <div className="grid grid-cols-2 gap-3">
-          <div className="bg-[#0b0e17] p-3 rounded-2xl border border-[#1f293d]">
-            <span className="text-[10px] text-gray-400 font-extrabold uppercase block mb-1">TỔNG HOA HỒNG CỦA BẠN</span>
-            <div className="text-lg font-black text-[#00df89]">
+          <div className="bg-[#05070c] p-3 rounded-2xl border border-[#221c10]">
+            <span className="text-[10px] text-gray-400 font-extrabold uppercase block mb-1">{t('total_rebate')}</span>
+            <div className="text-lg font-black text-[#f5d77f] font-mono">
               ${localRefBal.toLocaleString('en-US', { minimumFractionDigits: 2 })} USDT
             </div>
           </div>
 
-          <div className="bg-[#0b0e17] p-3 rounded-2xl border border-[#1f293d]">
-            <span className="text-[10px] text-gray-400 font-extrabold uppercase block mb-1">KHÁCH TRỰC TIẾP (F1)</span>
-            <div className="text-lg font-black text-white flex items-center gap-1">
-              <Users className="w-4 h-4 text-[#ff5500]" />
+          <div className="bg-[#05070c] p-3 rounded-2xl border border-[#221c10]">
+            <span className="text-[10px] text-gray-400 font-extrabold uppercase block mb-1">{t('direct_clients')}</span>
+            <div className="text-lg font-black text-white flex items-center gap-1 font-mono">
+              <Users className="w-4 h-4 text-[#f5d77f]" />
               <span>{referredUsers.length}</span>
-              <span className="text-xs text-gray-500 font-bold">Thành viên</span>
+              <span className="text-xs text-gray-500 font-bold">{t('direct_clients_count')}</span>
             </div>
           </div>
         </div>
@@ -241,10 +243,10 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                 setReinvestAmount(String(localRefBal));
                 setReinvestError(null);
               }}
-              className="py-2.5 px-3 rounded-xl bg-gradient-to-r from-[#00df89] to-[#00b06b] hover:opacity-90 text-black font-black text-[11px] uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-md transition-all"
+              className="py-2.5 px-3 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 hover:opacity-90 text-black font-black text-[11px] uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-md transition-all active:scale-95"
             >
               <RefreshCw className="w-3.5 h-3.5" />
-              <span>TÁI ĐẦU TƯ (0% PHÍ)</span>
+              <span>{t('reinvest_btn')}</span>
             </button>
             <button
               onClick={() => {
@@ -253,10 +255,10 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                 setWithdrawError(null);
                 setWithdrawSuccess(null);
               }}
-              className="py-2.5 px-3 rounded-xl bg-[#131927] hover:bg-[#1f293d] border border-[#1f293d] text-gray-300 font-bold text-[11px] uppercase flex items-center justify-center gap-1.5 transition-all"
+              className="py-2.5 px-3 rounded-xl bg-[#0c0f17] hover:bg-[#141924] border border-[#221c10] text-gray-300 font-bold text-[11px] uppercase flex items-center justify-center gap-1.5 transition-all active:scale-95"
             >
               <ArrowUpRight className="w-3.5 h-3.5 text-[#ff2d55]" />
-              <span>RÚT HOA HỒNG</span>
+              <span>{t('withdraw_rebate_btn')}</span>
             </button>
           </div>
         )}
@@ -264,39 +266,39 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
         {/* Exclusive Referral Link Box */}
         <div>
           <label className="text-xs text-gray-400 font-bold block mb-1.5">
-            LINK GIỚI THIỆU CỦA BẠN (GỬI BẠN BÈ ĐỂ NHẬN HOA HỒNG):
+            {t('ref_link_label')}
           </label>
-          <div className="flex items-center gap-2 bg-[#0b0e17] border border-[#1f293d] p-2.5 rounded-2xl">
-            <span className="text-xs text-[#ff5500] font-mono font-bold truncate flex-1">
+          <div className="flex items-center gap-2 bg-[#05070c] border border-[#221c10] p-2.5 rounded-2xl">
+            <span className="text-xs text-[#f5d77f] font-mono font-bold truncate flex-1">
               {refLink}
             </span>
             <button
               onClick={handleCopy}
-              className="px-3 py-1.5 rounded-xl spartan-orange-btn text-xs font-black flex items-center gap-1 hover:opacity-90 transition-opacity"
+              className="px-3 py-1.5 rounded-xl gold-btn-solid text-xs font-black flex items-center gap-1 hover:opacity-90 transition-opacity active:scale-95"
             >
-              {copied ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-              <span>{copied ? 'Đã chép' : 'Sao chép'}</span>
+              {copied ? <CheckCircle2 className="w-3.5 h-3.5 text-black" /> : <Copy className="w-3.5 h-3.5 text-black" />}
+              <span>{copied ? t('btn_copied') : t('btn_copy')}</span>
             </button>
           </div>
         </div>
       </div>
 
       {/* 2. COLLAPSIBLE 10 RESELLER TIERS SPECIFICATION ACCORDION */}
-      <div className="spartan-card rounded-3xl p-4 border border-[#1f293d] space-y-3 shadow-md">
+      <div className="spartan-card rounded-3xl p-4 border border-[#221c10] bg-[#080b12] space-y-3 shadow-md">
         <button
           type="button"
           onClick={() => setShowTierMatrix(!showTierMatrix)}
           className="w-full flex items-center justify-between text-left"
         >
           <div className="flex items-center gap-2">
-            <Trophy className="w-4 h-4 text-[#ff5500]" />
+            <Trophy className="w-4 h-4 text-[#f5d77f]" />
             <h3 className="text-xs font-black text-white uppercase tracking-wider">
-              BẢNG 10 CẤP ĐỘ HOA HỒNG RESELLER
+              {t('tier_matrix_title')}
             </h3>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-[9px] font-black text-[#ff5500] bg-[#ff5500]/10 px-2 py-0.5 rounded-full border border-[#ff5500]/30">
-              {isAdmin ? '👑 SUPREME LEADER' : `Cấp hiện tại: ${effectiveTier}`}
+            <span className="text-[9px] font-black text-[#f5d77f] bg-[#d4af37]/15 px-2 py-0.5 rounded-full border border-[#d4af37]/35">
+              {isAdmin ? '👑 SUPREME LEADER' : `${t('ref_current_tier')}: ${effectiveTier}`}
             </span>
             <span className="text-xs text-gray-400 font-bold">
               {showTierMatrix ? '▲' : '▼'}
@@ -305,7 +307,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
         </button>
 
         {showTierMatrix && (
-          <div className="space-y-2 max-h-64 overflow-y-auto pr-1.5 pt-2 border-t border-[#1f293d] scrollbar-thin scrollbar-thumb-[#ff5500]/40 scrollbar-track-[#0b0e17] animate-in fade-in duration-200">
+          <div className="space-y-2 max-h-64 overflow-y-auto pr-1.5 pt-2 border-t border-[#221c10] scrollbar-thin scrollbar-thumb-[#d4af37]/40 scrollbar-track-[#05070c] animate-in fade-in duration-200">
             {resellerLevelsList.map((item) => {
               const isCurrent = !isAdmin && effectiveTier === item.level;
               return (
@@ -313,20 +315,20 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                   key={item.level}
                   className={`p-2.5 rounded-2xl border flex items-center justify-between transition-all ${
                     isCurrent
-                      ? 'bg-[#131927] border-[#ff5500] shadow-[0_0_15px_rgba(255,85,0,0.3)]'
-                      : 'bg-[#0b0e17] border-[#1f293d]'
+                      ? 'bg-[#0f1422] border-[#d4af37] shadow-[0_0_15px_rgba(212,175,55,0.25)]'
+                      : 'bg-[#05070c] border-[#221c10]'
                   }`}
                 >
                   <div className="flex items-center gap-2.5">
-                    <span className="text-sm font-black text-[#ff5500]">🎖️</span>
+                    <span className="text-sm font-black text-[#f5d77f]">🎖️</span>
                     <div>
                       <div className="flex items-center gap-2">
                         <span className={`text-xs font-black uppercase tracking-wider ${item.badge.split(' ')[1]}`}>
                           {item.title}
                         </span>
                         {isCurrent && (
-                          <span className="text-[9px] font-black px-1.5 py-0.2 bg-[#ff5500] text-white rounded uppercase">
-                            CẤP CỦA BẠN
+                          <span className="text-[9px] font-black px-1.5 py-0.2 bg-[#d4af37] text-black rounded uppercase">
+                            {t('ref_your_tier')}
                           </span>
                         )}
                       </div>
@@ -335,7 +337,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                   </div>
 
                   <div className="text-right">
-                    <span className="text-xs font-mono font-black text-[#00df89] block">
+                    <span className="text-xs font-mono font-black text-emerald-400 block">
                       {item.share}
                     </span>
                   </div>
@@ -347,10 +349,10 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
       </div>
 
       {/* Referred Clients Sub-List */}
-      <div className="spartan-card rounded-3xl p-5 border border-[#1f293d] space-y-3 shadow-lg">
-        <div className="flex items-center justify-between border-b border-[#1f293d] pb-2.5">
+      <div className="spartan-card rounded-3xl p-5 border border-[#221c10] bg-[#080b12] space-y-3 shadow-lg">
+        <div className="flex items-center justify-between border-b border-[#221c10] pb-2.5">
           <h3 className="text-xs font-black text-white uppercase tracking-wider flex items-center gap-1.5">
-            <Users className="w-4 h-4 text-[#ff5500]" /> DIRECT F1 CLIENTS ({referredUsers.length})
+            <Users className="w-4 h-4 text-[#f5d77f]" /> {t('direct_clients_title')} ({referredUsers.length})
           </h3>
         </div>
 
@@ -389,12 +391,12 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
       {/* Reinvest Modal Dialog */}
       {isReinvestOpen && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-[#0b0e17] border border-[#1f293d] rounded-3xl p-6 max-w-sm w-full space-y-4 shadow-[0_0_30px_rgba(0,223,137,0.2)] animate-in zoom-in-95 duration-200">
-            <div className="flex items-center justify-between border-b border-[#1f293d] pb-3">
+          <div className="bg-[#080b12] border border-[#221c10] rounded-3xl p-6 max-w-sm w-full space-y-4 shadow-[0_0_30px_rgba(212,175,55,0.2)] animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between border-b border-[#221c10] pb-3">
               <div className="flex items-center gap-2">
-                <RefreshCw className="w-5 h-5 text-[#00df89]" />
+                <RefreshCw className="w-5 h-5 text-emerald-400" />
                 <h3 className="text-sm font-black text-white uppercase tracking-wider">
-                  TÁI ĐẦU TƯ VÀO VỐN BOT
+                  {lang === 'vi' ? 'TÁI ĐẦU TƯ VÀO VỐN BOT' : 'REINVEST INTO BOT CAPITAL'}
                 </h3>
               </div>
               <button
@@ -405,19 +407,19 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
               </button>
             </div>
 
-            <div className="bg-[#131927] p-3 rounded-2xl border border-[#1f293d] space-y-1">
+            <div className="bg-[#05070c] p-3 rounded-2xl border border-[#221c10] space-y-1">
               <div className="flex justify-between text-xs">
-                <span className="text-gray-400">Hoa hồng hiện có:</span>
-                <span className="font-bold text-[#00df89]">${localRefBal.toFixed(2)} USDT</span>
+                <span className="text-gray-400">{lang === 'vi' ? 'Hoa hồng hiện có:' : 'Available Rebate:'}</span>
+                <span className="font-bold text-[#f5d77f] font-mono">${localRefBal.toFixed(2)} USDT</span>
               </div>
               <div className="flex justify-between text-xs">
-                <span className="text-gray-400">Phí tái đầu tư:</span>
-                <span className="font-bold text-[#00df89]">0% (MIỄN PHÍ 100%)</span>
+                <span className="text-gray-400">{lang === 'vi' ? 'Phí tái đầu tư:' : 'Reinvestment Fee:'}</span>
+                <span className="font-bold text-emerald-400">{lang === 'vi' ? '0% (MIỄN PHÍ 100%)' : '0% (100% FREE)'}</span>
               </div>
             </div>
 
             {reinvestSuccess && (
-              <div className="p-3 bg-[#00df89]/20 border border-[#00df89] rounded-2xl text-[#00df89] text-xs font-bold text-center">
+              <div className="p-3 bg-emerald-500/20 border border-emerald-500 rounded-2xl text-emerald-400 text-xs font-bold text-center">
                 {reinvestSuccess}
               </div>
             )}
@@ -431,7 +433,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
             <form onSubmit={handleReinvestSubmit} className="space-y-3">
               <div className="space-y-1">
                 <label className="text-xs text-gray-400 font-bold block">
-                  Nhập số tiền muốn chuyển vào Vốn Bot ($ USDT):
+                  {lang === 'vi' ? 'Nhập số tiền muốn chuyển vào Vốn Bot ($ USDT):' : 'Enter amount to transfer to Bot Capital ($ USDT):'}
                 </label>
                 <div className="relative">
                   <input
@@ -440,15 +442,15 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                     required
                     value={reinvestAmount}
                     onChange={(e) => setReinvestAmount(e.target.value)}
-                    className="w-full bg-[#131927] border border-[#1f293d] rounded-2xl py-3 px-4 text-white text-base font-black focus:outline-none focus:border-[#00df89]"
+                    className="w-full bg-[#05070c] border border-[#221c10] rounded-2xl py-3 px-4 text-white text-base font-black font-mono focus:outline-none focus:border-[#d4af37]"
                     placeholder="VD: 50"
                   />
                   <button
                     type="button"
                     onClick={() => setReinvestAmount(String(localRefBal))}
-                    className="absolute right-3 top-2.5 px-2 py-1 bg-[#00df89]/20 text-[#00df89] hover:bg-[#00df89]/30 text-[10px] font-bold rounded-lg transition-all"
+                    className="absolute right-3 top-2.5 px-2 py-1 bg-[#d4af37]/20 text-[#f5d77f] hover:bg-[#d4af37]/30 text-[10px] font-bold rounded-lg transition-all"
                   >
-                    TẤT CẢ
+                    {lang === 'vi' ? 'TẤT CẢ' : 'ALL'}
                   </button>
                 </div>
               </div>
@@ -457,17 +459,17 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                 <button
                   type="submit"
                   disabled={reinvestLoading}
-                  className="flex-1 py-3 rounded-xl bg-gradient-to-r from-[#00df89] to-[#00b06b] hover:opacity-90 text-black font-black text-xs uppercase shadow-md transition-all flex items-center justify-center gap-1.5"
+                  className="flex-1 py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 hover:opacity-90 text-black font-black text-xs uppercase shadow-md transition-all flex items-center justify-center gap-1.5 active:scale-95"
                 >
                   {reinvestLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
-                  <span>XÁC NHẬN CHUYỂN VỐN</span>
+                  <span>{lang === 'vi' ? 'XÁC NHẬN CHUYỂN VỐN' : 'CONFIRM REINVESTMENT'}</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setIsReinvestOpen(false)}
-                  className="px-4 py-3 rounded-xl bg-[#131927] text-gray-400 hover:text-white border border-[#1f293d] text-xs font-bold"
+                  className="px-4 py-3 rounded-xl bg-[#05070c] text-gray-400 hover:text-white border border-[#221c10] text-xs font-bold"
                 >
-                  HỦY
+                  {lang === 'vi' ? 'Đóng' : 'Close'}
                 </button>
               </div>
             </form>
@@ -475,15 +477,15 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
         </div>
       )}
 
-      {/* Withdraw Referral Commission Modal Dialog */}
+      {/* Withdraw Referral Commission Modal */}
       {isWithdrawOpen && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-[#0b0e17] border border-[#1f293d] rounded-3xl p-6 max-w-sm w-full space-y-4 shadow-[0_0_30px_rgba(255,45,85,0.2)] animate-in zoom-in-95 duration-200">
-            <div className="flex items-center justify-between border-b border-[#1f293d] pb-3">
+          <div className="bg-[#080b12] border border-[#221c10] rounded-3xl p-6 max-w-sm w-full space-y-4 shadow-[0_0_30px_rgba(212,175,55,0.2)] animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between border-b border-[#221c10] pb-3">
               <div className="flex items-center gap-2">
                 <ArrowUpRight className="w-5 h-5 text-[#ff2d55]" />
                 <h3 className="text-sm font-black text-white uppercase tracking-wider">
-                  RÚT HOA HỒNG VỀ VÍ TRC20
+                  {lang === 'vi' ? 'RÚT HOA HỒNG VỀ VÍ USDT TRC20' : 'WITHDRAW REBATE (USDT TRC20)'}
                 </h3>
               </div>
               <button
@@ -494,32 +496,29 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
               </button>
             </div>
 
-            <div className="bg-[#131927] p-3.5 rounded-2xl border border-[#1f293d] space-y-2 text-xs">
+            <div className="bg-[#05070c] p-3 rounded-2xl border border-[#221c10] space-y-1.5 text-xs">
               <div className="flex justify-between">
-                <span className="text-gray-400">Hoa hồng khả dụng:</span>
-                <span className="font-bold text-[#00df89]">${localRefBal.toFixed(2)} USDT</span>
+                <span className="text-gray-400">{lang === 'vi' ? 'Hoa hồng khả dụng:' : 'Available Rebate:'}</span>
+                <span className="font-bold text-[#f5d77f] font-mono">${localRefBal.toFixed(2)} USDT</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-400">Phí sàn (Treasury Policy):</span>
-                <span className="font-bold text-[#00df89]">0% (MIỄN PHÍ - KHÔNG MẤT 19%)</span>
+                <span className="text-gray-400">{lang === 'vi' ? 'Phí sàn:' : 'Management Fee:'}</span>
+                <span className="font-bold text-emerald-400">0% ({lang === 'vi' ? 'MIỄN PHÍ' : 'FREE'})</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-400">Phí mạng On-chain TRC20 Gas:</span>
+                <span className="text-gray-400">{lang === 'vi' ? 'Phí mạng On-chain TRC20 Gas:' : 'On-chain TRC20 Gas Fee:'}</span>
                 <span className="font-bold text-amber-400">-$5.00 USDT</span>
               </div>
-              <div className="border-t border-[#1f293d] pt-2 flex justify-between font-black text-sm">
-                <span className="text-white">Thực nhận về ví:</span>
-                <span className="text-[#00df89]">
+              <div className="border-t border-[#221c10] pt-2 flex justify-between font-black text-sm">
+                <span className="text-white">{lang === 'vi' ? 'Thực nhận về ví:' : 'Net Received:'}</span>
+                <span className="text-emerald-400 font-mono">
                   ${Math.max(0, (parseFloat(withdrawAmount) || 0) - 5).toFixed(2)} USDT
                 </span>
-              </div>
-              <div className="bg-[#0b0e17] p-2 rounded-xl text-[10px] text-gray-400 leading-relaxed border border-[#1f293d]">
-                🛡️ <strong className="text-white">BẢO TOÀN DOANH THU ĐẠI LÝ:</strong> Hoa hồng là doanh thu của Reseller nên được miễn 100% phí sàn (hoàn toàn không chịu phí 19% chính sách Treasury), chỉ chi trả $5.00 phí truyền mạng On-chain TRC20.
               </div>
             </div>
 
             {withdrawSuccess && (
-              <div className="p-3 bg-[#00df89]/20 border border-[#00df89] rounded-2xl text-[#00df89] text-xs font-bold text-center">
+              <div className="p-3 bg-emerald-500/20 border border-emerald-500 rounded-2xl text-emerald-400 text-xs font-bold text-center">
                 {withdrawSuccess}
               </div>
             )}
@@ -533,7 +532,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
             <form onSubmit={handleWithdrawSubmit} className="space-y-3">
               <div className="space-y-1">
                 <label className="text-xs text-gray-400 font-bold block">
-                  Số tiền hoa hồng muốn rút ($ USDT):
+                  {lang === 'vi' ? 'Số tiền hoa hồng muốn rút ($ USDT):' : 'Rebate amount to withdraw ($ USDT):'}
                 </label>
                 <div className="relative">
                   <input
@@ -542,29 +541,29 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                     required
                     value={withdrawAmount}
                     onChange={(e) => setWithdrawAmount(e.target.value)}
-                    className="w-full bg-[#131927] border border-[#1f293d] rounded-2xl py-3 px-4 text-white text-base font-black focus:outline-none focus:border-[#ff2d55]"
+                    className="w-full bg-[#05070c] border border-[#221c10] rounded-2xl py-3 px-4 text-white text-base font-black font-mono focus:outline-none focus:border-[#d4af37]"
                     placeholder="VD: 50"
                   />
                   <button
                     type="button"
                     onClick={() => setWithdrawAmount(String(localRefBal))}
-                    className="absolute right-3 top-2.5 px-2 py-1 bg-gray-800 text-gray-300 hover:text-white text-[10px] font-bold rounded-lg transition-all"
+                    className="absolute right-3 top-2.5 px-2 py-1 bg-[#141924] text-gray-300 hover:text-white text-[10px] font-bold rounded-lg transition-all"
                   >
-                    TẤT CẢ
+                    {lang === 'vi' ? 'TẤT CẢ' : 'ALL'}
                   </button>
                 </div>
               </div>
 
               <div className="space-y-1">
                 <label className="text-xs text-gray-400 font-bold block">
-                  Địa chỉ ví USDT (TRC20) nhận tiền:
+                  {lang === 'vi' ? 'Địa chỉ ví USDT (TRC20) nhận tiền:' : 'Destination USDT (TRC20) Address:'}
                 </label>
                 <input
                   type="text"
                   required
                   value={withdrawAddress}
                   onChange={(e) => setWithdrawAddress(e.target.value)}
-                  className="w-full bg-[#131927] border border-[#1f293d] rounded-2xl py-2.5 px-3 text-white text-xs font-mono focus:outline-none focus:border-[#ff2d55]"
+                  className="w-full bg-[#05070c] border border-[#221c10] rounded-2xl py-2.5 px-3 text-white text-xs font-mono focus:outline-none focus:border-[#d4af37]"
                   placeholder="VD: TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t"
                 />
               </div>
@@ -573,10 +572,10 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                 <button
                   type="submit"
                   disabled={withdrawLoading}
-                  className="flex-1 py-3 rounded-xl bg-gradient-to-r from-[#ff2d55] to-[#ff5500] hover:opacity-90 text-white font-black text-xs uppercase shadow-md transition-all flex items-center justify-center gap-1.5"
+                  className="flex-1 py-3 rounded-xl bg-gradient-to-r from-[#ff2d55] to-[#ff5500] hover:opacity-90 text-white font-black text-xs uppercase shadow-md transition-all flex items-center justify-center gap-1.5 active:scale-95"
                 >
                   {withdrawLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowUpRight className="w-4 h-4" />}
-                  <span>GỬI LỆNH RÚT HOA HỒNG</span>
+                  <span>{lang === 'vi' ? 'XÁC NHẬN RÚT HOA HỒNG' : 'CONFIRM WITHDRAWAL'}</span>
                 </button>
                 <button
                   type="button"
