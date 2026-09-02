@@ -33,9 +33,9 @@ export default function RootLayout({
       <head>
         <script src="https://telegram.org/js/telegram-web-app.js" async />
       </head>
-      <body className="bg-[#080c14] text-white min-h-screen font-sans antialiased selection:bg-[#00ff88] selection:text-black">
+      <body className="bg-[#04060a] text-white min-h-screen font-sans antialiased selection:bg-[#d4af37] selection:text-black">
         <LanguageProvider>
-          <div className="w-full min-h-screen flex flex-col bg-[#080c14] relative">
+          <div className="w-full min-h-screen flex flex-col bg-[#04060a] relative">
             {children}
           </div>
         </LanguageProvider>

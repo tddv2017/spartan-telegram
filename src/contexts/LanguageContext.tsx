@@ -135,7 +135,35 @@ export const translations = {
   viral_real_profit: { vi: 'LỢI NHUẬN GIAO DỊCH THỰC NHẬN', en: 'REAL TRADING PROFIT' },
   btn_share_tg: { vi: '📲 CHIA SẺ TELEGRAM (1-CHẠM)', en: '📲 SHARE ON TELEGRAM (1-TAP)' },
   btn_download_png: { vi: '💾 Tải ảnh PNG', en: '💾 Download PNG' },
-  btn_copy_ref: { vi: 'Sao chép Ref', en: 'Copy Ref Link' }
+  btn_copy_ref: { vi: 'Sao chép Ref', en: 'Copy Ref Link' },
+
+  // Admin Suite & Portal
+  admin_suite_title: { vi: 'BẢN ĐIỀU KHIỂN QUẢN TRỊ VIÊN', en: 'SPARTAN MASTER ADMIN SUITE' },
+  admin_portal_badge: { vi: 'CỔNG V2.0', en: 'PORTAL V2.0' },
+  admin_command_center: { vi: 'TRUNG TÂM ĐIỀU HÀNH QUẢN TRỊ', en: 'MASTER ADMIN COMMAND CENTER' },
+  admin_supreme_header: { vi: 'Tổng Chỉ Huy Tối Cao: @tddv2017 (ID: 494232782)', en: 'Supreme Commander: @tddv2017 (ID: 494232782)' },
+  admin_dept_overview: { vi: 'TỔNG QUAN', en: 'OVERVIEW' },
+  admin_dept_accounting: { vi: 'KẾ TOÁN', en: 'ACCOUNTING' },
+  admin_dept_personnel: { vi: 'NHÂN SỰ', en: 'PERSONNEL' },
+  admin_dept_techops: { vi: 'KỸ THUẬT', en: 'TECHOPS' },
+  admin_dept_agents: { vi: 'AI AGENTS', en: 'AI AGENTS' },
+  admin_dept_users: { vi: 'QL THÀNH VIÊN', en: 'USER MGMT' },
+  admin_dept_txs: { vi: 'QL GIAO DỊCH', en: 'TX AUDIT' },
+  admin_dept_pentest: { vi: 'LAB BẢO MẬT', en: 'PENTEST LAB' },
+  admin_tvl: { vi: 'TỔNG TÀI SẢN MẠNG LƯỚI (TVL)', en: 'TOTAL NETWORK VALUE (TVL)' },
+  admin_pending_queue: { vi: 'HÀNG ĐỢI CHỜ DUYỆT', en: 'PENDING QUEUE' },
+  admin_refresh: { vi: 'Làm mới', en: 'Refresh' },
+  admin_lock_portal: { vi: 'Khóa Cổng', en: 'Lock Portal' },
+  admin_security_3fa: { vi: 'Bảo Mật 3FA', en: '3FA Security' },
+  admin_change_pin: { vi: 'Đổi PIN', en: 'Change PIN' },
+  admin_org_tree_title: { vi: 'SƠ ĐỒ CƠ CẤU TỔ CHỨC ĐƠN VỊ HÀNH CHÍNH', en: 'ORGANIZATION HIERARCHY TREE' },
+  admin_org_tree_collapse: { vi: 'Thu gọn', en: 'Collapse' },
+  admin_org_tree_expand: { vi: 'Mở rộng', en: 'Expand' },
+  admin_supreme_board: { vi: 'BAN ĐIỀU HÀNH TỐI CAO (SUPREME LEADER)', en: 'SUPREME EXECUTIVE BOARD' },
+  admin_enter_pin: { vi: 'NHẬP MÃ PIN QUẢN TRỊ VIÊN', en: 'ENTER MASTER ADMIN PIN' },
+  admin_unlock_btn: { vi: 'MỞ KHÓA BẢN ĐIỀU KHIỂN', en: 'UNLOCK COMMAND PORTAL' },
+  admin_pin_placeholder: { vi: 'Nhập mã PIN 6 số bí mật...', en: 'Enter 6-digit secret PIN...' },
+  admin_pin_wrong: { vi: 'Mã PIN không chính xác! Vui lòng thử lại.', en: 'Incorrect PIN! Please try again.' }
 } as const;
 
 export type TranslationKey = keyof typeof translations;

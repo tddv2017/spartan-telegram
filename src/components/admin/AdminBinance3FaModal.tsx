@@ -30,6 +30,7 @@ import {
   DEFAULT_TOTP_SECRET,
   Admin3FaConfig 
 } from '@/lib/admin3faService';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface AdminBinance3FaModalProps {
   onSuccess: () => void;
@@ -42,6 +43,7 @@ const SESSION_AUTH_KEY = 'spartan_admin_session_auth_token';
 type AuthStep = 'STEP_1_PIN' | 'STEP_2_GMAIL' | 'STEP_3_2FA';
 
 export const AdminBinance3FaModal: React.FC<AdminBinance3FaModalProps> = ({ onSuccess }) => {
+  const { t, lang } = useLanguage();
   const [currentStep, setCurrentStep] = useState<AuthStep>('STEP_1_PIN');
   const [config, setConfig] = useState<Admin3FaConfig>(getAdmin3FaConfig());
   
@@ -211,50 +213,50 @@ export const AdminBinance3FaModal: React.FC<AdminBinance3FaModalProps> = ({ onSu
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-[#07090e] flex items-center justify-center p-4 overflow-y-auto">
+    <div className="fixed inset-0 z-50 bg-[#04060a] flex items-center justify-center p-4 overflow-y-auto">
       {/* Background Decorative Lighting */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl" />
-        <div className="absolute top-1/4 right-1/4 w-72 h-72 bg-purple-500/10 rounded-full blur-3xl" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-[#d4af37]/10 rounded-full blur-3xl" />
+        <div className="absolute top-1/4 right-1/4 w-72 h-72 bg-[#aa771c]/10 rounded-full blur-3xl" />
       </div>
 
-      <div className="relative w-full max-w-md bg-[#0b0e17] border-2 border-amber-500/50 rounded-3xl p-6 text-center space-y-6 shadow-[0_0_60px_rgba(245,158,11,0.25)] animate-in zoom-in-95 duration-200">
+      <div className="relative w-full max-w-md bg-[#080b12] border-2 border-[#221c10] rounded-3xl p-6 text-center space-y-6 shadow-[0_0_60px_rgba(212,175,55,0.15)] animate-in zoom-in-95 duration-200">
         {/* Header Branding */}
         <div className="space-y-2">
-          <div className="w-16 h-16 mx-auto rounded-3xl bg-amber-500/15 border border-amber-500/50 flex items-center justify-center text-amber-400 shadow-[0_0_25px_rgba(245,158,11,0.4)]">
-            <ShieldCheck className="w-8 h-8" />
+          <div className="w-16 h-16 mx-auto rounded-3xl bg-[#d4af37]/15 border border-[#d4af37]/40 flex items-center justify-center text-[#f5d77f] shadow-[0_0_25px_rgba(212,175,55,0.3)]">
+            <ShieldCheck className="w-8 h-8 text-[#d4af37]" />
           </div>
-          <h2 className="text-base font-black text-white uppercase tracking-wider flex items-center justify-center gap-1.5">
+          <h2 className="text-base font-black text-[#f5d77f] uppercase tracking-wider flex items-center justify-center gap-1.5">
             <span>SPARTAN BINANCE-GRADE 3FA</span>
           </h2>
-          <span className="text-[10px] font-mono text-[#00df89] font-bold block uppercase tracking-wider">
-            ● BẢO MẬT 3 TẦNG THẬT 100%: PIN + SERVER OTP + 2FA GOOGLE AUTH
+          <span className="text-[10px] font-mono text-emerald-400 font-bold block uppercase tracking-wider">
+            {lang === 'vi' ? '● BẢO MẬT 3 TẦNG THẬT 100%: PIN + SERVER OTP + 2FA GOOGLE AUTH' : '● 100% 3-TIER CUSTODY: PIN + SERVER OTP + GOOGLE AUTH'}
           </span>
         </div>
 
         {/* 3-Step Breadcrumb Progress Bar */}
-        <div className="grid grid-cols-3 gap-1.5 p-1.5 bg-[#131927] rounded-2xl border border-[#1f293d] text-[10px] font-mono font-bold">
+        <div className="grid grid-cols-3 gap-1.5 p-1.5 bg-[#05070c] rounded-2xl border border-[#221c10] text-[10px] font-mono font-bold">
           <div className={`py-1.5 rounded-xl transition-all ${
             currentStep === 'STEP_1_PIN'
-              ? 'bg-amber-500 text-black shadow-md'
-              : 'text-[#00df89] bg-[#00df89]/10'
+              ? 'gold-btn-solid text-black shadow-md'
+              : 'text-emerald-400 bg-emerald-500/10'
           }`}>
             <span>1. PIN</span>
           </div>
           <div className={`py-1.5 rounded-xl transition-all ${
             currentStep === 'STEP_2_GMAIL'
-              ? 'bg-amber-500 text-black shadow-md'
+              ? 'gold-btn-solid text-black shadow-md'
               : currentStep === 'STEP_3_2FA'
-              ? 'text-[#00df89] bg-[#00df89]/10'
+              ? 'text-emerald-400 bg-emerald-500/10'
               : 'text-gray-500'
           }`}>
-            <span>2. MÃ OTP THẬT</span>
+            <span>2. {lang === 'vi' ? 'MÃ OTP' : 'LIVE OTP'}</span>
           </div>
           <div className={`py-1.5 rounded-xl transition-all ${
             currentStep === 'STEP_3_2FA'
-              ? 'bg-amber-500 text-black shadow-md'
+              ? 'gold-btn-solid text-black shadow-md'
               : totpSuccess
-              ? 'text-[#00df89] bg-[#00df89]/10'
+              ? 'text-emerald-400 bg-emerald-500/10'
               : 'text-gray-500'
           }`}>
             <span>3. 2FA AUTH</span>
@@ -268,10 +270,10 @@ export const AdminBinance3FaModal: React.FC<AdminBinance3FaModalProps> = ({ onSu
           <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
             <div className="space-y-1">
               <span className="text-xs text-gray-300 font-bold block">
-                Bước 1: Nhập mã Master PIN Quản Trị Cấp 1
+                {lang === 'vi' ? 'Bước 1: Nhập mã Master PIN Quản Trị Cấp 1' : 'Step 1: Enter Master Admin PIN'}
               </span>
               <span className="text-[10px] text-gray-500 font-mono block">
-                Mã mặc định hệ thống: 888899
+                {lang === 'vi' ? 'Mã mặc định hệ thống: 888899' : 'Default system PIN: 888899'}
               </span>
             </div>
 
@@ -282,8 +284,8 @@ export const AdminBinance3FaModal: React.FC<AdminBinance3FaModalProps> = ({ onSu
                   key={i}
                   className={`w-4 h-4 rounded-full border-2 transition-all duration-200 ${
                     i < pin.length
-                      ? 'bg-amber-400 border-amber-400 shadow-[0_0_12px_rgba(245,158,11,0.8)] scale-110'
-                      : 'border-gray-700 bg-black/40'
+                      ? 'bg-[#d4af37] border-[#d4af37] shadow-[0_0_12px_rgba(212,175,55,0.8)] scale-110'
+                      : 'border-[#221c10] bg-[#05070c]'
                   }`}
                 />
               ))}
@@ -302,7 +304,7 @@ export const AdminBinance3FaModal: React.FC<AdminBinance3FaModalProps> = ({ onSu
                   key={num}
                   type="button"
                   onClick={() => handlePinKeyPress(num)}
-                  className="h-12 rounded-2xl bg-[#131927] hover:bg-amber-500 hover:text-black border border-[#1f293d] text-white font-mono text-base font-black transition-all active:scale-95 shadow-sm"
+                  className="h-12 rounded-2xl bg-[#0c0f17] hover:bg-[#141924] border border-[#221c10] text-[#f5d77f] font-mono text-base font-black transition-all active:scale-95 shadow-sm"
                 >
                   {num}
                 </button>
@@ -310,21 +312,21 @@ export const AdminBinance3FaModal: React.FC<AdminBinance3FaModalProps> = ({ onSu
               <button
                 type="button"
                 onClick={() => setPin('')}
-                className="h-12 rounded-2xl bg-[#131927] hover:bg-red-500/20 border border-[#1f293d] text-red-400 font-mono text-xs font-black transition-all active:scale-95"
+                className="h-12 rounded-2xl bg-[#0c0f17] hover:bg-red-500/20 border border-[#221c10] text-red-400 font-mono text-xs font-black transition-all active:scale-95"
               >
-                XÓA
+                {lang === 'vi' ? 'XÓA' : 'CLEAR'}
               </button>
               <button
                 type="button"
                 onClick={() => handlePinKeyPress('0')}
-                className="h-12 rounded-2xl bg-[#131927] hover:bg-amber-500 hover:text-black border border-[#1f293d] text-white font-mono text-base font-black transition-all active:scale-95"
+                className="h-12 rounded-2xl bg-[#0c0f17] hover:bg-[#141924] border border-[#221c10] text-[#f5d77f] font-mono text-base font-black transition-all active:scale-95"
               >
                 0
               </button>
               <button
                 type="button"
                 onClick={() => setPin(prev => prev.slice(0, -1))}
-                className="h-12 rounded-2xl bg-[#131927] hover:bg-gray-800 border border-[#1f293d] text-gray-300 font-mono text-xs font-black transition-all active:scale-95"
+                className="h-12 rounded-2xl bg-[#0c0f17] hover:bg-[#141924] border border-[#221c10] text-gray-300 font-mono text-xs font-black transition-all active:scale-95"
               >
                 ⌫
               </button>
@@ -337,24 +339,24 @@ export const AdminBinance3FaModal: React.FC<AdminBinance3FaModalProps> = ({ onSu
         {/* ----------------------------------------------------------------- */}
         {currentStep === 'STEP_2_GMAIL' && (
           <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300 text-left">
-            <div className="bg-[#131927] p-3.5 rounded-2xl border border-[#1f293d] space-y-1.5">
+            <div className="bg-[#05070c] p-3.5 rounded-2xl border border-[#221c10] space-y-1.5">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold text-white flex items-center gap-1.5">
-                  <Mail className="w-3.5 h-3.5 text-amber-400" />
-                  <span>Bước 2: Xác Thực Mã OTP Thật Về Điện Thoại & Gmail</span>
+                  <Mail className="w-3.5 h-3.5 text-[#d4af37]" />
+                  <span>{lang === 'vi' ? 'Bước 2: Xác Thực Mã OTP Thật Về Điện Thoại & Gmail' : 'Step 2: Real Server OTP Verification'}</span>
                 </span>
-                <span className="text-[9px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 px-2 py-0.5 rounded font-mono font-bold">
+                <span className="text-[9px] bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded font-mono font-bold">
                   SERVER LIVE
                 </span>
               </div>
               <span className="text-[11px] text-gray-300 font-mono block">
-                Mã được gửi trực tiếp tới Telegram & Gmail: <strong className="text-amber-300">{config.adminEmail}</strong>
+                {lang === 'vi' ? 'Mã được gửi trực tiếp tới Telegram & Gmail:' : 'OTP sent directly to Telegram & Gmail:'} <strong className="text-[#f5d77f]">{config.adminEmail}</strong>
               </span>
             </div>
 
             {/* OTP Sent Notice */}
             {otpSentNotice && (
-              <div className="p-3 rounded-xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 text-[11px] font-bold flex items-center gap-2">
+              <div className="p-3 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-[11px] font-bold flex items-center gap-2">
                 <Bell className="w-4 h-4 flex-shrink-0 animate-bounce" />
                 <span>{otpSentNotice}</span>
               </div>
@@ -368,8 +370,8 @@ export const AdminBinance3FaModal: React.FC<AdminBinance3FaModalProps> = ({ onSu
                   maxLength={6}
                   value={gmailOtp}
                   onChange={(e) => setGmailOtp(e.target.value.replace(/\D/g, ''))}
-                  placeholder="Nhập 6 số OTP từ điện thoại"
-                  className="flex-1 bg-[#131927] border border-[#1f293d] rounded-2xl px-4 py-3 text-center text-white text-base font-mono tracking-widest font-black focus:outline-none focus:border-amber-400"
+                  placeholder={lang === 'vi' ? 'Nhập 6 số OTP từ điện thoại' : 'Enter 6-digit OTP'}
+                  className="flex-1 bg-[#05070c] border border-[#221c10] rounded-2xl px-4 py-3 text-center text-[#f5d77f] text-base font-mono tracking-widest font-black focus:outline-none focus:border-[#d4af37]"
                 />
                 <button
                   type="button"
@@ -377,18 +379,18 @@ export const AdminBinance3FaModal: React.FC<AdminBinance3FaModalProps> = ({ onSu
                   onClick={handleSendLiveOtp}
                   className={`px-4 rounded-2xl font-bold text-xs flex items-center justify-center gap-1.5 transition-all ${
                     otpCountdown > 0
-                      ? 'bg-gray-800 text-gray-500 border border-gray-700'
-                      : 'bg-amber-500 hover:bg-amber-400 text-black font-black'
+                      ? 'bg-[#0c0f17] text-gray-500 border border-[#221c10]'
+                      : 'gold-btn-solid text-black font-black'
                   }`}
                 >
                   {isSendingOtp ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <Loader2 className="w-4 h-4 animate-spin text-black" />
                   ) : otpCountdown > 0 ? (
                     <span>{otpCountdown}s</span>
                   ) : (
                     <>
                       <Send className="w-3.5 h-3.5" />
-                      <span>GỬI LẠI</span>
+                      <span>{lang === 'vi' ? 'GỬI LẠI' : 'RESEND'}</span>
                     </>
                   )}
                 </button>
@@ -404,10 +406,10 @@ export const AdminBinance3FaModal: React.FC<AdminBinance3FaModalProps> = ({ onSu
             <button
               onClick={handleVerifyGmailStep}
               disabled={isVerifyingOtp}
-              className="w-full py-3.5 rounded-2xl bg-amber-500 hover:bg-amber-400 text-black font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-md transition-all"
+              className="w-full py-3.5 rounded-2xl gold-btn-solid text-black font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-md transition-all active:scale-[0.98]"
             >
-              {isVerifyingOtp ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowRight className="w-4 h-4" />}
-              <span>ĐỐI SOÁT MÃ OTP VÀ TIẾP TỤC</span>
+              {isVerifyingOtp ? <Loader2 className="w-4 h-4 animate-spin text-black" /> : <ArrowRight className="w-4 h-4 text-black" />}
+              <span>{lang === 'vi' ? 'ĐỐI SOÁT MÃ OTP VÀ TIẾP TỤC' : 'VERIFY OTP & CONTINUE'}</span>
             </button>
           </div>
         )}
@@ -417,13 +419,13 @@ export const AdminBinance3FaModal: React.FC<AdminBinance3FaModalProps> = ({ onSu
         {/* ----------------------------------------------------------------- */}
         {currentStep === 'STEP_3_2FA' && (
           <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300 text-left">
-            <div className="bg-[#131927] p-3.5 rounded-2xl border border-[#1f293d] space-y-1">
+            <div className="bg-[#05070c] p-3.5 rounded-2xl border border-[#221c10] space-y-1">
               <span className="text-xs font-bold text-white flex items-center gap-1.5">
-                <Smartphone className="w-3.5 h-3.5 text-[#00df89]" />
-                <span>Bước 3: Nhập Mã 2FA Google / Binance Authenticator</span>
+                <Smartphone className="w-3.5 h-3.5 text-emerald-400" />
+                <span>{lang === 'vi' ? 'Bước 3: Nhập Mã 2FA Google / Binance Authenticator' : 'Step 3: 2FA Google / Binance Authenticator'}</span>
               </span>
               <span className="text-[11px] text-gray-400 font-mono block">
-                Mã 6 chữ số thay đổi mỗi 30 giây trên điện thoại của bạn
+                {lang === 'vi' ? 'Mã 6 chữ số thay đổi mỗi 30 giây trên điện thoại của bạn' : '6-digit rotating code updating every 30 seconds'}
               </span>
             </div>
 
@@ -432,21 +434,21 @@ export const AdminBinance3FaModal: React.FC<AdminBinance3FaModalProps> = ({ onSu
               <button
                 type="button"
                 onClick={() => setShowQrCode(!showQrCode)}
-                className="w-full py-2 px-3 rounded-xl bg-[#07090e] hover:bg-[#131927] border border-[#1f293d] text-amber-400 font-mono text-[11px] font-bold flex items-center justify-between transition-all"
+                className="w-full py-2 px-3 rounded-xl bg-[#05070c] hover:bg-[#0c0f17] border border-[#221c10] text-[#f5d77f] font-mono text-[11px] font-bold flex items-center justify-between transition-all"
               >
                 <span className="flex items-center gap-1.5">
-                  <QrCode className="w-3.5 h-3.5" />
-                  <span>{showQrCode ? 'Ẩn mã QR' : '📱 Xem Mã QR Quét Vào Google Authenticator'}</span>
+                  <QrCode className="w-3.5 h-3.5 text-[#d4af37]" />
+                  <span>{showQrCode ? (lang === 'vi' ? 'Ẩn mã QR' : 'Hide QR') : (lang === 'vi' ? '📱 Xem Mã QR Quét Vào Google Authenticator' : '📱 View QR for Google Authenticator')}</span>
                 </span>
                 <span className="text-[10px] text-gray-400">{showQrCode ? '▲' : '▼'}</span>
               </button>
 
               {showQrCode && (
-                <div className="bg-[#07090e] p-4 rounded-2xl border border-amber-500/40 text-center space-y-3 animate-in zoom-in-95 duration-200">
+                <div className="bg-[#05070c] p-4 rounded-2xl border border-[#221c10] text-center space-y-3 animate-in zoom-in-95 duration-200">
                   <span className="text-[11px] text-gray-300 font-bold block">
-                    Mở app Google Authenticator ➔ Quét mã QR này:
+                    {lang === 'vi' ? 'Mở app Google Authenticator ➔ Quét mã QR này:' : 'Open Google Authenticator ➔ Scan this QR:'}
                   </span>
-                  <div className="w-48 h-48 mx-auto bg-white p-2 rounded-2xl shadow-md">
+                  <div className="w-48 h-48 mx-auto bg-white p-2 rounded-2xl shadow-md border-2 border-[#d4af37]/60">
                     <img 
                       src={qrCodeUrl} 
                       alt="Google Authenticator QR Code"
@@ -454,15 +456,15 @@ export const AdminBinance3FaModal: React.FC<AdminBinance3FaModalProps> = ({ onSu
                     />
                   </div>
                   <div className="space-y-1">
-                    <span className="text-[10px] text-gray-400 font-mono block">Hoặc nhập Secret Key thủ công:</span>
+                    <span className="text-[10px] text-gray-400 font-mono block">{lang === 'vi' ? 'Hoặc nhập Secret Key thủ công:' : 'Or enter Secret Key manually:'}</span>
                     <div 
                       onClick={handleCopySecret}
-                      className="p-2 rounded-xl bg-[#131927] border border-[#1f293d] text-amber-300 font-mono text-[11px] font-bold flex items-center justify-between cursor-pointer hover:border-amber-400 transition-all"
+                      className="p-2 rounded-xl bg-[#080b12] border border-[#221c10] text-[#f5d77f] font-mono text-[11px] font-bold flex items-center justify-between cursor-pointer hover:border-[#d4af37] transition-all"
                     >
                       <span>{DEFAULT_TOTP_SECRET}</span>
-                      <span className="text-[9px] bg-amber-500 text-black px-1.5 py-0.5 rounded font-bold flex items-center gap-1">
+                      <span className="text-[9px] gold-btn-solid text-black px-1.5 py-0.5 rounded font-bold flex items-center gap-1">
                         <Copy className="w-3 h-3" />
-                        <span>{copiedSecret ? 'Đã copy' : 'Copy'}</span>
+                        <span>{copiedSecret ? (lang === 'vi' ? 'Đã copy' : 'Copied') : 'Copy'}</span>
                       </span>
                     </div>
                   </div>
@@ -473,7 +475,7 @@ export const AdminBinance3FaModal: React.FC<AdminBinance3FaModalProps> = ({ onSu
             {/* 6-Digit TOTP Input Box */}
             <div className="space-y-1.5">
               <label className="text-gray-300 font-bold block text-[11px]">
-                Nhập mã 6 số từ Google / Binance Authenticator:
+                {lang === 'vi' ? 'Nhập mã 6 số từ Google / Binance Authenticator:' : 'Enter 6-digit code from Google Authenticator:'}
               </label>
               <input
                 type="text"
@@ -481,7 +483,7 @@ export const AdminBinance3FaModal: React.FC<AdminBinance3FaModalProps> = ({ onSu
                 value={authenticatorCode}
                 onChange={(e) => setAuthenticatorCode(e.target.value.replace(/\D/g, ''))}
                 placeholder="VD: 700875"
-                className="w-full bg-[#131927] border border-[#1f293d] rounded-2xl py-3 text-center text-white text-xl font-mono tracking-[0.3em] font-black focus:outline-none focus:border-[#00df89]"
+                className="w-full bg-[#05070c] border border-[#221c10] rounded-2xl py-3 text-center text-[#f5d77f] text-xl font-mono tracking-[0.3em] font-black focus:outline-none focus:border-[#d4af37]"
               />
             </div>
 
@@ -492,7 +494,7 @@ export const AdminBinance3FaModal: React.FC<AdminBinance3FaModalProps> = ({ onSu
             )}
 
             {totpSuccess && (
-              <div className="p-2.5 rounded-xl bg-[#00df89]/20 border border-[#00df89] text-[#00df89] text-[11px] font-bold flex items-center justify-center gap-1.5">
+              <div className="p-2.5 rounded-xl bg-emerald-500/20 border border-emerald-500 text-emerald-400 text-[11px] font-bold flex items-center justify-center gap-1.5">
                 <CheckCircle2 className="w-4 h-4" />
                 <span>{totpSuccess}</span>
               </div>
@@ -501,21 +503,21 @@ export const AdminBinance3FaModal: React.FC<AdminBinance3FaModalProps> = ({ onSu
             <button
               onClick={handleVerify2FaStep}
               disabled={isVerifyingTotp}
-              className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-[#00df89] to-[#00b06b] hover:opacity-95 text-black font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(0,223,137,0.4)] transition-all"
+              className="w-full py-3.5 rounded-2xl gold-btn-solid hover:opacity-95 text-black font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(212,175,55,0.3)] transition-all active:scale-[0.98]"
             >
               {isVerifyingTotp ? <Loader2 className="w-4 h-4 animate-spin text-black" /> : <ShieldCheck className="w-4 h-4 text-black" />}
-              <span>XÁC THỰC MÃ 2FA & MỞ CỔNG ADMIN</span>
+              <span>{lang === 'vi' ? 'XÁC THỰC MÃ 2FA & MỞ CỔNG ADMIN' : 'VERIFY 2FA & ACCESS COMMAND CENTER'}</span>
             </button>
           </div>
         )}
 
         {/* Footer Security Badge */}
-        <div className="pt-2 border-t border-[#1f293d] flex items-center justify-between text-[10px] font-mono text-gray-500">
+        <div className="pt-2 border-t border-[#221c10] flex items-center justify-between text-[10px] font-mono text-gray-500">
           <span className="flex items-center gap-1">
-            <Lock className="w-3 h-3 text-amber-400" />
+            <Lock className="w-3 h-3 text-[#d4af37]" />
             <span>RFC 6238 TOTP Standard</span>
           </span>
-          <span className="text-[#00df89]">100% Real Live Production</span>
+          <span className="text-emerald-400">100% Real Live Production</span>
         </div>
       </div>
     </div>

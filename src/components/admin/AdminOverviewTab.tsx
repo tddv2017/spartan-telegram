@@ -32,6 +32,8 @@ interface AdminOverviewTabProps {
   onBroadcast: () => void;
 }
 
+import { useLanguage } from '@/contexts/LanguageContext';
+
 export const AdminOverviewTab: React.FC<AdminOverviewTabProps> = ({
   pendingTxs,
   transactions,
@@ -43,6 +45,7 @@ export const AdminOverviewTab: React.FC<AdminOverviewTabProps> = ({
   setBroadcastMsg,
   onBroadcast,
 }) => {
+  const { t, lang } = useLanguage();
   const [showOrgTree, setShowOrgTree] = useState(true);
 
   // Aggregate Key Metrics
@@ -53,45 +56,45 @@ export const AdminOverviewTab: React.FC<AdminOverviewTabProps> = ({
     <div className="space-y-4">
       {/* KPI Top Grid */}
       <div className="grid grid-cols-2 gap-3">
-        <div className="bg-[#0b0e17] p-3.5 rounded-2xl border border-[#1f293d] space-y-1">
+        <div className="bg-[#080b12] p-3.5 rounded-2xl border border-[#221c10] space-y-1 shadow-md">
           <span className="text-[10px] text-gray-400 font-extrabold uppercase tracking-wider block">
-            TỔNG TÀI SẢN MẠNG LƯỚI (TVL)
+            {t('admin_tvl')}
           </span>
-          <div className="text-lg font-black text-[#00df89] font-mono">
+          <div className="text-lg font-black text-emerald-400 font-mono">
             ${totalTVL.toLocaleString('en-US', { minimumFractionDigits: 2 })} USDT
           </div>
           <span className="text-[9px] text-gray-500 font-mono block">
-            Từ {users.length} tài khoản thành viên
+            {lang === 'vi' ? `Từ ${users.length} tài khoản thành viên` : `From ${users.length} member accounts`}
           </span>
         </div>
 
-        <div className="bg-[#0b0e17] p-3.5 rounded-2xl border border-[#1f293d] space-y-1">
+        <div className="bg-[#080b12] p-3.5 rounded-2xl border border-[#221c10] space-y-1 shadow-md">
           <span className="text-[10px] text-gray-400 font-extrabold uppercase tracking-wider block">
-            HÀNG ĐỢI CHỜ DUYỆT
+            {t('admin_pending_queue')}
           </span>
-          <div className="text-lg font-black text-amber-400 font-mono">
-            {pendingTxs.length} Lệnh Chờ
+          <div className="text-lg font-black text-[#f5d77f] font-mono">
+            {pendingTxs.length} {lang === 'vi' ? 'Lệnh Chờ' : 'Pending Orders'}
           </div>
           <span className="text-[9px] text-gray-500 font-mono block">
-            {totalApprovedDeposits} lệnh nạp đã hoàn tất on-chain
+            {totalApprovedDeposits} {lang === 'vi' ? 'lệnh nạp đã hoàn tất on-chain' : 'deposits completed on-chain'}
           </span>
         </div>
       </div>
 
       {/* SƠ ĐỒ CƠ CẤU TỔ CHỨC ĐƠN VỊ HÀNH CHÍNH (ORGANIZATION HIERARCHY TREE) */}
-      <div className="spartan-card rounded-3xl p-5 border border-amber-500/30 space-y-4 shadow-xl">
-        <div className="flex items-center justify-between border-b border-[#1f293d] pb-2.5">
+      <div className="spartan-card rounded-3xl p-5 border border-[#221c10] bg-[#080b12] space-y-4 shadow-xl">
+        <div className="flex items-center justify-between border-b border-[#221c10] pb-2.5">
           <div className="flex items-center gap-2">
-            <GitFork className="w-4 h-4 text-amber-400" />
+            <GitFork className="w-4 h-4 text-[#f5d77f]" />
             <h3 className="text-xs font-black text-white uppercase tracking-wider">
-              SƠ ĐỒ CƠ CẤU TỔ CHỨC ĐƠN VỊ HÀNH CHÍNH
+              {t('admin_org_tree_title')}
             </h3>
           </div>
           <button
             onClick={() => setShowOrgTree(!showOrgTree)}
-            className="text-[10px] font-bold text-amber-400 flex items-center gap-1 hover:opacity-80"
+            className="text-[10px] font-bold text-[#f5d77f] flex items-center gap-1 hover:opacity-80 active:scale-95"
           >
-            <span>{showOrgTree ? 'Thu gọn' : 'Mở rộng'}</span>
+            <span>{showOrgTree ? t('admin_org_tree_collapse') : t('admin_org_tree_expand')}</span>
             {showOrgTree ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
           </button>
         </div>
@@ -99,12 +102,12 @@ export const AdminOverviewTab: React.FC<AdminOverviewTabProps> = ({
         {showOrgTree && (
           <div className="space-y-4 pt-1 animate-in fade-in duration-300">
             {/* Top Node: Supreme Leader */}
-            <div className="bg-gradient-to-r from-amber-500/20 via-[#131927] to-amber-500/20 border-2 border-amber-400/80 rounded-2xl p-3.5 text-center shadow-[0_0_15px_rgba(245,158,11,0.2)]">
+            <div className="bg-gradient-to-r from-[#d4af37]/15 via-[#0c0f17] to-[#d4af37]/15 border-2 border-[#d4af37]/60 rounded-2xl p-3.5 text-center shadow-[0_0_15px_rgba(212,175,55,0.2)]">
               <div className="flex items-center justify-center gap-2">
                 <span className="text-lg">👑</span>
                 <div>
-                  <span className="text-[10px] font-black text-amber-300 uppercase tracking-wider block">
-                    BAN ĐIỀU HÀNH TỐI CAO (SUPREME LEADER)
+                  <span className="text-[10px] font-black text-[#f5d77f] uppercase tracking-wider block">
+                    {t('admin_supreme_board')}
                   </span>
                   <span className="text-sm font-black text-white">
                     @tddv2017 (ID: 494232782)
@@ -115,57 +118,57 @@ export const AdminOverviewTab: React.FC<AdminOverviewTabProps> = ({
 
             {/* Tree Branch Connector */}
             <div className="flex flex-col items-center -my-2">
-              <div className="w-0.5 h-4 bg-amber-400/80"></div>
-              <div className="w-4/5 h-0.5 bg-gray-700"></div>
+              <div className="w-0.5 h-4 bg-[#d4af37]/60"></div>
+              <div className="w-4/5 h-0.5 bg-[#221c10]"></div>
             </div>
 
             {/* 3 Department Sub-Branches */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5 text-xs">
               {/* Branch 1: Accounting */}
-              <div className="bg-[#0b0e17] border border-cyan-500/40 rounded-2xl p-3 space-y-1.5 shadow-sm">
+              <div className="bg-[#05070c] border border-[#221c10] rounded-2xl p-3 space-y-1.5 shadow-sm">
                 <div className="flex items-center gap-2">
                   <span className="text-sm">💰</span>
-                  <span className="text-[11px] font-black text-cyan-400 uppercase">
-                    1. KẾ TOÁN & KIỂM TOÁN
+                  <span className="text-[11px] font-black text-[#f5d77f] uppercase">
+                    1. {lang === 'vi' ? 'KẾ TOÁN & KIỂM TOÁN' : 'ACCOUNTING & AUDIT'}
                   </span>
                 </div>
                 <ul className="text-[10px] text-gray-400 space-y-1 font-medium pl-1">
-                  <li>• Đối soát Hóa đơn Nạp / Rút 3 chiều</li>
-                  <li>• Tính phí Nạp (9%+3$) & Rút (19%+5$)</li>
-                  <li>• Trích giữ 10% Quỹ Dự phòng Treasury</li>
-                  <li>• Báo cáo Chi trả Hoa hồng F1 Reseller</li>
+                  <li>• {lang === 'vi' ? 'Đối soát Hóa đơn Nạp / Rút 3 chiều' : '3-way Deposit / Withdrawal Audit'}</li>
+                  <li>• {lang === 'vi' ? 'Tính phí Nạp (9%+3$) & Rút (19%+5$)' : 'Fee: Deposit (9%+3$) & Withdraw (19%+5$)'}</li>
+                  <li>• {lang === 'vi' ? 'Trích giữ 10% Quỹ Dự phòng Treasury' : '10% Treasury Retention Reserve'}</li>
+                  <li>• {lang === 'vi' ? 'Báo cáo Chi trả Hoa hồng F1 Reseller' : 'F1 Reseller Rebate Payout'}</li>
                 </ul>
               </div>
 
               {/* Branch 2: HR & Reseller */}
-              <div className="bg-[#0b0e17] border border-purple-500/40 rounded-2xl p-3 space-y-1.5 shadow-sm">
+              <div className="bg-[#05070c] border border-[#221c10] rounded-2xl p-3 space-y-1.5 shadow-sm">
                 <div className="flex items-center gap-2">
                   <span className="text-sm">👥</span>
-                  <span className="text-[11px] font-black text-purple-400 uppercase">
-                    2. NHÂN SỰ & ĐẠI LÝ F1
+                  <span className="text-[11px] font-black text-[#f5d77f] uppercase">
+                    2. {lang === 'vi' ? 'NHÂN SỰ & ĐẠI LÝ F1' : 'PERSONNEL & F1 RESELLERS'}
                   </span>
                 </div>
                 <ul className="text-[10px] text-gray-400 space-y-1 font-medium pl-1">
-                  <li>• Danh bạ Quản lý Toàn bộ Thành viên</li>
-                  <li>• Quản trị Ma trận 10 Cấp bậc Đại lý</li>
-                  <li>• Phân quyền Vai trò & Khóa Tài khoản</li>
-                  <li>• Cây Phả hệ Tuyến Dưới (Downlines)</li>
+                  <li>• {lang === 'vi' ? 'Danh bạ Quản lý Toàn bộ Thành viên' : 'Member Directory & Profiles'}</li>
+                  <li>• {lang === 'vi' ? 'Quản trị Ma trận 10 Cấp bậc Đại lý' : '10-Tier Reseller Matrix Oversight'}</li>
+                  <li>• {lang === 'vi' ? 'Phân quyền Vai trò & Khóa Tài khoản' : 'Role Permissions & Account Locks'}</li>
+                  <li>• {lang === 'vi' ? 'Cây Phả hệ Tuyến Dưới (Downlines)' : 'Downline Affiliate Tree'}</li>
                 </ul>
               </div>
 
               {/* Branch 3: TechOps */}
-              <div className="bg-[#0b0e17] border border-emerald-500/40 rounded-2xl p-3 space-y-1.5 shadow-sm">
+              <div className="bg-[#05070c] border border-[#221c10] rounded-2xl p-3 space-y-1.5 shadow-sm">
                 <div className="flex items-center gap-2">
                   <span className="text-sm">⚡</span>
                   <span className="text-[11px] font-black text-emerald-400 uppercase">
-                    3. KỸ THUẬT & TÁC CHIẾN
+                    3. {lang === 'vi' ? 'KỸ THUẬT & TÁC CHIẾN' : 'TECHOPS & INFRASTRUCTURE'}
                   </span>
                 </div>
                 <ul className="text-[10px] text-gray-400 space-y-1 font-medium pl-1">
-                  <li>• Bật / Tắt Chế độ Bảo trì Hệ thống</li>
-                  <li>• Ngắt Bot Tổng Khẩn cấp (Kill-Switch)</li>
-                  <li>• Tắt / Bật Bot Từng Cá nhân Riêng lẻ</li>
-                  <li>• Giám sát Exness MT5 EA & TronGrid</li>
+                  <li>• {lang === 'vi' ? 'Bật / Tắt Chế độ Bảo trì Hệ thống' : 'Toggle System Maintenance Mode'}</li>
+                  <li>• {lang === 'vi' ? 'Ngắt Bot Tổng Khẩn cấp (Kill-Switch)' : 'Global Emergency Kill-Switch'}</li>
+                  <li>• {lang === 'vi' ? 'Tắt / Bật Bot Từng Cá nhân Riêng lẻ' : 'Per-User Individual Bot Control'}</li>
+                  <li>• {lang === 'vi' ? 'Giám sát Exness MT5 EA & TronGrid' : 'Exness MT5 EA & TronGrid Watch'}</li>
                 </ul>
               </div>
             </div>
@@ -174,19 +177,19 @@ export const AdminOverviewTab: React.FC<AdminOverviewTabProps> = ({
       </div>
 
       {/* Pending Transactions Realtime Approval Queue */}
-      <div className="spartan-card rounded-3xl p-5 border border-[#1f293d] space-y-3 shadow-lg">
-        <div className="flex items-center justify-between border-b border-[#1f293d] pb-2.5">
+      <div className="spartan-card rounded-3xl p-5 border border-[#221c10] bg-[#080b12] space-y-3 shadow-lg">
+        <div className="flex items-center justify-between border-b border-[#221c10] pb-2.5">
           <h3 className="text-xs font-black text-white uppercase tracking-wider flex items-center gap-1.5">
-            <Database className="w-4 h-4 text-amber-400" /> HÀNG ĐỢI DUYỆT GIAO DỊCH ({pendingTxs.length})
+            <Database className="w-4 h-4 text-[#f5d77f]" /> {lang === 'vi' ? `HÀNG ĐỢI DUYỆT GIAO DỊCH (${pendingTxs.length})` : `TRANSACTION APPROVAL QUEUE (${pendingTxs.length})`}
           </h3>
           <span className="text-[10px] text-gray-400 font-mono font-bold">
-            Tự động đồng bộ Realtime
+            {lang === 'vi' ? 'Tự động đồng bộ Realtime' : 'Realtime Auto-Sync'}
           </span>
         </div>
 
         {pendingTxs.length === 0 ? (
-          <div className="text-center py-6 text-xs text-gray-500 font-bold bg-[#0b0e17] rounded-2xl border border-[#1f293d]">
-            Hiện không có lệnh nào đang chờ xử lý
+          <div className="text-center py-6 text-xs text-gray-500 font-bold bg-[#05070c] rounded-2xl border border-[#221c10]">
+            {lang === 'vi' ? 'Hiện không có lệnh nào đang chờ xử lý' : 'No pending transactions awaiting approval'}
           </div>
         ) : (
           <div className="space-y-3">
@@ -196,45 +199,45 @@ export const AdminOverviewTab: React.FC<AdminOverviewTabProps> = ({
               return (
                 <div
                   key={key}
-                  className="p-3.5 rounded-2xl bg-[#0b0e17] border border-[#1f293d] space-y-2.5 text-xs font-mono"
+                  className="p-3.5 rounded-2xl bg-[#05070c] border border-[#221c10] space-y-2.5 text-xs font-mono"
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       {tx.type === 'DEPOSIT' ? (
-                        <span className="text-[10px] font-black px-2 py-0.5 rounded border uppercase bg-[#00df89]/15 text-[#00df89] border-[#00df89]/30">
-                          NẠP TIỀN
+                        <span className="text-[10px] font-black px-2 py-0.5 rounded border uppercase bg-emerald-500/15 text-emerald-400 border-emerald-500/30">
+                          {lang === 'vi' ? 'NẠP TIỀN' : 'DEPOSIT'}
                         </span>
                       ) : (tx.id?.includes('REF') || tx.memoCode?.includes('REF')) ? (
-                        <span className="text-[10px] font-black px-2 py-0.5 rounded border uppercase bg-emerald-500/20 text-emerald-300 border-emerald-500/40">
-                          RÚT HOA HỒNG (0% PHÍ)
+                        <span className="text-[10px] font-black px-2 py-0.5 rounded border uppercase bg-[#d4af37]/15 text-[#f5d77f] border-[#d4af37]/35">
+                          {lang === 'vi' ? 'RÚT HOA HỒNG (0% PHÍ)' : 'WITHDRAW REBATE (0% FEE)'}
                         </span>
                       ) : (
                         <span className="text-[10px] font-black px-2 py-0.5 rounded border uppercase bg-[#ff2d55]/15 text-[#ff2d55] border-[#ff2d55]/30">
-                          RÚT VỐN BOT
+                          {lang === 'vi' ? 'RÚT VỐN BOT' : 'WITHDRAW CAPITAL'}
                         </span>
                       )}
                       <span className="font-extrabold text-white">@{tx.username}</span>
                       <span className="text-[10px] text-gray-500">(ID: {tx.userId})</span>
                     </div>
-                    <span className="font-black text-[#facc15] text-[10px] bg-[#facc15]/10 px-2 py-0.5 rounded border border-[#facc15]/20">
-                      CHỜ DUYỆT
+                    <span className="font-black text-[#f5d77f] text-[10px] bg-[#d4af37]/10 px-2 py-0.5 rounded border border-[#d4af37]/30">
+                      {lang === 'vi' ? 'CHỜ DUYỆT' : 'PENDING'}
                     </span>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2 text-[11px] bg-[#131927] p-2.5 rounded-xl border border-[#1f293d]">
+                  <div className="grid grid-cols-2 gap-2 text-[11px] bg-[#080b12] p-2.5 rounded-xl border border-[#221c10]">
                     <div>
-                      <span className="text-gray-400 block text-[9px]">SỐ TIỀN YÊU CẦU:</span>
-                      <span className="font-black text-white">${tx.grossAmount.toFixed(2)} USD</span>
+                      <span className="text-gray-400 block text-[9px]">{lang === 'vi' ? 'SỐ TIỀN YÊU CẦU:' : 'GROSS AMOUNT:'}</span>
+                      <span className="font-black text-white font-mono">${tx.grossAmount.toFixed(2)} USD</span>
                     </div>
                     <div>
-                      <span className="text-gray-400 block text-[9px]">THỰC NHẬN (NET):</span>
-                      <span className="font-black text-[#00df89]">${tx.netAmount.toFixed(2)} USD</span>
+                      <span className="text-gray-400 block text-[9px]">{lang === 'vi' ? 'THỰC NHẬN (NET):' : 'NET PAYOUT:'}</span>
+                      <span className="font-black text-emerald-400 font-mono">${tx.netAmount.toFixed(2)} USD</span>
                     </div>
                   </div>
 
                   <div className="flex items-center justify-between text-[10px] text-gray-400">
-                    <span>Mã Memo: <strong className="text-amber-300">{tx.memoCode}</strong></span>
-                    <span>Mã Đơn: {tx.id}</span>
+                    <span>Memo: <strong className="text-[#f5d77f]">{tx.memoCode}</strong></span>
+                    <span>Order: {tx.id}</span>
                   </div>
 
                   {/* Action Buttons: Approve vs Reject */}
@@ -242,19 +245,19 @@ export const AdminOverviewTab: React.FC<AdminOverviewTabProps> = ({
                     <button
                       onClick={() => onApprove(tx)}
                       disabled={isProcessing}
-                      className="py-2 rounded-xl bg-[#00df89] text-black font-black text-xs uppercase flex items-center justify-center gap-1 hover:opacity-90 transition-opacity"
+                      className="py-2 rounded-xl gold-btn-solid text-black font-black text-xs uppercase flex items-center justify-center gap-1 hover:opacity-95 transition-opacity active:scale-95"
                     >
-                      {isProcessing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
-                      <span>DUYỆT LỆNH</span>
+                      {isProcessing ? <Loader2 className="w-3.5 h-3.5 animate-spin text-black" /> : <CheckCircle2 className="w-3.5 h-3.5 text-black" />}
+                      <span>{lang === 'vi' ? 'DUYỆT LỆNH' : 'APPROVE'}</span>
                     </button>
 
                     <button
                       onClick={() => onReject(tx)}
                       disabled={isProcessing}
-                      className="py-2 rounded-xl bg-[#ff2d55] text-white font-black text-xs uppercase flex items-center justify-center gap-1 hover:opacity-90 transition-opacity"
+                      className="py-2 rounded-xl bg-red-500/15 hover:bg-red-500/25 border border-red-500/35 text-red-400 font-black text-xs uppercase flex items-center justify-center gap-1 transition-opacity active:scale-95"
                     >
                       {isProcessing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <XCircle className="w-3.5 h-3.5" />}
-                      <span>TỪ CHỐI</span>
+                      <span>{lang === 'vi' ? 'TỪ CHỐI' : 'REJECT'}</span>
                     </button>
                   </div>
                 </div>
@@ -265,11 +268,11 @@ export const AdminOverviewTab: React.FC<AdminOverviewTabProps> = ({
       </div>
 
       {/* Emergency Broadcast Dispatcher */}
-      <div className="spartan-card rounded-3xl p-5 border border-[#1f293d] space-y-3 shadow-lg">
-        <div className="flex items-center gap-2 border-b border-[#1f293d] pb-2.5">
-          <Send className="w-4 h-4 text-[#ff5500]" />
+      <div className="spartan-card rounded-3xl p-5 border border-[#221c10] bg-[#080b12] space-y-3 shadow-lg">
+        <div className="flex items-center gap-2 border-b border-[#221c10] pb-2.5">
+          <Send className="w-4 h-4 text-[#f5d77f]" />
           <h3 className="text-xs font-black text-white uppercase tracking-wider">
-            BỘ PHÁT THÔNG BÁO TOÀN HỆ THỐNG
+            {lang === 'vi' ? 'BỘ PHÁT THÔNG BÁO TOÀN HỆ THỐNG' : 'GLOBAL BROADCAST DISPATCHER'}
           </h3>
         </div>
 
@@ -278,17 +281,17 @@ export const AdminOverviewTab: React.FC<AdminOverviewTabProps> = ({
             value={broadcastMsg}
             onChange={(e) => setBroadcastMsg(e.target.value)}
             rows={3}
-            className="w-full bg-[#0b0e17] border border-[#1f293d] rounded-2xl p-3 text-white text-xs font-medium focus:outline-none focus:border-[#ff5500]"
-            placeholder="Nhập nội dung thông điệp để phát trực tiếp tới tất cả người dùng Telegram Mini App..."
+            className="w-full bg-[#05070c] border border-[#221c10] rounded-2xl p-3 text-white text-xs font-medium focus:outline-none focus:border-[#d4af37]"
+            placeholder={lang === 'vi' ? 'Nhập nội dung thông điệp để phát trực tiếp tới tất cả người dùng Telegram Mini App...' : 'Enter message to broadcast directly to all Telegram Mini App users...'}
           />
         </div>
 
         <button
           onClick={onBroadcast}
-          className="w-full py-3 rounded-2xl spartan-orange-btn font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2"
+          className="w-full py-3 rounded-2xl spartan-cta-btn font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 active:scale-[0.98]"
         >
           <Send className="w-4 h-4" />
-          <span>PHÁT THÔNG BÁO TỨC THÌ</span>
+          <span>{lang === 'vi' ? 'PHÁT THÔNG BÁO TỨC THÌ' : 'BROADCAST MESSAGE NOW'}</span>
         </button>
       </div>
     </div>

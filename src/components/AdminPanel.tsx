@@ -29,10 +29,12 @@ import {
   Crown,
   Bot
 } from 'lucide-react';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 type AdminDepartment = 'overview' | 'accounting' | 'personnel' | 'techops' | 'agents';
 
 export const AdminPanel: React.FC = () => {
+  const { t, lang } = useLanguage();
   const [activeDept, setActiveDept] = useState<AdminDepartment>('overview');
   const [pendingTxs, setPendingTxs] = useState<TransactionData[]>([]);
   const [allTransactions, setAllTransactions] = useState<TransactionData[]>([]);
@@ -122,28 +124,28 @@ export const AdminPanel: React.FC = () => {
   };
 
   const departments = [
-    { id: 'overview' as AdminDepartment, label: 'TỔNG QUAN', icon: Layers },
-    { id: 'accounting' as AdminDepartment, label: 'KẾ TOÁN', icon: Receipt },
-    { id: 'personnel' as AdminDepartment, label: 'NHÂN SỰ & F1', icon: Users },
-    { id: 'techops' as AdminDepartment, label: 'KỸ THUẬT', icon: Cpu },
-    { id: 'agents' as AdminDepartment, label: 'AI AGENT', icon: Bot },
+    { id: 'overview' as AdminDepartment, label: t('admin_dept_overview'), icon: Layers },
+    { id: 'accounting' as AdminDepartment, label: t('admin_dept_accounting'), icon: Receipt },
+    { id: 'personnel' as AdminDepartment, label: t('admin_dept_personnel'), icon: Users },
+    { id: 'techops' as AdminDepartment, label: t('admin_dept_techops'), icon: Cpu },
+    { id: 'agents' as AdminDepartment, label: t('admin_dept_agents'), icon: Bot },
   ];
 
   return (
     <div className="w-full space-y-4 pb-20">
       {/* Admin Suite Master Banner */}
-      <div className="spartan-card rounded-3xl p-5 border border-amber-500/40 shadow-[0_0_20px_rgba(245,158,11,0.2)]">
+      <div className="spartan-card rounded-3xl p-5 border border-[#221c10] bg-[#080b12] shadow-lg">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-amber-500/20 text-amber-400 border border-amber-500/40 flex items-center justify-center font-black text-xl shadow-md">
+            <div className="w-12 h-12 rounded-2xl bg-[#d4af37]/15 text-[#f5d77f] border border-[#d4af37]/40 flex items-center justify-center font-black text-xl shadow-[0_0_12px_rgba(212,175,55,0.25)]">
               👑
             </div>
             <div>
-              <h2 className="text-base font-black text-white uppercase tracking-wider flex items-center gap-1.5">
-                TRUNG TÂM ĐIỀU HÀNH QUẢN TRỊ
+              <h2 className="text-base font-black text-[#f5d77f] uppercase tracking-wider flex items-center gap-1.5">
+                {t('admin_command_center')}
               </h2>
-              <span className="text-[10px] text-amber-400 font-mono font-bold block">
-                Ban Quản Trị Tối Cao: @tddv2017 (ID: 494232782)
+              <span className="text-[10px] text-[#d4af37] font-mono font-bold block">
+                {t('admin_supreme_header')}
               </span>
             </div>
           </div>
@@ -151,24 +153,24 @@ export const AdminPanel: React.FC = () => {
           <button
             onClick={loadSystemData}
             disabled={isRefreshing}
-            className="p-2.5 rounded-2xl bg-[#0b0e17] border border-[#1f293d] text-gray-300 hover:text-white transition-colors"
-            title="Làm mới dữ liệu hệ thống"
+            className="p-2.5 rounded-2xl bg-[#05070c] border border-[#221c10] text-gray-300 hover:text-white transition-colors active:scale-95"
+            title={t('admin_refresh')}
           >
-            <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin text-amber-400' : ''}`} />
+            <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin text-[#f5d77f]' : ''}`} />
           </button>
         </div>
       </div>
 
       {/* Global Status Toast */}
       {adminStatusMsg && (
-        <div className="p-3 bg-amber-500/20 border border-amber-500 rounded-2xl text-amber-300 text-xs font-bold flex items-center gap-2 animate-bounce">
-          <ShieldCheck className="w-4 h-4 flex-shrink-0 text-amber-400" />
+        <div className="p-3 bg-emerald-500/20 border border-emerald-500 rounded-2xl text-emerald-400 text-xs font-bold flex items-center gap-2 animate-bounce">
+          <ShieldCheck className="w-4 h-4 flex-shrink-0 text-emerald-400" />
           <span>{adminStatusMsg}</span>
         </div>
       )}
 
       {/* 5 Administrative Departments Sub-Nav Bar */}
-      <div className="grid grid-cols-5 p-1 bg-[#0b0e17] rounded-2xl border border-[#1f293d]">
+      <div className="grid grid-cols-5 p-1 bg-[#05070c] rounded-2xl border border-[#221c10]">
         {departments.map((dept) => {
           const Icon = dept.icon;
           const isActive = activeDept === dept.id;
@@ -178,8 +180,8 @@ export const AdminPanel: React.FC = () => {
               onClick={() => setActiveDept(dept.id)}
               className={`py-2 px-1 rounded-xl text-[9px] font-black uppercase flex flex-col items-center justify-center gap-1 transition-all ${
                 isActive
-                  ? 'bg-amber-500 text-black shadow-md font-black'
-                  : 'text-gray-400 hover:text-white'
+                  ? 'gold-btn-solid text-black shadow-md font-black scale-105'
+                  : 'text-gray-400 hover:text-gray-200'
               }`}
             >
               <Icon className="w-3.5 h-3.5" />
