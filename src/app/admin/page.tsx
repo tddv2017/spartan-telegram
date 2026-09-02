@@ -23,6 +23,7 @@ import { AiAgentsCommandCenter } from '@/components/admin/AiAgentsCommandCenter'
 import { AdminUserCrudManager } from '@/components/admin/AdminUserCrudManager';
 import { AdminTransactionCrudManager } from '@/components/admin/AdminTransactionCrudManager';
 import { AdminPinAuthModal } from '@/components/admin/AdminPinAuthModal';
+import { SecurityPenTestLab } from '@/components/admin/SecurityPenTestLab';
 import { 
   ShieldCheck, 
   Layers, 
@@ -40,7 +41,8 @@ import {
   TrendingUp,
   Lock,
   LogOut,
-  KeyRound
+  KeyRound,
+  ShieldAlert
 } from 'lucide-react';
 
 type AdminNavSection = 
@@ -49,7 +51,8 @@ type AdminNavSection =
   | 'txs_crud' 
   | 'accounting' 
   | 'techops' 
-  | 'agents';
+  | 'agents'
+  | 'security_lab';
 
 const PIN_STORAGE_KEY = 'spartan_admin_master_pin_v2';
 const SESSION_AUTH_KEY = 'spartan_admin_session_auth_token';
@@ -191,6 +194,7 @@ export default function StandaloneAdminPortalPage() {
     { id: 'accounting' as AdminNavSection, label: 'KẾ TOÁN & 2 VÍ QUỸ', icon: Receipt },
     { id: 'techops' as AdminNavSection, label: 'KỸ THUẬT & BOT', icon: Cpu },
     { id: 'agents' as AdminNavSection, label: 'AI AGENTS (3 BỘ PHẬN)', icon: Bot },
+    { id: 'security_lab' as AdminNavSection, label: 'TEST AN NINH (5 KỊCH BẢN)', icon: ShieldAlert, badge: 'LAB' },
   ];
 
   // If not authenticated, render 6-digit military Master PIN Gate
@@ -386,6 +390,10 @@ export default function StandaloneAdminPortalPage() {
 
           {activeSection === 'agents' && (
             <AiAgentsCommandCenter />
+          )}
+
+          {activeSection === 'security_lab' && (
+            <SecurityPenTestLab onRefreshData={loadSystemData} />
           )}
         </main>
       </div>
