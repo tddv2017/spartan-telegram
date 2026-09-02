@@ -9,7 +9,8 @@ import {
 import { 
   createManualTransaction, 
   updateTransactionRecord, 
-  deleteTransactionRecord 
+  deleteTransactionRecord,
+  clearAllTestTransactions 
 } from '@/lib/adminService';
 import { 
   FileSpreadsheet, 
@@ -50,6 +51,8 @@ export const AdminTransactionCrudManager: React.FC<AdminTransactionCrudManagerPr
   const [editingTx, setEditingTx] = useState<TransactionData | null>(null);
   const [deletingTx, setDeletingTx] = useState<TransactionData | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isWipeConfirmOpen, setIsWipeConfirmOpen] = useState(false);
+  const [isWiping, setIsWiping] = useState(false);
 
   // Create Form State
   const [createForm, setCreateForm] = useState({
@@ -190,6 +193,23 @@ export const AdminTransactionCrudManager: React.FC<AdminTransactionCrudManagerPr
     }
   };
 
+  const handleWipeAllTestTxs = async () => {
+    setIsWiping(true);
+    try {
+      const res = await clearAllTestTransactions();
+      if (res.success) {
+        setStatusMsg('🗑️ ' + res.message);
+        setIsWipeConfirmOpen(false);
+        onRefresh();
+      } else {
+        setStatusMsg('❌ ' + res.message);
+      }
+      setTimeout(() => setStatusMsg(null), 5000);
+    } finally {
+      setIsWiping(false);
+    }
+  };
+
   const filteredTxs = transactions.filter((tx) => {
     const matchType = filterType === 'ALL' || tx.type === filterType;
     const matchStatus = filterStatus === 'ALL' || tx.status === filterStatus;
@@ -235,6 +255,15 @@ export const AdminTransactionCrudManager: React.FC<AdminTransactionCrudManagerPr
             title="Làm mới danh sách"
           >
             <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin text-amber-400' : ''}`} />
+          </button>
+
+          <button
+            onClick={() => setIsWipeConfirmOpen(true)}
+            className="px-3 py-2.5 rounded-xl bg-red-500/15 hover:bg-red-500/30 border border-red-500/40 text-red-400 text-xs font-black uppercase tracking-wider flex items-center gap-1.5 transition-all"
+            title="Dọn dẹp sạch toàn bộ dữ liệu giao dịch test"
+          >
+            <Trash2 className="w-4 h-4" />
+            <span>XÓA SẠCH TEST</span>
           </button>
 
           <button
@@ -673,6 +702,44 @@ export const AdminTransactionCrudManager: React.FC<AdminTransactionCrudManagerPr
               </button>
               <button
                 onClick={() => setDeletingTx(null)}
+                className="px-4 py-3 rounded-xl bg-[#131927] text-gray-400 hover:text-white border border-[#1f293d] text-xs font-bold"
+              >
+                HỦY
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Wipe All Test Transactions Modal */}
+      {isWipeConfirmOpen && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-[#0b0e17] border border-red-500/50 rounded-3xl max-w-md w-full p-5 space-y-4 shadow-2xl animate-in zoom-in-95 duration-200">
+            <div className="flex items-center gap-3 text-red-400">
+              <div className="w-10 h-10 rounded-2xl bg-red-500/20 flex items-center justify-center font-black">
+                <Trash2 className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-sm font-black text-white uppercase">XÁC NHẬN XÓA SẠCH GIAO DỊCH TEST</h3>
+                <span className="text-[10px] text-red-400 font-mono">Dọn dẹp cơ sở dữ liệu về trạng thái sạch</span>
+              </div>
+            </div>
+
+            <p className="text-xs text-gray-300 leading-relaxed bg-[#131927] p-3.5 rounded-2xl border border-[#1f293d]">
+              Hành động này sẽ <strong>xóa toàn bộ các bản ghi giao dịch Nạp / Rút test</strong> trên toàn hệ thống (bao gồm bảng tổng <code className="text-amber-400">/transactions</code> và lịch sử riêng của từng khách hàng).
+            </p>
+
+            <div className="flex items-center gap-2 pt-2 font-sans">
+              <button
+                onClick={handleWipeAllTestTxs}
+                disabled={isWiping}
+                className="flex-1 py-3 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-black text-xs uppercase flex items-center justify-center gap-2 shadow-lg transition-all disabled:opacity-50"
+              >
+                {isWiping ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                <span>XÁC NHẬN XÓA SẠCH TEST</span>
+              </button>
+              <button
+                onClick={() => setIsWipeConfirmOpen(false)}
                 className="px-4 py-3 rounded-xl bg-[#131927] text-gray-400 hover:text-white border border-[#1f293d] text-xs font-bold"
               >
                 HỦY

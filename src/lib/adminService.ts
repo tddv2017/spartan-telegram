@@ -297,6 +297,34 @@ export async function deleteTransactionRecord(txId: string, userId?: string): Pr
   }
 }
 
+// CLEAR ALL: Delete All Test Transactions & Fraud Alerts from Database
+export async function clearAllTestTransactions(): Promise<{ success: boolean; message: string }> {
+  try {
+    // 1. Clear /transactions.json
+    await fetch(`${RTDB_BASE_URL}/transactions.json`, { method: 'DELETE' });
+
+    // 2. Clear /users/{id}/transactions.json for all users
+    const res = await fetch(`${RTDB_BASE_URL}/users.json`);
+    if (res.ok) {
+      const users = await res.json();
+      if (users && typeof users === 'object') {
+        const deletePromises = Object.keys(users).map(userId => 
+          fetch(`${RTDB_BASE_URL}/users/${userId}/transactions.json`, { method: 'DELETE' })
+        );
+        await Promise.all(deletePromises);
+      }
+    }
+
+    // 3. Clear /fraud_alerts.json
+    await fetch(`${RTDB_BASE_URL}/fraud_alerts.json`, { method: 'DELETE' });
+
+    return { success: true, message: 'Đã dọn dẹp sạch toàn bộ dữ liệu giao dịch test trên toàn hệ thống!' };
+  } catch (err: any) {
+    console.error('Lỗi khi xóa dữ liệu giao dịch test:', err);
+    return { success: false, message: err.message || 'Lỗi khi xóa dữ liệu giao dịch test' };
+  }
+}
+
 // ==================================================
 // 3. SYSTEM CONFIGURATION (BẢO TRÌ & BOT TỔNG)
 // ==================================================
