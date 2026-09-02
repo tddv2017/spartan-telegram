@@ -8,10 +8,10 @@ export const QuantStrategyCard: React.FC = () => {
   const { t } = useLanguage();
 
   return (
-    <div className="w-full bg-[#131927] rounded-3xl p-5 border border-[#1f293d] space-y-2 shadow-md">
+    <div className="w-full bg-[#080b12] rounded-3xl p-5 border border-[#221c10] space-y-2 shadow-md">
       <div className="flex items-center gap-2">
-        <Shield className="w-4 h-4 text-amber-400 fill-amber-400/20" />
-        <h3 className="text-xs font-black text-white uppercase tracking-wider">
+        <Shield className="w-4 h-4 text-[#d4af37] fill-[#d4af37]/20" />
+        <h3 className="text-xs font-black text-[#f5d77f] uppercase tracking-wider">
           {t('strategy_title')}
         </h3>
       </div>

@@ -42,10 +42,10 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
         {/* ENGAGE BOT BUTTON */}
         <button
           onClick={onStart}
-          className={`py-3.5 px-4 rounded-2xl font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all ${
+          className={`py-3.5 px-4 rounded-2xl font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all active:scale-[0.97] ${
             isActive
-              ? 'spartan-engage-btn shadow-[0_4px_16px_rgba(255,42,84,0.45)] scale-[1.02]'
-              : 'bg-[#141926] border border-[#1e2638] text-gray-400 hover:text-white hover:border-[#ff2a54]/50'
+              ? 'spartan-cta-btn shadow-[0_4px_20px_rgba(255,85,0,0.4)] scale-[1.02]'
+              : 'bg-[#080b12] border border-[#221c10] text-gray-400 hover:text-white hover:border-[#d4af37]/40'
           }`}
         >
           <span className="text-sm">{isActive ? '⚔️' : '🗡️'}</span>
@@ -55,13 +55,13 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
         {/* STANDBY BUTTON */}
         <button
           onClick={onStop}
-          className={`py-3.5 px-4 rounded-2xl font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all ${
+          className={`py-3.5 px-4 rounded-2xl font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all active:scale-[0.97] ${
             !isActive
-              ? 'bg-amber-500/20 border-2 border-amber-400 text-amber-300 shadow-[0_0_15px_rgba(245,158,11,0.35)] scale-[1.02]'
-              : 'bg-[#141926] border border-[#1e2638] text-gray-400 hover:text-white hover:border-gray-600'
+              ? 'bg-[#d4af37]/15 border-2 border-[#d4af37] text-[#f5d77f] shadow-[0_0_15px_rgba(212,175,55,0.3)] scale-[1.02]'
+              : 'bg-[#080b12] border border-[#221c10] text-gray-400 hover:text-white hover:border-[#d4af37]/30'
           }`}
         >
-          <Shield className={`w-4 h-4 ${!isActive ? 'text-amber-400 fill-amber-400/30 animate-pulse' : 'text-gray-500'}`} />
+          <Shield className={`w-4 h-4 ${!isActive ? 'text-[#f5d77f] fill-[#f5d77f]/30 animate-pulse' : 'text-gray-500'}`} />
           <span>{t('standby')}</span>
         </button>
       </div>
@@ -70,17 +70,17 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
       <div className="grid grid-cols-2 gap-3">
         <button
           onClick={handleOpenSupport}
-          className="py-3 px-4 rounded-2xl font-bold text-xs flex items-center justify-center gap-2 bg-[#141926] border border-[#1e2638] text-gray-200 hover:border-gray-600 transition-all shadow-sm"
+          className="py-3 px-4 rounded-2xl font-bold text-xs flex items-center justify-center gap-2 bg-[#080b12] border border-[#221c10] text-gray-200 hover:border-[#d4af37]/40 hover:text-[#f5d77f] transition-all shadow-sm active:scale-[0.97]"
         >
-          <MessageCircle className="w-4 h-4 text-[#00df89]" />
+          <MessageCircle className="w-4 h-4 text-emerald-400" />
           <span>{t('support_247')}</span>
         </button>
 
         <button
           onClick={handleOpenChannel}
-          className="py-3 px-4 rounded-2xl font-bold text-xs flex items-center justify-center gap-2 bg-[#141926] border border-[#1e2638] text-gray-200 hover:border-gray-600 transition-all shadow-sm"
+          className="py-3 px-4 rounded-2xl font-bold text-xs flex items-center justify-center gap-2 bg-[#080b12] border border-[#221c10] text-gray-200 hover:border-[#d4af37]/40 hover:text-[#f5d77f] transition-all shadow-sm active:scale-[0.97]"
         >
-          <Send className="w-3.5 h-3.5 text-[#ff2a54]" />
+          <Send className="w-3.5 h-3.5 text-[#f5d77f]" />
           <span>{t('live_signal')}</span>
         </button>
       </div>

@@ -23,7 +23,7 @@ export function getUserRankInfo(
   if (isAdmin || cleanHandle === 'tddv2017' || cleanHandle === 'spartan_9824029') {
     return {
       rankName: lang === 'vi' ? 'LÃNH ĐẠO TỐI CAO' : 'SUPREME LEADER',
-      badgeStyle: 'bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-[0_0_10px_rgba(245,158,11,0.3)]',
+      badgeStyle: 'bg-[#d4af37]/15 text-[#f5d77f] border border-[#d4af37]/40 shadow-[0_0_12px_rgba(212,175,55,0.25)]',
       icon: '👑'
     };
   }
@@ -33,7 +33,7 @@ export function getUserRankInfo(
     const tierNum = Math.min(10, Math.max(1, resellerTier));
     return {
       rankName: lang === 'vi' ? `ĐỐI TÁC CẤP ${tierNum}` : `RESELLER TIER ${tierNum}`,
-      badgeStyle: 'bg-[#ff5500]/20 text-[#ff5500] border border-[#ff5500]/40 shadow-[0_0_10px_rgba(255,85,0,0.3)]',
+      badgeStyle: 'bg-amber-500/15 text-amber-300 border border-amber-500/35 shadow-[0_0_10px_rgba(245,158,11,0.2)]',
       icon: '🎖️'
     };
   }
@@ -41,7 +41,7 @@ export function getUserRankInfo(
   // 3. SPARTAN TRADER
   return {
     rankName: lang === 'vi' ? 'NHÀ ĐẦU TƯ SPARTAN' : 'SPARTAN TRADER',
-    badgeStyle: 'bg-[#131927] text-gray-300 border border-[#1f293d]',
+    badgeStyle: 'bg-[#0e121a] text-gray-300 border border-[#221c10]',
     icon: '🛡️'
   };
 }
@@ -73,9 +73,9 @@ export const Header: React.FC<HeaderProps> = ({
   const rank = getUserRankInfo(isAdmin, username, resellerTier, 'CLIENT', lang);
 
   return (
-    <header className="w-full bg-[#0b0e17] sticky top-0 z-50 pt-2 pb-3 px-4 border-b border-[#1f293d]">
+    <header className="w-full bg-[#05070c] sticky top-0 z-50 pt-2 pb-3 px-4 border-b border-[#221c10]">
       {/* Top Telegram Header Bar */}
-      <div className="flex items-center justify-between text-sm text-gray-400 mb-3">
+      <div className="flex items-center justify-between text-sm text-gray-400 mb-2.5">
         <button 
           onClick={() => {
             if (typeof window !== 'undefined' && (window as any).Telegram?.WebApp?.close) {
@@ -84,15 +84,15 @@ export const Header: React.FC<HeaderProps> = ({
               onClose();
             }
           }} 
-          className="text-[#ff5500] font-bold text-xs hover:opacity-80 transition-opacity"
+          className="text-[#d4af37] font-bold text-xs hover:opacity-80 transition-opacity flex items-center gap-1"
         >
           {t('top_close')}
         </button>
 
         <div className="text-center flex items-center gap-1.5 justify-center">
-          <h1 className="font-extrabold text-white text-sm tracking-wide">SPARTAN QUANT 300 AI</h1>
-          <span className="text-[9px] text-[#00df89] font-black uppercase tracking-widest px-2 py-0.5 bg-[#00df89]/15 rounded-full border border-[#00df89]/40 flex items-center gap-1">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#00df89] animate-ping" />
+          <h1 className="font-extrabold text-[#f5d77f] text-xs tracking-wider uppercase">SPARTAN QUANT 300 AI</h1>
+          <span className="text-[8px] text-emerald-400 font-black uppercase tracking-widest px-2 py-0.5 bg-emerald-500/15 rounded-full border border-emerald-500/30 flex items-center gap-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
             LIVE MT5
           </span>
         </div>
@@ -101,11 +101,11 @@ export const Header: React.FC<HeaderProps> = ({
         <div className="flex items-center gap-2">
           <button
             onClick={toggleLang}
-            className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-[#131927] hover:bg-[#1f293d] border border-[#1f293d] text-xs font-bold transition-all shadow-sm group"
+            className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-[#0c0f17] hover:bg-[#141924] border border-[#2a2215] text-xs font-bold transition-all shadow-sm group active:scale-95"
             title={lang === 'vi' ? 'Switch to English' : 'Chuyển sang Tiếng Việt'}
           >
             <span className="text-sm">{lang === 'vi' ? '🇻🇳' : '🇬🇧'}</span>
-            <span className="font-mono text-[10px] text-amber-400 font-extrabold uppercase">
+            <span className="font-mono text-[10px] text-[#f5d77f] font-extrabold uppercase">
               {lang === 'vi' ? 'VI' : 'EN'}
             </span>
           </button>
@@ -119,8 +119,8 @@ export const Header: React.FC<HeaderProps> = ({
       {/* Brand Header & Dynamic Rank Badge */}
       <div className="flex items-center justify-between pt-1">
         <div className="flex items-center gap-3">
-          {/* Spartan Helmet Logo Avatar */}
-          <div className="w-12 h-12 rounded-2xl overflow-hidden border border-[#ff5500]/60 shadow-[0_4px_16px_rgba(255,85,0,0.5)] bg-[#0b0e17] relative flex-shrink-0 transition-transform hover:scale-105">
+          {/* Spartan Helmet Logo Avatar with 24K Gold Sheen */}
+          <div className="w-11 h-11 rounded-2xl overflow-hidden border border-[#d4af37]/60 shadow-[0_0_16px_rgba(212,175,55,0.3)] bg-[#080b12] relative flex-shrink-0 transition-transform hover:scale-105">
             <img
               src="/assets/spartan_logo_clean.jpg"
               alt="Spartan AI Logo Clean"
@@ -129,14 +129,14 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
           <div>
             <div className="flex items-center gap-1.5">
-              <span className="text-base font-black text-white tracking-tight uppercase">
+              <span className="text-sm font-black text-[#f5d77f] tracking-tight uppercase">
                 SPARTAN
               </span>
-              <span className="text-[10px] font-extrabold text-gray-400 tracking-wider">QUANT AI</span>
+              <span className="text-[10px] font-mono font-bold text-gray-400 tracking-wider">QUANT 300 AI</span>
             </div>
 
             {/* DYNAMIC LEVEL BADGE */}
-            <span className={`inline-flex items-center gap-1 text-[9px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider mt-1 ${rank.badgeStyle}`}>
+            <span className={`inline-flex items-center gap-1 text-[9px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider mt-0.5 ${rank.badgeStyle}`}>
               <span>{rank.icon}</span>
               <span>{rank.rankName}</span>
             </span>
@@ -148,10 +148,10 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Notification Bell Icon with Live Unread Badge */}
           <button
             onClick={onOpenNotifications}
-            className="relative p-2.5 rounded-2xl bg-[#131927] hover:bg-[#1f293d] border border-[#1f293d] text-gray-300 hover:text-white transition-all shadow-md group"
+            className="relative p-2.5 rounded-2xl bg-[#0c0f17] hover:bg-[#141924] border border-[#2a2215] text-gray-300 hover:text-white transition-all shadow-md group active:scale-95"
             title="Xem thông báo hệ thống"
           >
-            <Bell className="w-4 h-4 group-hover:text-amber-400 transition-colors" />
+            <Bell className="w-4 h-4 group-hover:text-[#f5d77f] transition-colors" />
             {unreadNotificationsCount > 0 && (
               <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-red-500 text-white font-mono font-black text-[10px] rounded-full flex items-center justify-center shadow-[0_0_8px_#ef4444] animate-bounce">
                 {unreadNotificationsCount > 9 ? '9+' : unreadNotificationsCount}
@@ -166,12 +166,12 @@ export const Header: React.FC<HeaderProps> = ({
               <span>{t('bot_stopped')}</span>
             </div>
           ) : isBotActive ? (
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#00df89]/10 border border-[#00df89]/40 text-[#00df89] text-[11px] font-extrabold shadow-[0_0_10px_rgba(0,223,137,0.2)]">
-              <Activity className="w-3.5 h-3.5 text-[#00df89] animate-pulse" />
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-400 text-[11px] font-extrabold shadow-[0_0_12px_rgba(16,185,129,0.2)]">
+              <Activity className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />
               <span>{t('bot_live')}</span>
             </div>
           ) : (
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gray-800 border border-gray-700 text-gray-400 text-[11px] font-bold">
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#11141c] border border-[#221c10] text-gray-400 text-[11px] font-bold">
               <span className="w-2 h-2 rounded-full bg-gray-500"></span>
               <span>{t('bot_standby')}</span>
             </div>

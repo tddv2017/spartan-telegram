@@ -331,18 +331,18 @@ export const EquityChart: React.FC<EquityChartProps> = ({
 
   const activePoint = activePointIndex !== null ? mappedPoints[activePointIndex] : null;
   const isPositiveGrowth = dayGrowthPercent >= 0;
-  const primaryColor = isPositiveGrowth ? '#ff5500' : '#ff2d55';
+  const primaryColor = isPositiveGrowth ? '#f6e27a' : '#ff2d55';
 
   return (
-    <div className="w-full bg-[#131927] rounded-3xl p-4 border border-[#1f293d] space-y-2.5 shadow-md relative transition-all overflow-hidden">
+    <div className="w-full bg-[#080b12] rounded-3xl p-4 border border-[#221c10] space-y-2.5 shadow-md relative transition-all overflow-hidden">
       {/* Chart Header with Mode Toggle */}
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-2">
-          <span className="text-xs font-black text-gray-200 uppercase tracking-wider">
+          <span className="text-xs font-black text-[#f5d77f] uppercase tracking-wider">
             Account Growth Curve
           </span>
-          <span className="text-[9px] font-bold text-gray-400 bg-[#0b0e17] px-2 py-0.5 rounded-full border border-[#1f293d] flex items-center gap-1 font-mono">
-            <Radio className="w-2.5 h-2.5 text-[#00df89] animate-pulse" />
+          <span className="text-[9px] font-bold text-gray-400 bg-[#05070c] px-2 py-0.5 rounded-full border border-[#221c10] flex items-center gap-1 font-mono">
+            <Radio className="w-2.5 h-2.5 text-emerald-400 animate-pulse" />
             <span>24H THEO GIỜ</span>
           </span>
         </div>
@@ -350,12 +350,12 @@ export const EquityChart: React.FC<EquityChartProps> = ({
         {/* View Mode Toggle: Khách hàng (x % vốn) vs Master Pool */}
         <div className="flex items-center gap-1.5">
           {hasUserCapital && (
-            <div className="flex items-center bg-[#0b0e17] p-0.5 rounded-xl border border-[#1f293d] text-[9px] font-bold">
+            <div className="flex items-center bg-[#05070c] p-0.5 rounded-xl border border-[#221c10] text-[9px] font-bold">
               <button
                 onClick={() => setViewMode('PERSONAL')}
                 className={`px-2 py-1 rounded-lg transition-all flex items-center gap-1 ${
                   viewMode === 'PERSONAL'
-                    ? 'bg-gradient-to-r from-cyan-600 to-[#ff5500] text-white shadow-sm'
+                    ? 'bg-gradient-to-r from-[#d4af37] to-[#f6e27a] text-black font-black shadow-sm'
                     : 'text-gray-400 hover:text-white'
                 }`}
                 title="Xem theo tỷ lệ vốn góp của bạn"
@@ -367,7 +367,7 @@ export const EquityChart: React.FC<EquityChartProps> = ({
                 onClick={() => setViewMode('MASTER_POOL')}
                 className={`px-2 py-1 rounded-lg transition-all flex items-center gap-1 ${
                   viewMode === 'MASTER_POOL'
-                    ? 'bg-gradient-to-r from-cyan-600 to-[#ff5500] text-white shadow-sm'
+                    ? 'bg-gradient-to-r from-[#d4af37] to-[#f6e27a] text-black font-black shadow-sm'
                     : 'text-gray-400 hover:text-white'
                 }`}
                 title="Xem biểu đồ tổng Master Pool Exness"
@@ -381,7 +381,7 @@ export const EquityChart: React.FC<EquityChartProps> = ({
           {/* Dynamic Live Growth Today Badge */}
           <span className={`text-[11px] font-black px-2.5 py-1 rounded-full border font-mono flex items-center gap-1 ${
             isPositiveGrowth 
-              ? 'text-[#00df89] bg-[#00df89]/15 border-[#00df89]/40' 
+              ? 'text-emerald-400 bg-emerald-500/15 border-emerald-500/35 shadow-[0_0_10px_rgba(16,185,129,0.15)]' 
               : 'text-red-400 bg-red-500/15 border-red-500/40'
           }`}>
             {isPositiveGrowth ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
@@ -391,7 +391,7 @@ export const EquityChart: React.FC<EquityChartProps> = ({
       </div>
 
       {/* Fixed-Height Info & Tooltip Bar (Zero Layout Shift!) */}
-      <div className="h-7 flex items-center justify-between px-2.5 rounded-xl bg-[#0b0e17] border border-[#1f293d] text-[10px] select-none transition-colors">
+      <div className="h-7 flex items-center justify-between px-2.5 rounded-xl bg-[#05070c] border border-[#221c10] text-[10px] select-none transition-colors">
         {activePoint ? (
           <>
             <div className="flex items-center gap-1.5 overflow-hidden">
