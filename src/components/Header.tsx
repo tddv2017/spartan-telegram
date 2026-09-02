@@ -1,7 +1,8 @@
 'use client';
 
 import React from 'react';
-import { Crown, Activity, MoreHorizontal, Shield, Award, Bell } from 'lucide-react';
+import { Activity, MoreHorizontal, Bell } from 'lucide-react';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export interface UserRankInfo {
   rankName: string;
@@ -13,14 +14,15 @@ export function getUserRankInfo(
   isAdmin: boolean = false,
   username: string = '',
   resellerTier: number = 1,
-  role: 'ADMIN' | 'RESELLER' | 'CLIENT' = 'CLIENT'
+  role: 'ADMIN' | 'RESELLER' | 'CLIENT' = 'CLIENT',
+  lang: 'vi' | 'en' = 'vi'
 ): UserRankInfo {
   const cleanHandle = username.replace('@', '').toLowerCase();
 
   // 1. SUPREME LEADER (Exclusive ONLY for Admin @tddv2017 / 494232782)
   if (isAdmin || cleanHandle === 'tddv2017' || cleanHandle === 'spartan_9824029') {
     return {
-      rankName: 'LÃNH ĐẠO TỐI CAO',
+      rankName: lang === 'vi' ? 'LÃNH ĐẠO TỐI CAO' : 'SUPREME LEADER',
       badgeStyle: 'bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-[0_0_10px_rgba(245,158,11,0.3)]',
       icon: '👑'
     };
@@ -30,7 +32,7 @@ export function getUserRankInfo(
   if (role === 'RESELLER' || resellerTier > 0) {
     const tierNum = Math.min(10, Math.max(1, resellerTier));
     return {
-      rankName: `ĐỐI TÁC CẤP ${tierNum}`,
+      rankName: lang === 'vi' ? `ĐỐI TÁC CẤP ${tierNum}` : `RESELLER TIER ${tierNum}`,
       badgeStyle: 'bg-[#ff5500]/20 text-[#ff5500] border border-[#ff5500]/40 shadow-[0_0_10px_rgba(255,85,0,0.3)]',
       icon: '🎖️'
     };
@@ -38,7 +40,7 @@ export function getUserRankInfo(
 
   // 3. SPARTAN TRADER
   return {
-    rankName: 'NHÀ ĐẦU TƯ SPARTAN',
+    rankName: lang === 'vi' ? 'NHÀ ĐẦU TƯ SPARTAN' : 'SPARTAN TRADER',
     badgeStyle: 'bg-[#131927] text-gray-300 border border-[#1f293d]',
     icon: '🛡️'
   };
@@ -67,7 +69,8 @@ export const Header: React.FC<HeaderProps> = ({
   unreadNotificationsCount = 0,
   onOpenNotifications,
 }) => {
-  const rank = getUserRankInfo(isAdmin, username, resellerTier);
+  const { lang, toggleLang, t } = useLanguage();
+  const rank = getUserRankInfo(isAdmin, username, resellerTier, 'CLIENT', lang);
 
   return (
     <header className="w-full bg-[#0b0e17] sticky top-0 z-50 pt-2 pb-3 px-4 border-b border-[#1f293d]">
@@ -83,8 +86,9 @@ export const Header: React.FC<HeaderProps> = ({
           }} 
           className="text-[#ff5500] font-bold text-xs hover:opacity-80 transition-opacity"
         >
-          Đóng
+          {t('top_close')}
         </button>
+
         <div className="text-center flex items-center gap-1.5 justify-center">
           <h1 className="font-extrabold text-white text-sm tracking-wide">SPARTAN QUANT 300 AI</h1>
           <span className="text-[9px] text-[#00df89] font-black uppercase tracking-widest px-2 py-0.5 bg-[#00df89]/15 rounded-full border border-[#00df89]/40 flex items-center gap-1">
@@ -92,17 +96,30 @@ export const Header: React.FC<HeaderProps> = ({
             LIVE MT5
           </span>
         </div>
-        <div className="w-8 flex justify-end">
+
+        {/* Right controls: Language Toggle (VI / EN) */}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={toggleLang}
+            className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-[#131927] hover:bg-[#1f293d] border border-[#1f293d] text-xs font-bold transition-all shadow-sm group"
+            title={lang === 'vi' ? 'Switch to English' : 'Chuyển sang Tiếng Việt'}
+          >
+            <span className="text-sm">{lang === 'vi' ? '🇻🇳' : '🇬🇧'}</span>
+            <span className="font-mono text-[10px] text-amber-400 font-extrabold uppercase">
+              {lang === 'vi' ? 'VI' : 'EN'}
+            </span>
+          </button>
+          
           <button className="p-1 rounded-full hover:bg-gray-800 text-gray-400">
             <MoreHorizontal className="w-5 h-5" />
           </button>
         </div>
       </div>
 
-      {/* Brand Header & Supreme Leader / 10-Level Reseller Badge */}
+      {/* Brand Header & Dynamic Rank Badge */}
       <div className="flex items-center justify-between pt-1">
         <div className="flex items-center gap-3">
-          {/* Prominent Spartan High-Tech Helmet Logo Avatar */}
+          {/* Spartan Helmet Logo Avatar */}
           <div className="w-12 h-12 rounded-2xl overflow-hidden border border-[#ff5500]/60 shadow-[0_4px_16px_rgba(255,85,0,0.5)] bg-[#0b0e17] relative flex-shrink-0 transition-transform hover:scale-105">
             <img
               src="/assets/spartan_logo_clean.jpg"
@@ -115,7 +132,7 @@ export const Header: React.FC<HeaderProps> = ({
               <span className="text-base font-black text-white tracking-tight uppercase">
                 SPARTAN
               </span>
-              <span className="text-[10px] font-extrabold text-gray-400 tracking-wider">TRADING SYSTEM</span>
+              <span className="text-[10px] font-extrabold text-gray-400 tracking-wider">QUANT AI</span>
             </div>
 
             {/* DYNAMIC LEVEL BADGE */}
@@ -146,17 +163,17 @@ export const Header: React.FC<HeaderProps> = ({
           {isTechOpsPaused ? (
             <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-red-500/15 border border-red-500/40 text-red-400 text-[10px] font-black shadow-[0_0_10px_rgba(239,68,68,0.3)] animate-pulse">
               <span className="w-2 h-2 rounded-full bg-red-500"></span>
-              <span>BOT DỪNG</span>
+              <span>{t('bot_stopped')}</span>
             </div>
           ) : isBotActive ? (
             <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#00df89]/10 border border-[#00df89]/40 text-[#00df89] text-[11px] font-extrabold shadow-[0_0_10px_rgba(0,223,137,0.2)]">
               <Activity className="w-3.5 h-3.5 text-[#00df89] animate-pulse" />
-              <span>BOT LIVE</span>
+              <span>{t('bot_live')}</span>
             </div>
           ) : (
             <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gray-800 border border-gray-700 text-gray-400 text-[11px] font-bold">
               <span className="w-2 h-2 rounded-full bg-gray-500"></span>
-              <span>STANDBY</span>
+              <span>{t('bot_standby')}</span>
             </div>
           )}
         </div>

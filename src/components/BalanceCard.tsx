@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface BalanceCardProps {
   tradingBalance: number;
@@ -17,6 +18,7 @@ export const BalanceCard: React.FC<BalanceCardProps> = ({
   estimatedPoolProfit = 0.00,
   totalMasterProfit = 0.00,
 }) => {
+  const { t } = useLanguage();
   const totalBalance = tradingBalance + referralsIncome;
 
   return (
@@ -27,7 +29,7 @@ export const BalanceCard: React.FC<BalanceCardProps> = ({
       {/* Header Line */}
       <div className="flex items-center justify-between mb-2">
         <span className="text-xs font-bold text-white/95 tracking-tight">
-          Tổng Tài Sản (Gồm Vốn & Hoa Hồng):
+          {t('total_balance')}
         </span>
         <span className="text-[10px] font-black px-3 py-1 rounded-full bg-black/40 text-white border border-white/20 uppercase tracking-wider">
           SPARTAN 300 AI
@@ -45,18 +47,18 @@ export const BalanceCard: React.FC<BalanceCardProps> = ({
       {/* Bottom Row */}
       <div className="flex items-center justify-between pt-2">
         <span className="text-xs font-bold text-white/95">
-          Vốn Bot Giao Dịch: ${tradingBalance.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 2 })}
+          {t('trading_capital')} ${tradingBalance.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 2 })}
         </span>
 
         <span className="text-xs font-black text-[#00df89] px-3 py-1.5 rounded-xl bg-[#00df89]/15 border border-[#00df89]/60 shadow-[0_0_10px_rgba(0,223,137,0.15)]">
-          Hoa Hồng: +${referralsIncome.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USDT
+          {t('rebate')} +${referralsIncome.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USDT
         </span>
       </div>
 
       {/* Realtime Profit Allocation Row */}
       <div className="mt-3 pt-2.5 border-t border-white/20 flex items-center justify-between text-xs">
         <span className="text-xs font-bold text-white/90">
-          Lợi Nhuận Tích Lũy Từ Bot:
+          {t('accumulated_profit')}
         </span>
         <span className={`text-sm font-mono font-black ${estimatedPoolProfit >= 0 ? 'text-[#00df89]' : 'text-red-300'}`}>
           {estimatedPoolProfit >= 0 ? '+' : ''}${estimatedPoolProfit.toFixed(2)} USDT

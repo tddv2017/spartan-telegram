@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { Home, Wallet, BarChart2, ShieldAlert, Award } from 'lucide-react';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export type TabType = 'home' | 'wallet' | 'analytics' | 'profile' | 'admin';
 
@@ -16,12 +17,14 @@ export const BottomNav: React.FC<BottomNavProps> = ({
   onChangeTab,
   isAdmin = false,
 }) => {
+  const { t } = useLanguage();
+
   const navItems = [
-    { id: 'home' as TabType, label: 'TỔNG QUAN', icon: Home },
-    { id: 'wallet' as TabType, label: 'VÍ ĐẦU TƯ', icon: Wallet },
-    { id: 'analytics' as TabType, label: 'THỐNG KÊ', icon: BarChart2 },
-    { id: 'profile' as TabType, label: 'ĐỐI TÁC', icon: Award },
-    ...(isAdmin ? [{ id: 'admin' as TabType, label: 'QUẢN TRỊ', icon: ShieldAlert }] : []),
+    { id: 'home' as TabType, label: t('nav_overview'), icon: Home },
+    { id: 'wallet' as TabType, label: t('nav_wallet'), icon: Wallet },
+    { id: 'analytics' as TabType, label: t('nav_analytics'), icon: BarChart2 },
+    { id: 'profile' as TabType, label: t('nav_reseller'), icon: Award },
+    ...(isAdmin ? [{ id: 'admin' as TabType, label: t('nav_admin'), icon: ShieldAlert }] : []),
   ];
 
   return (

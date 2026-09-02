@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { Shield, Send, MessageCircle } from 'lucide-react';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface ActionButtonsProps {
   isActive: boolean;
@@ -14,6 +15,8 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
   onStart,
   onStop,
 }) => {
+  const { t } = useLanguage();
+
   const handleOpenSupport = () => {
     const supportUrl = 'https://t.me/tddv2017';
     if (typeof window !== 'undefined' && (window as any).Telegram?.WebApp?.openTelegramLink) {
@@ -46,7 +49,7 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
           }`}
         >
           <span className="text-sm">{isActive ? '⚔️' : '🗡️'}</span>
-          <span>{isActive ? 'BOT ĐANG CHẠY' : 'KÍCH HOẠT BOT'}</span>
+          <span>{isActive ? t('bot_running') : t('engage_bot')}</span>
         </button>
 
         {/* STANDBY BUTTON */}
@@ -59,7 +62,7 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
           }`}
         >
           <Shield className={`w-4 h-4 ${!isActive ? 'text-amber-400 fill-amber-400/30 animate-pulse' : 'text-gray-500'}`} />
-          <span>TẠM DỪNG (STANDBY)</span>
+          <span>{t('standby')}</span>
         </button>
       </div>
 
@@ -70,7 +73,7 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
           className="py-3 px-4 rounded-2xl font-bold text-xs flex items-center justify-center gap-2 bg-[#141926] border border-[#1e2638] text-gray-200 hover:border-gray-600 transition-all shadow-sm"
         >
           <MessageCircle className="w-4 h-4 text-[#00df89]" />
-          <span>Hỗ Trợ 24/7 (Admin)</span>
+          <span>{t('support_247')}</span>
         </button>
 
         <button
@@ -78,7 +81,7 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
           className="py-3 px-4 rounded-2xl font-bold text-xs flex items-center justify-center gap-2 bg-[#141926] border border-[#1e2638] text-gray-200 hover:border-gray-600 transition-all shadow-sm"
         >
           <Send className="w-3.5 h-3.5 text-[#ff2a54]" />
-          <span>Kênh Tín Hiệu Live</span>
+          <span>{t('live_signal')}</span>
         </button>
       </div>
     </div>
