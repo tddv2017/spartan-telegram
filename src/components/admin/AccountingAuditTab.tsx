@@ -231,13 +231,13 @@ export const AccountingAuditTab: React.FC<AccountingAuditTabProps> = ({
     const headers = [
       "Telegram ID",
       "Username",
-      "Vốn Đầu Tư (USDT)",
+      "Vốn Gốc Đầu Tư (USDT)",
       "Tỷ Lệ Góp Vốn (%)",
+      "Tổng Nạp Ròng (USDT)",
+      "Tổng Rút (USDT)",
       "Lợi Nhuận Bot Chia (USDT)",
-      "Tổng Nạp Đã Duyệt (USDT)",
-      "Tổng Rút Đã Duyệt (USDT)",
-      "Số Dư Sổ Sách Kỳ Vọng (USDT)",
-      "Sai Lệch Đối Soát (USDT)",
+      "Tổng Tài Sản (Equity USDT)",
+      "Sai Lệch Vốn Gốc (USDT)",
       "Trạng Thái Đối Soát"
     ];
 
@@ -246,23 +246,23 @@ export const AccountingAuditTab: React.FC<AccountingAuditTabProps> = ({
       const uShare = effectiveTotalPool > 0 ? (uCap / effectiveTotalPool) * 100 : 0;
       const uProfit = totalBotProfit * (uShare / 100);
       const uDeposits = transactions.filter(t => (String(t.userId) === String(u.telegramId) || t.username === u.username) && t.type === 'DEPOSIT' && t.status === 'APPROVED');
-      const uGrossDep = uDeposits.reduce((s, t) => s + (t.grossAmount || 0), 0);
       const uNetDep = uDeposits.reduce((s, t) => s + (t.netAmount || 0), 0);
       const uWithdraws = transactions.filter(t => (String(t.userId) === String(u.telegramId) || t.username === u.username) && t.type === 'WITHDRAW' && t.status === 'APPROVED');
       const uGrossWdr = uWithdraws.reduce((s, t) => s + (t.grossAmount || 0), 0);
-      const expBal = uNetDep - uGrossWdr + uProfit;
-      const variance = Math.abs(uCap - expBal);
-      const status = variance < 0.05 ? "KHỚP 100%" : "LỆCH SỐ DƯ";
+      const expCapitalBal = uNetDep - uGrossWdr;
+      const totalEquity = uCap + uProfit;
+      const variance = Math.abs(uCap - expCapitalBal);
+      const status = variance < 0.05 ? "KHỚP 100%" : "LỆCH VỐN GỐC";
 
       return [
         u.telegramId,
         `@${u.username || 'user'}`,
         uCap.toFixed(2),
         `${uShare.toFixed(2)}%`,
-        uProfit.toFixed(2),
-        uGrossDep.toFixed(2),
+        uNetDep.toFixed(2),
         uGrossWdr.toFixed(2),
-        expBal.toFixed(2),
+        uProfit.toFixed(2),
+        totalEquity.toFixed(2),
         variance.toFixed(2),
         status
       ].join(",");
@@ -327,8 +327,8 @@ export const AccountingAuditTab: React.FC<AccountingAuditTabProps> = ({
     const uNetDep = uDeposits.reduce((s, t) => s + (t.netAmount || 0), 0);
     const uWithdraws = transactions.filter(t => (String(t.userId) === String(u.telegramId) || t.username === u.username) && t.type === 'WITHDRAW' && t.status === 'APPROVED');
     const uGrossWdr = uWithdraws.reduce((s, t) => s + (t.grossAmount || 0), 0);
-    const expLedgerBal = uNetDep - uGrossWdr + uProfit;
-    const variance = Math.abs(uCap - expLedgerBal);
+    const expCapitalBal = uNetDep - uGrossWdr;
+    const variance = Math.abs(uCap - expCapitalBal);
     const isMatched = variance < 0.05;
 
     if (userAuditFilter === 'BALANCED') return isMatched;
@@ -713,10 +713,11 @@ export const AccountingAuditTab: React.FC<AccountingAuditTabProps> = ({
               const uGrossWdr = uWithdraws.reduce((s, t) => s + (t.grossAmount || 0), 0);
               const uNetWdr = uWithdraws.reduce((s, t) => s + (t.netAmount || 0), 0);
 
-              // Expected Ledger Balance = Net Deposit - Gross Withdraw + Bot Profit
-              const expLedgerBal = uNetDep - uGrossWdr + uProfit;
-              const variance = Math.abs(uCap - expLedgerBal);
+              // Expected Capital Balance = Net Deposit - Gross Withdraw
+              const expCapitalBal = uNetDep - uGrossWdr;
+              const variance = Math.abs(uCap - expCapitalBal);
               const isMatched = variance < 0.05;
+              const totalEquity = uCap + uProfit;
 
               return (
                 <div 
@@ -740,7 +741,7 @@ export const AccountingAuditTab: React.FC<AccountingAuditTabProps> = ({
                           : 'bg-red-500/15 text-red-400 border-red-500/30'
                       }`}>
                         {isMatched ? <CheckCircle2 className="w-3 h-3 text-[#00df89]" /> : <AlertTriangle className="w-3 h-3 text-red-400" />}
-                        {isMatched ? 'SỔ SÁCH KHỚP 100%' : `LỆCH $${variance.toFixed(2)}`}
+                        {isMatched ? 'VỐN GỐC KHỚP 100%' : `LỆCH VỐN GỐC $${variance.toFixed(2)}`}
                       </span>
 
                       <button
@@ -753,7 +754,8 @@ export const AccountingAuditTab: React.FC<AccountingAuditTabProps> = ({
                           uNetDep,
                           uGrossWdr,
                           uNetWdr,
-                          expLedgerBal,
+                          expCapitalBal,
+                          totalEquity,
                           variance,
                           isMatched,
                           deposits: uDeposits,
@@ -769,9 +771,9 @@ export const AccountingAuditTab: React.FC<AccountingAuditTabProps> = ({
                   </div>
 
                   {/* Accounting Ledger Grid for this user */}
-                  <div className="grid grid-cols-4 gap-2 bg-[#0b0e17] p-2 rounded-lg text-[10px]">
+                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 bg-[#0b0e17] p-2 rounded-lg text-[10px]">
                     <div>
-                      <span className="text-gray-500 block text-[8px]">VỐN THỰC TẾ:</span>
+                      <span className="text-gray-500 block text-[8px]">VỐN GỐC THỰC TẾ:</span>
                       <span className="font-black text-white">${uCap.toFixed(2)}</span>
                     </div>
                     <div>
@@ -782,10 +784,16 @@ export const AccountingAuditTab: React.FC<AccountingAuditTabProps> = ({
                       <span className="text-gray-500 block text-[8px]">ĐÃ RÚT:</span>
                       <span className="font-bold text-red-400">-${uGrossWdr.toFixed(2)}</span>
                     </div>
-                    <div className="text-right">
-                      <span className="text-gray-500 block text-[8px]">LÃI BOT ĐƯỢC CHIA:</span>
+                    <div>
+                      <span className="text-gray-500 block text-[8px]">LÃI BOT ({uShare.toFixed(1)}%):</span>
                       <span className={`font-black ${uProfit >= 0 ? 'text-[#00df89]' : 'text-red-400'}`}>
                         {uProfit >= 0 ? '+' : ''}${uProfit.toFixed(2)} USD
+                      </span>
+                    </div>
+                    <div className="text-left sm:text-right">
+                      <span className="text-amber-400 block text-[8px] font-bold">TỔNG TÀI SẢN (EQUITY):</span>
+                      <span className="font-black text-cyan-300">
+                        ${totalEquity.toFixed(2)} USD
                       </span>
                     </div>
                   </div>
@@ -1195,7 +1203,7 @@ export const AccountingAuditTab: React.FC<AccountingAuditTabProps> = ({
               <div className="flex items-center gap-2">
                 {selectedAuditUser.isMatched ? <CheckCircle2 className="w-4 h-4" /> : <AlertTriangle className="w-4 h-4" />}
                 <span className="font-black text-xs">
-                  {selectedAuditUser.isMatched ? 'SỔ SÁCH CÂN ĐỐI 100% (ZERO VARIANCE)' : `PHÁT HIỆN LỆCH: $${selectedAuditUser.variance.toFixed(2)}`}
+                  {selectedAuditUser.isMatched ? 'VỐN GỐC CÂN ĐỐI 100% (ZERO VARIANCE)' : `PHÁT HIỆN LỆCH VỐN GỐC: $${selectedAuditUser.variance.toFixed(2)}`}
                 </span>
               </div>
               <span className="text-[10px] font-bold">
@@ -1213,17 +1221,24 @@ export const AccountingAuditTab: React.FC<AccountingAuditTabProps> = ({
                 <span>(-) Tổng Rút Đã Chi Trả (Gross):</span>
                 <strong className="text-red-400">-${selectedAuditUser.uGrossWdr.toFixed(2)} USDT</strong>
               </div>
-              <div className="flex justify-between text-gray-300">
-                <span>(+) Lợi Nhuận Bot Exness Chia ({selectedAuditUser.uShare.toFixed(2)}%):</span>
-                <strong className="text-[#00df89]">+{selectedAuditUser.uProfit.toFixed(2)} USDT</strong>
-              </div>
-              <div className="border-t border-[#1f293d] pt-2 flex justify-between text-cyan-300 font-bold">
-                <span>(=) Số Dư Sổ Sách Kỳ Vọng:</span>
-                <span className="font-black">${selectedAuditUser.expLedgerBal.toFixed(2)} USDT</span>
+              <div className="border-t border-[#1f293d] pt-1.5 flex justify-between text-cyan-300 font-bold">
+                <span>(=) Vốn Gốc Sổ Sách Kỳ Vọng:</span>
+                <span className="font-black">${selectedAuditUser.expCapitalBal.toFixed(2)} USDT</span>
               </div>
               <div className="flex justify-between text-white font-bold">
-                <span>(★) Số Dư Khả Dụng Trong Database:</span>
+                <span>(★) Vốn Gốc Ghi Nhận Trong Database:</span>
                 <span className="font-black text-[#00df89]">${selectedAuditUser.uCap.toFixed(2)} USDT</span>
+              </div>
+              <div className="flex justify-between text-gray-300 border-t border-[#1f293d] pt-1.5">
+                <span>(+) Lợi Nhuận Bot Sinh Thêm ({selectedAuditUser.uShare.toFixed(2)}%):</span>
+                <strong className="text-[#00df89]">+{selectedAuditUser.uProfit.toFixed(2)} USDT</strong>
+              </div>
+              <div className="border-t border-[#00df89]/30 pt-2 flex items-center justify-between text-amber-300 font-bold bg-[#00df89]/5 p-2.5 rounded-xl">
+                <div>
+                  <span className="block text-xs text-white uppercase font-black">(💎) TỔNG GIÁ TRỊ TẤT TOÁN (EQUITY):</span>
+                  <span className="text-[9px] text-gray-400 font-normal">Vốn Gốc Thực Tế + Lợi Nhuận Bot Tích Lũy</span>
+                </div>
+                <span className="font-black text-base text-[#00df89] font-mono">${selectedAuditUser.totalEquity.toFixed(2)} USDT</span>
               </div>
             </div>
 
