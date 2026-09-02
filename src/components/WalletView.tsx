@@ -20,11 +20,14 @@ import {
   ChevronRight,
   Loader2,
   AlertTriangle,
-  ExternalLink
+  ExternalLink,
+  Camera,
+  Sparkles
 } from 'lucide-react';
 import { calculateDepositFee, calculateWithdrawFee } from '@/lib/feeCalculator';
 import { createLiveTransaction, subscribeToUserTransactions, TransactionData } from '@/lib/firebaseService';
 import { fetchTreasuryVault, DEFAULT_TREASURY_VAULT } from '@/lib/walletConfig';
+import { ReceiptAiAppealModal } from '@/components/ReceiptAiAppealModal';
 
 interface WalletViewProps {
   currentBalance: number;
@@ -46,7 +49,8 @@ export const WalletView: React.FC<WalletViewProps> = ({
   const [withdrawAddress, setWithdrawAddress] = useState('');
   const [notification, setNotification] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [rejectedAlert, setRejectedAlert] = useState<{ id: string; message: string } | null>(null);
+  const [rejectedAlert, setRejectedAlert] = useState<{ id: string; message: string; txData?: TransactionData } | null>(null);
+  const [aiAppealTx, setAiAppealTx] = useState<TransactionData | null>(null);
   const [loading, setLoading] = useState(false);
   const [activeDepositTx, setActiveDepositTx] = useState<TransactionData | null>(null);
   const [firestoreTxs, setFirestoreTxs] = useState<TransactionData[]>([]);
@@ -83,7 +87,8 @@ export const WalletView: React.FC<WalletViewProps> = ({
         setActiveDepositTx(null);
         setRejectedAlert({
           id: liveTx.id || liveTx.memoCode,
-          message: `Đơn nạp #${liveTx.id || liveTx.memoCode} ($${liveTx.grossAmount.toFixed(2)} USDT) đã bị Quản trị viên TỪ CHỐI do nhập sai Memo hoặc số tiền chưa khớp trên Blockchain. Vui lòng liên hệ Bộ phận Kỹ thuật / Hỗ trợ tối cao @tddv2017 để được kiểm tra và xử lý ngay.`
+          message: `Đơn nạp #${liveTx.id || liveTx.memoCode} ($${liveTx.grossAmount.toFixed(2)} USDT) đã bị Quản trị viên TỪ CHỐI do nhập sai Memo hoặc số tiền chưa khớp trên Blockchain. Bạn có thể Tải ảnh bill chuyển khoản để AI giám định đối soát tự động hoặc liên hệ Kỹ thuật @tddv2017.`,
+          txData: liveTx
         });
       }
     }
@@ -326,15 +331,41 @@ export const WalletView: React.FC<WalletViewProps> = ({
           <p className="text-[11px] leading-relaxed text-gray-200">
             {rejectedAlert.message}
           </p>
-          <a
-            href="https://t.me/tddv2017"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="w-full py-2.5 rounded-xl bg-gradient-to-r from-red-600 to-amber-600 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-md hover:opacity-95 transition-opacity block text-center"
-          >
-            <ExternalLink className="w-3.5 h-3.5" />
-            <span>LIÊN HỆ BỘ PHẬN KỸ THUẬT / HỖ TRỢ (@tddv2017)</span>
-          </a>
+          <div className="pt-1 space-y-2">
+            <button
+              onClick={() => {
+                if (rejectedAlert.txData) {
+                  setAiAppealTx(rejectedAlert.txData);
+                } else {
+                  setAiAppealTx({
+                    id: rejectedAlert.id,
+                    memoCode: rejectedAlert.id,
+                    type: 'DEPOSIT',
+                    grossAmount: 1000,
+                    netAmount: 907,
+                    feeAmount: 93,
+                    status: 'REJECTED',
+                    userId: telegramId,
+                    username: username
+                  });
+                }
+              }}
+              className="w-full py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-[#ff5500] text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(168,85,247,0.4)] hover:opacity-95 transition-opacity"
+            >
+              <Camera className="w-3.5 h-3.5" />
+              <span>📸 TẢI ẢNH BILL & KHỞI CHẠY AI ĐỐI SOÁT TỰ ĐỘNG</span>
+            </button>
+
+            <a
+              href="https://t.me/tddv2017"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full py-2 rounded-xl bg-[#131927] hover:bg-[#1f293d] border border-[#1f293d] text-gray-300 hover:text-white font-bold text-[11px] uppercase flex items-center justify-center gap-1.5 transition-all block text-center"
+            >
+              <ExternalLink className="w-3 h-3 text-amber-400" />
+              <span>LIÊN HỆ BỘ PHẬN KỸ THUẬT / HỖ TRỢ (@tddv2017)</span>
+            </a>
+          </div>
         </div>
       )}
 
@@ -714,6 +745,16 @@ export const WalletView: React.FC<WalletViewProps> = ({
                         {formatTxTime(tx.createdAt)}
                       </span>
                     </div>
+
+                    {tx.type === 'DEPOSIT' && tx.status === 'REJECTED' && (
+                      <button
+                        onClick={() => setAiAppealTx(tx)}
+                        className="mt-1.5 px-2.5 py-1 rounded-lg bg-purple-600/30 hover:bg-purple-600/50 border border-purple-500/50 text-purple-300 text-[10px] font-bold flex items-center gap-1 transition-all"
+                      >
+                        <Camera className="w-3 h-3 text-purple-400" />
+                        <span>Gửi Bill AI Quét & Duyệt</span>
+                      </button>
+                    )}
                   </div>
                 </div>
 
@@ -768,6 +809,22 @@ export const WalletView: React.FC<WalletViewProps> = ({
           </div>
         )}
       </div>
+
+      {/* AI RECEIPT FORENSICS & SCANNER APPEAL MODAL */}
+      <ReceiptAiAppealModal
+        isOpen={!!aiAppealTx}
+        onClose={() => setAiAppealTx(null)}
+        orderId={aiAppealTx?.id || aiAppealTx?.memoCode}
+        expectedGrossAmount={aiAppealTx?.grossAmount}
+        userId={telegramId}
+        username={username}
+        onSuccessApproved={() => {
+          setAiAppealTx(null);
+          setRejectedAlert(null);
+          setNotification('🎉 AI ĐÃ ĐỐI SOÁT VÀ TỰ ĐỘNG DUYỆT NẠP TIỀN THÀNH CÔNG!');
+          setTimeout(() => setNotification(null), 8000);
+        }}
+      />
     </div>
   );
 };
