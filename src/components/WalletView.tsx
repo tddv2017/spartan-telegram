@@ -89,11 +89,16 @@ export const WalletView: React.FC<WalletViewProps> = ({
         setTimeout(() => setNotification(null), 10000);
       } else if (liveTx.status === 'REJECTED') {
         setActiveDepositTx(null);
-        setRejectedAlert({
-          id: liveTx.id || liveTx.memoCode,
-          message: `Đơn nạp #${liveTx.id || liveTx.memoCode} ($${liveTx.grossAmount.toFixed(2)} USDT) đã bị Quản trị viên TỪ CHỐI do nhập sai Memo hoặc số tiền chưa khớp trên Blockchain. Bạn có thể Tải ảnh bill chuyển khoản để AI giám định đối soát tự động hoặc liên hệ Kỹ thuật @tddv2017.`,
-          txData: liveTx
-        });
+        if (liveTx.type === 'WITHDRAW') {
+          setNotification(`⚠️ LỆNH RÚT #${liveTx.id || liveTx.memoCode} ($${liveTx.grossAmount.toFixed(2)} USDT) ĐÃ BỊ TỪ CHỐI! Lý do: ${liveTx.rejectionReason || 'Thông tin ví không hợp lệ'}. Toàn bộ số tiền đã được HOÀN TRẢ 100% (+${liveTx.grossAmount.toFixed(2)} USDT) về lại tài khoản của bạn.`);
+          setTimeout(() => setNotification(null), 10000);
+        } else {
+          setRejectedAlert({
+            id: liveTx.id || liveTx.memoCode,
+            message: `Đơn nạp #${liveTx.id || liveTx.memoCode} ($${liveTx.grossAmount.toFixed(2)} USDT) đã bị Quản trị viên TỪ CHỐI do nhập sai Memo hoặc số tiền chưa khớp trên Blockchain. Bạn có thể Tải ảnh bill chuyển khoản để AI giám định đối soát tự động hoặc liên hệ Kỹ thuật @tddv2017.`,
+            txData: liveTx
+          });
+        }
       }
     }
   }, [firestoreTxs, activeDepositTx]);

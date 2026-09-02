@@ -43,11 +43,21 @@ export async function POST(req: Request) {
           `Tiền đang được chuyển On-Chain về ví cá nhân của bạn. Cảm ơn bạn đã tin tưởng Spartan! 🛡️`;
       }
     } else if (status === 'REJECTED') {
-      messageText = 
-        `⚠️ *[SPARTAN THÔNG BÁO TỪ CHỐI GIAO DỊCH]*\n\n` +
-        `Đơn *#${txId || 'TX'}* ($${Number(grossAmount).toFixed(2)} USDT) của bạn đã bị từ chối.\n\n` +
-        `📌 *Lý do:* ${reason || 'Không khớp mã Memo hoặc dữ liệu On-Chain'}\n\n` +
-        `👉 *Hướng xử lý:* Bạn có thể mở Mini App để tải ảnh bill chuyển tiền cho AI giám định tự động đối soát, hoặc liên hệ Quản trị viên @tddv2017 để được hỗ trợ tức thì!`;
+      if (type === 'WITHDRAW') {
+        messageText = 
+          `⚠️ *[SPARTAN THÔNG BÁO TỪ CHỐI LỆNH RÚT TIỀN]*\n\n` +
+          `Lệnh rút *#${txId || 'WDR'}* ($${Number(grossAmount).toFixed(2)} USDT) của bạn đã bị từ chối.\n\n` +
+          `📌 *Lý do từ chối:* ${reason || 'Thông tin ví nhận hoặc mạng không hợp lệ'}\n` +
+          `💰 *TÌNH TRẠNG TIỀN:* ĐÃ HOÀN TIỀN 100% (+${Number(grossAmount).toFixed(2)} USDT) về lại số dư của bạn!\n` +
+          (typeof newBalance === 'number' ? `📊 *Số dư khả dụng hiện tại:* $${Number(newBalance).toFixed(2)} USDT\n\n` : '\n') +
+          `Nếu bạn có bất kỳ thắc mắc nào, vui lòng liên hệ Bộ phận Hỗ trợ @tddv2017 để được hỗ trợ tức thì! 🛡️`;
+      } else {
+        messageText = 
+          `⚠️ *[SPARTAN THÔNG BÁO TỪ CHỐI ĐƠN NẠP TIỀN]*\n\n` +
+          `Đơn nạp *#${txId || 'DEP'}* ($${Number(grossAmount).toFixed(2)} USDT) của bạn đã bị từ chối.\n\n` +
+          `📌 *Lý do:* ${reason || 'Không khớp mã Memo hoặc dữ liệu On-Chain'}\n\n` +
+          `👉 *Hướng xử lý:* Bạn có thể mở Mini App để tải ảnh bill chuyển tiền cho AI giám định tự động đối soát, hoặc liên hệ Quản trị viên @tddv2017 để được kiểm tra!`;
+      }
     }
 
     if (!messageText) {

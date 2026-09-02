@@ -332,6 +332,17 @@ export async function createLiveTransaction(
     if (grossAmount > availableBal) {
       throw new Error(`INSUFFICIENT_AVAILABLE_FUNDS: Số dư khả dụng không đủ. Số dư: $${currentBal.toFixed(2)}, Đang chờ rút: $${pendingWithdrawTotal.toFixed(2)}.`);
     }
+
+    // Deduct trading balance immediately upon creating withdrawal
+    const newBal = Math.max(0, currentBal - grossAmount);
+    try {
+      await fetch(`${RTDB_BASE_URL}/users/${cleanId}.json`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tradingBalance: newBal })
+      });
+      await saveToFirestoreREST(`users/${cleanId}`, { tradingBalance: newBal });
+    } catch (e) {}
   }
 
   const feeCalc = type === 'DEPOSIT' 
@@ -626,7 +637,8 @@ export async function approveLiveTransaction(
 
       await saveToFirestoreREST(`transactions/${targetKey}`, updatePayload);
 
-      // Update user trading balance
+      // Update user trading balance (Withdrawals are already deducted upon creation, only Deposits add funds)
+      let finalBal = 0;
       if (userId) {
         try {
           const userRes = await fetch(`${RTDB_BASE_URL}/users/${userId}.json`);
@@ -634,17 +646,18 @@ export async function approveLiveTransaction(
             const user = await userRes.json();
             if (user) {
               const currentBal = user.tradingBalance || 0;
-              const newBal = type === 'DEPOSIT' ? currentBal + netAmount : currentBal - grossAmount;
-
-              const balPayload = { tradingBalance: Math.max(0, newBal) };
-
-              await fetch(`${RTDB_BASE_URL}/users/${userId}.json`, {
-                method: "PATCH",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(balPayload)
-              });
-
-              await saveToFirestoreREST(`users/${userId}`, balPayload);
+              if (type === 'DEPOSIT') {
+                finalBal = currentBal + netAmount;
+                const balPayload = { tradingBalance: Math.max(0, finalBal) };
+                await fetch(`${RTDB_BASE_URL}/users/${userId}.json`, {
+                  method: "PATCH",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify(balPayload)
+                });
+                await saveToFirestoreREST(`users/${userId}`, balPayload);
+              } else {
+                finalBal = currentBal;
+              }
             }
           }
         } catch (e) {}
@@ -663,6 +676,7 @@ export async function approveLiveTransaction(
               grossAmount,
               feeAmount,
               netAmount,
+              newBalance: finalBal,
               txId: targetKey
             })
           }).catch(() => {});
@@ -678,7 +692,7 @@ export async function approveLiveTransaction(
   return { success: false, message: 'Không tìm thấy giao dịch để duyệt!' };
 }
 
-// 9. Admin Rejection of Pending Transaction (Bulletproof Smart Resolution)
+// 9. Admin Rejection of Pending Transaction (Bulletproof Smart Resolution with 100% Auto-Refund)
 export async function rejectLiveTransaction(
   txId: string, 
   adminUsername: string = 'tddv2017', 
@@ -728,11 +742,51 @@ export async function rejectLiveTransaction(
       }
 
       const userId = String(tx.userId || '');
+
+      // AUTO-REFUND 100% OF FUNDS BACK TO USER UPON WITHDRAWAL REJECTION
+      let userRefundedBalance = 0;
+      if (tx.type === 'WITHDRAW' && userId) {
+        try {
+          const userRes = await fetch(`${RTDB_BASE_URL}/users/${userId}.json`);
+          if (userRes.ok) {
+            const user = await userRes.json();
+            if (user) {
+              const isRefWithdraw = targetKey.includes('REF') || String(tx.id || '').includes('REF') || String(tx.memoCode || '').includes('REF');
+              if (isRefWithdraw) {
+                // Refund 100% back to referralBalance
+                const currentRefBal = Number(user.referralBalance) || 0;
+                userRefundedBalance = currentRefBal + Number(tx.grossAmount);
+                await fetch(`${RTDB_BASE_URL}/users/${userId}.json`, {
+                  method: "PATCH",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ referralBalance: userRefundedBalance })
+                });
+                await saveToFirestoreREST(`users/${userId}`, { referralBalance: userRefundedBalance });
+              } else {
+                // Refund 100% back to tradingBalance
+                const currentTradingBal = Number(user.tradingBalance) || 0;
+                userRefundedBalance = currentTradingBal + Number(tx.grossAmount);
+                await fetch(`${RTDB_BASE_URL}/users/${userId}.json`, {
+                  method: "PATCH",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ tradingBalance: userRefundedBalance })
+                });
+                await saveToFirestoreREST(`users/${userId}`, { tradingBalance: userRefundedBalance });
+              }
+            }
+          }
+        } catch (e) {
+          console.error("Lỗi hoàn trả tiền rút:", e);
+        }
+      }
+
       const rejectPayload = {
         ...tx,
         status: 'REJECTED',
         approvedBy: resolvedAdmin,
         rejectionReason: reason,
+        refunded: tx.type === 'WITHDRAW',
+        refundedAmount: tx.type === 'WITHDRAW' ? tx.grossAmount : 0,
         rejectedAt: new Date().toISOString()
       };
 
@@ -753,7 +807,7 @@ export async function rejectLiveTransaction(
 
       await saveToFirestoreREST(`transactions/${targetKey}`, rejectPayload);
 
-      // Send Telegram notification directly to user
+      // Send Telegram notification directly to user with auto-refund status
       if (userId) {
         try {
           fetch('/api/notify-user', {
@@ -764,6 +818,7 @@ export async function rejectLiveTransaction(
               type: tx.type,
               status: 'REJECTED',
               grossAmount: tx.grossAmount,
+              newBalance: userRefundedBalance,
               reason,
               txId: targetKey
             })
@@ -771,7 +826,12 @@ export async function rejectLiveTransaction(
         } catch (e) {}
       }
 
-      return { success: true, message: `Đã TỪ CHỐI thành công lệnh ${tx.type || ''} ${tx.id || targetKey}!` };
+      return { 
+        success: true, 
+        message: tx.type === 'WITHDRAW' 
+          ? `Đã TỪ CHỐI lệnh rút ${targetKey} và HOÀN TIỀN 100% (+$${tx.grossAmount} USDT) về lại cho người dùng!` 
+          : `Đã TỪ CHỐI thành công lệnh nạp ${targetKey}!` 
+      };
     }
   } catch (e) {
     console.error("rejectLiveTransaction error:", e);
