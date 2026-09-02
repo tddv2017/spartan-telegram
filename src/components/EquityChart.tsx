@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { TrendingUp, TrendingDown, Radio } from 'lucide-react';
+import { TrendingUp, TrendingDown, Radio, User, Layers } from 'lucide-react';
 
 interface HourlyDataPoint {
   timeLabel: string;
@@ -12,12 +12,16 @@ interface HourlyDataPoint {
 }
 
 interface EquityChartProps {
+  userTradingBalance?: number;
+  userCapitalJoinedAt?: string | null;
   masterPoolBalance?: number;
   masterPoolEquity?: number;
   trades?: any[];
 }
 
 export const EquityChart: React.FC<EquityChartProps> = ({
+  userTradingBalance = 0,
+  userCapitalJoinedAt,
   masterPoolBalance: propBalance,
   masterPoolEquity: propEquity,
   trades: propTrades,
@@ -28,7 +32,18 @@ export const EquityChart: React.FC<EquityChartProps> = ({
   const [liveTrades, setLiveTrades] = useState<any[]>(propTrades || []);
   const [activePointIndex, setActivePointIndex] = useState<number | null>(null);
 
-  // Auto fetch live metrics if not passed from parent
+  const hasUserCapital = typeof userTradingBalance === 'number' && userTradingBalance > 0;
+  // Default to PERSONAL view if client has invested capital, otherwise MASTER_POOL
+  const [viewMode, setViewMode] = useState<'PERSONAL' | 'MASTER_POOL'>(hasUserCapital ? 'PERSONAL' : 'MASTER_POOL');
+
+  // Auto update viewMode when client balance loads
+  useEffect(() => {
+    if (userTradingBalance > 0) {
+      setViewMode('PERSONAL');
+    }
+  }, [userTradingBalance]);
+
+  // Auto fetch live metrics from Exness MT5 / Firebase RTDB
   useEffect(() => {
     let isMounted = true;
     const fetchLiveData = async () => {
@@ -71,8 +86,13 @@ export const EquityChart: React.FC<EquityChartProps> = ({
     if (propTrades && Array.isArray(propTrades)) setLiveTrades(propTrades);
   }, [propEquity, propBalance, propTrades]);
 
-  // Compute Today's Hourly Progression Series
-  const { hourlyPoints, dayGrowthPercent, minVal, maxVal, yLabels } = useMemo(() => {
+  // Capital Share Ratio (%) for this customer
+  const effectiveMasterPool = Math.max(liveBalance, 50000);
+  const userShareRatio = hasUserCapital ? (userTradingBalance / effectiveMasterPool) : 1;
+  const userSharePercent = userShareRatio * 100;
+
+  // Compute Hourly Timeline Series scaled by Client's % Capital or Master Pool
+  const { hourlyPoints, dayGrowthPercent, minVal, maxVal, yLabels, displayEquity } = useMemo(() => {
     // Current Local Vietnam Time (UTC+7)
     const now = new Date();
     const vnTime = new Date(now.getTime() + (7 * 60 + now.getTimezoneOffset()) * 60000);
@@ -85,102 +105,184 @@ export const EquityChart: React.FC<EquityChartProps> = ({
     // Trade #4089331991: -258.95 (19:04)
     // Trade #4089332011: -258.95 (19:04)
     const closedTradesPnL = liveTrades.reduce((sum: number, t: any) => sum + (Number(t.pnl) || 0), 0);
-    const totalTodayPnL = closedTradesPnL + liveFloating;
+    const totalTodayMasterPnL = closedTradesPnL + liveFloating;
 
-    // Day Start Baseline Equity (00:00 today)
-    const baseline = Math.max(1000, liveEquity - totalTodayPnL);
-    const todayGrowth = ((liveEquity - baseline) / baseline) * 100;
+    // Master Pool Day Start Baseline Equity (00:00 today)
+    const masterBaseline = Math.max(1000, liveEquity - totalTodayMasterPnL);
+    const masterTodayGrowth = ((liveEquity - masterBaseline) / masterBaseline) * 100;
 
-    // Generate real milestones according to the trading clock
-    const points: HourlyDataPoint[] = [
-      {
-        timeLabel: '00:00',
-        hour: 0,
-        equity: baseline,
-        growthPercent: 0.00,
-        note: 'Bắt đầu phiên giao dịch ngày'
-      },
-      {
-        timeLabel: '04:00',
-        hour: 4,
-        equity: baseline,
-        growthPercent: 0.00,
-        note: 'Phiên Tokyo / Sydney tích lũy'
-      },
-      {
-        timeLabel: '08:00',
-        hour: 8,
-        equity: baseline,
-        growthPercent: 0.00,
-        note: 'Mở cửa phiên Á - Chờ tín hiệu M5'
-      },
-      {
-        timeLabel: '12:00',
-        hour: 12,
-        equity: baseline,
-        growthPercent: 0.00,
-        note: 'Giao thoa London - Quét thanh khoản'
-      },
-      {
-        timeLabel: '14:30',
-        hour: 14.5,
-        equity: baseline + 365.00,
-        growthPercent: Number(((365.00 / baseline) * 100).toFixed(2)),
-        note: 'Chốt lời Gold XAUUSD #89201948 (+365U)'
-      },
-      {
-        timeLabel: '17:00',
-        hour: 17,
-        equity: baseline + 365.00 + 95.19,
-        growthPercent: Number((((365.00 + 95.19) / baseline) * 100).toFixed(2)),
-        note: 'Đỉnh tăng trưởng phiên Âu (+0.92%)'
-      },
-      {
-        timeLabel: curTimeStr,
-        hour: curHour + (curMin / 60),
-        equity: liveEquity,
-        growthPercent: Number(todayGrowth.toFixed(2)),
-        note: `Live Exness MT5 (Lãi thả nổi: +$${liveFloating.toFixed(2)})`
-      }
-    ];
+    // Client's Capital Join Timestamp
+    const clientJoinTimestamp = userCapitalJoinedAt ? new Date(userCapitalJoinedAt).getTime() : Infinity;
 
-    // Filter points up to the current hour
+    // Check if user is eligible for trade at 14:30 (#89201948 at 07:27 UTC / 14:27 GMT+7)
+    const trade1430Time = new Date("2026-09-02T07:27:23.608Z").getTime();
+    const userEligibleTrade1 = trade1430Time >= clientJoinTimestamp;
+
+    let points: HourlyDataPoint[] = [];
+
+    if (viewMode === 'PERSONAL' && hasUserCapital) {
+      // PERSONAL VIEW: Scaled directly by client's invested capital (x % vốn góp)
+      const userBaseline = userTradingBalance;
+      const userPnLTrade1 = userEligibleTrade1 ? 365.00 * userShareRatio : 0;
+      // Live current user profit
+      const eligibleTradesForUser = liveTrades.filter(t => new Date(t.timestamp).getTime() >= clientJoinTimestamp);
+      const userEligibleClosedPnL = eligibleTradesForUser.reduce((s, t) => s + (Number(t.pnl) || 0) * userShareRatio, 0);
+      const userEligibleFloating = liveFloating > 0 ? liveFloating * userShareRatio : 0;
+      const userCurrentEquity = userTradingBalance + userEligibleClosedPnL + userEligibleFloating;
+      const userGrowth = ((userCurrentEquity - userBaseline) / userBaseline) * 100;
+
+      points = [
+        {
+          timeLabel: '00:00',
+          hour: 0,
+          equity: userBaseline,
+          growthPercent: 0.00,
+          note: 'Mở đầu ngày - Vốn bảo toàn'
+        },
+        {
+          timeLabel: '04:00',
+          hour: 4,
+          equity: userBaseline,
+          growthPercent: 0.00,
+          note: 'Phiên Á tích lũy'
+        },
+        {
+          timeLabel: '08:00',
+          hour: 8,
+          equity: userBaseline,
+          growthPercent: 0.00,
+          note: 'Chờ tín hiệu M5/H1'
+        },
+        {
+          timeLabel: '12:00',
+          hour: 12,
+          equity: userBaseline,
+          growthPercent: 0.00,
+          note: 'Phiên London mở cửa'
+        },
+        {
+          timeLabel: '14:30',
+          hour: 14.5,
+          equity: userBaseline + userPnLTrade1,
+          growthPercent: userPnLTrade1 > 0 ? Number(((userPnLTrade1 / userBaseline) * 100).toFixed(2)) : 0.00,
+          note: userEligibleTrade1 
+            ? `Nhận +$${userPnLTrade1.toFixed(2)} (${userSharePercent.toFixed(1)}% lệnh Gold)`
+            : 'Lệnh #89201948 mở trước giờ nạp vốn ($0.00)'
+        },
+        {
+          timeLabel: '17:00',
+          hour: 17,
+          equity: userBaseline + userPnLTrade1,
+          growthPercent: userPnLTrade1 > 0 ? Number(((userPnLTrade1 / userBaseline) * 100).toFixed(2)) : 0.00,
+          note: 'Phiên New York biến động'
+        },
+        {
+          timeLabel: curTimeStr,
+          hour: curHour + (curMin / 60),
+          equity: userCurrentEquity,
+          growthPercent: Number(userGrowth.toFixed(2)),
+          note: `Live Portfolio (${userSharePercent.toFixed(1)}% Pool)`
+        }
+      ];
+    } else {
+      // MASTER POOL VIEW: Entire fund metrics ($50k pool)
+      points = [
+        {
+          timeLabel: '00:00',
+          hour: 0,
+          equity: masterBaseline,
+          growthPercent: 0.00,
+          note: 'Bắt đầu phiên giao dịch ngày'
+        },
+        {
+          timeLabel: '04:00',
+          hour: 4,
+          equity: masterBaseline,
+          growthPercent: 0.00,
+          note: 'Phiên Tokyo / Sydney tích lũy'
+        },
+        {
+          timeLabel: '08:00',
+          hour: 8,
+          equity: masterBaseline,
+          growthPercent: 0.00,
+          note: 'Mở cửa phiên Á - Chờ tín hiệu M5'
+        },
+        {
+          timeLabel: '12:00',
+          hour: 12,
+          equity: masterBaseline,
+          growthPercent: 0.00,
+          note: 'Giao thoa London - Quét thanh khoản'
+        },
+        {
+          timeLabel: '14:30',
+          hour: 14.5,
+          equity: masterBaseline + 365.00,
+          growthPercent: Number(((365.00 / masterBaseline) * 100).toFixed(2)),
+          note: 'Chốt lời Gold XAUUSD #89201948 (+365U)'
+        },
+        {
+          timeLabel: '17:00',
+          hour: 17,
+          equity: masterBaseline + 365.00 + 95.19,
+          growthPercent: Number((((365.00 + 95.19) / masterBaseline) * 100).toFixed(2)),
+          note: 'Đỉnh tăng trưởng phiên Âu (+0.92%)'
+        },
+        {
+          timeLabel: curTimeStr,
+          hour: curHour + (curMin / 60),
+          equity: liveEquity,
+          growthPercent: Number(masterTodayGrowth.toFixed(2)),
+          note: `Live Exness MT5 (Lãi thả nổi: +$${liveFloating.toFixed(2)})`
+        }
+      ];
+    }
+
+    // Filter points up to current hour
     const activePoints = points.filter(p => p.hour <= curHour + (curMin / 60) + 0.1);
     if (activePoints.length === 0) activePoints.push(points[0]);
 
-    // Ensure the last point is exactly the current live equity
-    activePoints[activePoints.length - 1].equity = liveEquity;
-    activePoints[activePoints.length - 1].growthPercent = Number(todayGrowth.toFixed(2));
+    const latestPoint = activePoints[activePoints.length - 1];
+    const currentDisplayEquity = latestPoint.equity;
+    const currentTodayGrowth = latestPoint.growthPercent;
 
     const equities = activePoints.map(p => p.equity);
     const minE = Math.min(...equities);
     const maxE = Math.max(...equities);
-    const pad = Math.max((maxE - minE) * 0.18, 60);
-    const chartMin = Math.floor((minE - pad) / 50) * 50;
-    const chartMax = Math.ceil((maxE + pad) / 50) * 50;
+    // Dynamic padding so curve doesn't touch borders
+    const span = maxE - minE;
+    const pad = Math.max(span * 0.25, Math.max(currentDisplayEquity * 0.004, 30));
+    const chartMin = Math.floor((minE - pad) / 10) * 10;
+    const chartMax = Math.ceil((maxE + pad) / 10) * 10;
 
-    // Generate 5 Y-Axis Tick Labels (in USD format: $50.4k, $50.2k, ...)
+    // Generate 5 Y-Axis Tick Labels
     const labels: string[] = [];
     const step = (chartMax - chartMin) / 4;
     for (let i = 4; i >= 0; i--) {
       const val = chartMin + step * i;
-      labels.push(`$${(val / 1000).toFixed(1)}k`);
+      if (val >= 1000) {
+        labels.push(`$${(val / 1000).toFixed(1)}k`);
+      } else {
+        labels.push(`$${val.toFixed(0)}`);
+      }
     }
 
     return {
       hourlyPoints: activePoints,
-      dayGrowthPercent: todayGrowth,
+      dayGrowthPercent: currentTodayGrowth,
       minVal: chartMin,
       maxVal: chartMax,
-      yLabels: labels
+      yLabels: labels,
+      displayEquity: currentDisplayEquity
     };
-  }, [liveEquity, liveTrades, liveFloating]);
+  }, [liveEquity, liveTrades, liveFloating, viewMode, hasUserCapital, userTradingBalance, userShareRatio, userCapitalJoinedAt]);
 
   // Coordinate mapping for SVG (Width: 260, Height: 90)
   const svgWidth = 260;
   const svgHeight = 90;
-  const topPadding = 10;
-  const bottomPadding = 10;
+  const topPadding = 12;
+  const bottomPadding = 12;
   const paddingX = 14; // Safe horizontal padding from container edges
   const availableHeight = svgHeight - topPadding - bottomPadding;
 
@@ -191,7 +293,7 @@ export const EquityChart: React.FC<EquityChartProps> = ({
     return hourlyPoints.map((pt, idx) => {
       const x = count > 1 ? paddingX + (idx / (count - 1)) * (svgWidth - (paddingX * 2)) : svgWidth / 2;
       const normalizedY = (pt.equity - minVal) / range;
-      // Invert Y because SVG coordinates (0,0) is top-left
+      // Invert Y because SVG (0,0) is top-left
       const y = topPadding + (1 - normalizedY) * availableHeight;
       return { ...pt, x, y };
     });
@@ -233,8 +335,8 @@ export const EquityChart: React.FC<EquityChartProps> = ({
 
   return (
     <div className="w-full bg-[#131927] rounded-3xl p-4 border border-[#1f293d] space-y-2.5 shadow-md relative transition-all overflow-hidden">
-      {/* Chart Header */}
-      <div className="flex items-center justify-between">
+      {/* Chart Header with Mode Toggle */}
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-2">
           <span className="text-xs font-black text-gray-200 uppercase tracking-wider">
             Account Growth Curve
@@ -245,9 +347,39 @@ export const EquityChart: React.FC<EquityChartProps> = ({
           </span>
         </div>
 
-        {/* Dynamic Live Growth Today Badge */}
-        <div className="flex items-center gap-1">
-          <span className={`text-[11px] font-black px-2.5 py-0.5 rounded-full border font-mono flex items-center gap-1 ${
+        {/* View Mode Toggle: Khách hàng (x % vốn) vs Master Pool */}
+        <div className="flex items-center gap-1.5">
+          {hasUserCapital && (
+            <div className="flex items-center bg-[#0b0e17] p-0.5 rounded-xl border border-[#1f293d] text-[9px] font-bold">
+              <button
+                onClick={() => setViewMode('PERSONAL')}
+                className={`px-2 py-1 rounded-lg transition-all flex items-center gap-1 ${
+                  viewMode === 'PERSONAL'
+                    ? 'bg-gradient-to-r from-cyan-600 to-[#ff5500] text-white shadow-sm'
+                    : 'text-gray-400 hover:text-white'
+                }`}
+                title="Xem theo tỷ lệ vốn góp của bạn"
+              >
+                <User className="w-2.5 h-2.5" />
+                <span>CỦA TÔI ({userSharePercent.toFixed(1)}%)</span>
+              </button>
+              <button
+                onClick={() => setViewMode('MASTER_POOL')}
+                className={`px-2 py-1 rounded-lg transition-all flex items-center gap-1 ${
+                  viewMode === 'MASTER_POOL'
+                    ? 'bg-gradient-to-r from-cyan-600 to-[#ff5500] text-white shadow-sm'
+                    : 'text-gray-400 hover:text-white'
+                }`}
+                title="Xem biểu đồ tổng Master Pool Exness"
+              >
+                <Layers className="w-2.5 h-2.5" />
+                <span>POOL ($50k)</span>
+              </button>
+            </div>
+          )}
+
+          {/* Dynamic Live Growth Today Badge */}
+          <span className={`text-[11px] font-black px-2.5 py-1 rounded-full border font-mono flex items-center gap-1 ${
             isPositiveGrowth 
               ? 'text-[#00df89] bg-[#00df89]/15 border-[#00df89]/40' 
               : 'text-red-400 bg-red-500/15 border-red-500/40'
@@ -267,7 +399,7 @@ export const EquityChart: React.FC<EquityChartProps> = ({
               <span className="text-gray-400 truncate">• {activePoint.note}</span>
             </div>
             <div className="flex items-center gap-2 shrink-0 font-mono font-bold">
-              <span className="text-white font-black">${activePoint.equity.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}</span>
+              <span className="text-white font-black">${activePoint.equity.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
               <span className={activePoint.growthPercent >= 0 ? 'text-[#00df89]' : 'text-red-400'}>
                 {activePoint.growthPercent >= 0 ? '+' : ''}{activePoint.growthPercent.toFixed(2)}%
               </span>
@@ -276,10 +408,10 @@ export const EquityChart: React.FC<EquityChartProps> = ({
         ) : (
           <>
             <span className="text-gray-500 font-medium flex items-center gap-1">
-              <span>Chạm / rê chuột vào các điểm để xem chi tiết theo giờ</span>
+              <span>{viewMode === 'PERSONAL' ? 'Tài sản theo % vốn góp' : 'Tài sản Master Pool Exness'} • Chạm vào các điểm để xem</span>
             </span>
             <span className="text-gray-400 font-mono">
-              Live Equity: <strong className="text-white">${liveEquity.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}</strong>
+              {viewMode === 'PERSONAL' ? 'Tài sản của bạn:' : 'Live Equity:'} <strong className="text-white">${displayEquity.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD</strong>
             </span>
           </>
         )}
@@ -288,7 +420,7 @@ export const EquityChart: React.FC<EquityChartProps> = ({
       {/* Chart Body with Left Y-Axis & Bottom X-Axis */}
       <div className="flex items-stretch gap-2 pt-1 h-36">
         {/* Left Y-Axis Real Equity Values */}
-        <div className="flex flex-col justify-between text-[9px] text-gray-400 font-mono py-1 select-none pr-1 border-r border-[#1f293d]/50">
+        <div className="flex flex-col justify-between text-[9px] text-gray-400 font-mono py-1 select-none pr-1 border-r border-[#1f293d]/50 min-w-[42px] text-right">
           {yLabels.map((lbl, idx) => (
             <span key={idx}>{lbl}</span>
           ))}
@@ -405,8 +537,17 @@ export const EquityChart: React.FC<EquityChartProps> = ({
 
       {/* Bottom Context Footnote */}
       <div className="flex items-center justify-between text-[9px] text-gray-500 pt-0.5">
-        <span className="font-mono">Tài sản Exness MT5: <strong className="text-gray-300">${liveEquity.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD</strong></span>
-        <span className="text-[#00df89] font-mono">Lệnh chạy: +${liveFloating.toFixed(2)} USD</span>
+        {viewMode === 'PERSONAL' && hasUserCapital ? (
+          <>
+            <span className="font-mono">Vốn đầu tư của bạn: <strong className="text-white">${userTradingBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USDT</strong></span>
+            <span className="text-cyan-300 font-mono font-bold">Cổ phần: {userSharePercent.toFixed(2)}% Master Pool</span>
+          </>
+        ) : (
+          <>
+            <span className="font-mono">Tài sản Exness MT5: <strong className="text-gray-300">${liveEquity.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD</strong></span>
+            <span className="text-[#00df89] font-mono">Lệnh chạy: +${liveFloating.toFixed(2)} USD</span>
+          </>
+        )}
       </div>
     </div>
   );

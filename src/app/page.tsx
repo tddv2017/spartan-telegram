@@ -374,6 +374,8 @@ export default function Home() {
           />
 
           <EquityChart 
+            userTradingBalance={tradingBalance}
+            userCapitalJoinedAt={userCapitalJoinedAt}
             masterPoolBalance={masterPoolBalance} 
             masterPoolEquity={masterPoolEquity} 
             trades={tradesList} 
