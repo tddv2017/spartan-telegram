@@ -323,6 +323,7 @@ export default function Home() {
         <div className="p-4">
           <WalletView 
             currentBalance={tradingBalance} 
+            referralBalance={referralsIncome}
             onUpdateBalance={handleUpdateBalance} 
             telegramId={currentTelegramId}
             username={currentTelegramUser}

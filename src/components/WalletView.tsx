@@ -28,12 +28,13 @@ import {
   Sparkles
 } from 'lucide-react';
 import { calculateDepositFee, calculateWithdrawFee } from '@/lib/feeCalculator';
-import { createLiveTransaction, subscribeToUserTransactions, TransactionData } from '@/lib/firebaseService';
+import { createLiveTransaction, withdrawReferralBalance, subscribeToUserTransactions, TransactionData } from '@/lib/firebaseService';
 import { fetchTreasuryVault, DEFAULT_TREASURY_VAULT } from '@/lib/walletConfig';
 import { ReceiptAiAppealModal } from '@/components/ReceiptAiAppealModal';
 
 interface WalletViewProps {
   currentBalance: number;
+  referralBalance?: number;
   onUpdateBalance: (newBalance: number) => void;
   telegramId?: string;
   username?: string;
@@ -41,11 +42,13 @@ interface WalletViewProps {
 
 export const WalletView: React.FC<WalletViewProps> = ({
   currentBalance,
+  referralBalance = 0,
   onUpdateBalance,
   telegramId = '494232782',
   username = 'tddv2017',
 }) => {
   const [mode, setMode] = useState<'deposit' | 'withdraw'>('deposit');
+  const [withdrawSource, setWithdrawSource] = useState<'trading' | 'referral'>('trading');
   const [amount, setAmount] = useState<string>('1000');
   const [copied, setCopied] = useState(false);
   const [copiedMemo, setCopiedMemo] = useState(false);
@@ -137,7 +140,21 @@ export const WalletView: React.FC<WalletViewProps> = ({
 
   const numAmount = parseFloat(amount) || 0;
   const depositBreakdown = calculateDepositFee(numAmount);
-  const withdrawBreakdown = calculateWithdrawFee(numAmount);
+
+  const isRefSource = withdrawSource === 'referral';
+  const currentRefBalance = Number(referralBalance) || 0;
+  const currentAvailableWithdraw = isRefSource ? currentRefBalance : availableForWithdraw;
+
+  const withdrawBreakdown = isRefSource
+    ? {
+        grossAmount: numAmount,
+        percentageFee: 0,
+        fixedFee: 5.00,
+        totalFee: 5.00,
+        netAmount: Math.max(0, numAmount - 5.00),
+        effectiveRetainedFee: 0
+      }
+    : calculateWithdrawFee(numAmount);
 
   // Master Receiving Deposit Address
   const walletAddress = receivingWallet;
@@ -201,17 +218,41 @@ export const WalletView: React.FC<WalletViewProps> = ({
       return;
     }
 
+    if (!withdrawAddress.trim() || !withdrawAddress.trim().startsWith('T') || withdrawAddress.trim().length < 30) {
+      setErrorMessage('Vui lòng nhập đúng địa chỉ ví USDT TRC20 (bắt đầu bằng T, 34 ký tự)!');
+      return;
+    }
+
+    if (isRefSource) {
+      if (numAmount > currentRefBalance) {
+        setErrorMessage(`⛔ VƯỢT QUÁ HOA HỒNG: Số tiền rút vượt quá số dư hoa hồng khả dụng ($${currentRefBalance.toFixed(2)} USDT).`);
+        return;
+      }
+
+      setLoading(true);
+      try {
+        const res = await withdrawReferralBalance(telegramId, numAmount, withdrawAddress.trim());
+        if (res.success) {
+          if (res.tx) setLocalTxs((prev) => [res.tx!, ...prev]);
+          setNotification(res.message);
+          setTimeout(() => setNotification(null), 8000);
+        } else {
+          setErrorMessage(res.message);
+        }
+      } catch (err: any) {
+        setErrorMessage('Lỗi rút hoa hồng: ' + err.message);
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+
     if (numAmount > availableForWithdraw) {
       if (pendingWithdrawalTotal > 0) {
         setErrorMessage(`⛔ LOCKED: You have $${pendingWithdrawalTotal.toFixed(2)} USD in pending withdrawals. Available balance is $${availableForWithdraw.toFixed(2)} USD.`);
       } else {
         setErrorMessage(`⛔ INSUFFICIENT FUNDS: Requested amount ($${numAmount.toFixed(2)}) exceeds available balance ($${currentBalance.toFixed(2)} USD).`);
       }
-      return;
-    }
-
-    if (!withdrawAddress.trim()) {
-      setErrorMessage('Please enter your recipient USDT (TRC20) wallet address!');
       return;
     }
 
@@ -601,23 +642,62 @@ export const WalletView: React.FC<WalletViewProps> = ({
       ) : (
         /* WITHDRAW MODE */
         <div className="spartan-card rounded-3xl p-5 border border-[#1f293d] space-y-4 shadow-lg">
+          {/* NGUỒN TIỀN RÚT (SOURCE SELECTOR) */}
+          <div className="space-y-1.5">
+            <label className="text-xs text-gray-400 font-bold block">CHỌN NGUỒN TIỀN CẦN RÚT:</label>
+            <div className="grid grid-cols-2 gap-2 p-1 bg-[#0b0e17] rounded-2xl border border-[#1f293d]">
+              <button
+                type="button"
+                onClick={() => { setWithdrawSource('trading'); setErrorMessage(null); }}
+                className={`py-2 px-3 rounded-xl text-xs font-black transition-all flex flex-col items-center gap-0.5 ${
+                  withdrawSource === 'trading'
+                    ? 'bg-[#ff2d55] text-white shadow-md'
+                    : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                <span>VỐN BOT ĐẦU TƯ</span>
+                <span className="text-[10px] font-mono opacity-80">${availableForWithdraw.toFixed(2)} USDT</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => { setWithdrawSource('referral'); setErrorMessage(null); }}
+                className={`py-2 px-3 rounded-xl text-xs font-black transition-all flex flex-col items-center gap-0.5 ${
+                  withdrawSource === 'referral'
+                    ? 'bg-[#00df89] text-black shadow-md'
+                    : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                <span>HOA HỒNG ĐẠI LÝ</span>
+                <span className="text-[10px] font-mono opacity-80">${currentRefBalance.toFixed(2)} USDT</span>
+              </button>
+            </div>
+          </div>
+
           <div className="flex items-center justify-between">
-            <h3 className="text-xs font-black text-white uppercase tracking-wider">WITHDRAW USDT (SPARTAN TREASURY POLICY)</h3>
-            <span className="text-[10px] font-bold text-[#ff2d55] bg-[#ff2d55]/10 px-2.5 py-0.5 rounded-full border border-[#ff2d55]/20">
-              Fee: 19% + $5.00 USD
+            <h3 className="text-xs font-black text-white uppercase tracking-wider">
+              {isRefSource ? 'RÚT HOA HỒNG ĐẠI LÝ' : 'WITHDRAW USDT (SPARTAN TREASURY POLICY)'}
+            </h3>
+            <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${
+              isRefSource 
+                ? 'text-[#00df89] bg-[#00df89]/10 border-[#00df89]/30' 
+                : 'text-[#ff2d55] bg-[#ff2d55]/10 border-[#ff2d55]/20'
+            }`}>
+              {isRefSource ? '0% Phí Sàn (Không chịu phí 19%)' : 'Fee: 19% + $5.00 USD'}
             </span>
           </div>
 
           <div className="bg-[#0b0e17] p-3 rounded-2xl border border-[#1f293d] flex items-center justify-between text-xs font-bold">
-            <span className="text-gray-400">Available Balance for Withdrawal:</span>
+            <span className="text-gray-400">
+              {isRefSource ? 'Hoa Hồng Khả Dụng Để Rút:' : 'Available Balance for Withdrawal:'}
+            </span>
             <span className="text-[#00df89] font-mono text-sm font-black">
-              ${availableForWithdraw.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USDT
+              ${currentAvailableWithdraw.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USDT
             </span>
           </div>
 
           <div>
             <label className="text-xs text-gray-400 font-bold block mb-1.5">
-              Enter Withdrawal Amount ($ USD)
+              {isRefSource ? 'Số Tiền Hoa Hồng Muốn Rút ($ USD):' : 'Enter Withdrawal Amount ($ USD)'}
             </label>
             <div className="relative">
               <input
@@ -625,12 +705,18 @@ export const WalletView: React.FC<WalletViewProps> = ({
                 value={amount}
                 maxLength={10}
                 onChange={(e) => { setAmount(e.target.value.slice(0, 10)); setErrorMessage(null); }}
-                className="w-full bg-[#0b0e17] border border-[#1f293d] rounded-2xl py-3 px-4 text-white text-base font-black focus:outline-none focus:border-[#ff2d55]"
+                className={`w-full bg-[#0b0e17] border border-[#1f293d] rounded-2xl py-3 px-4 text-white text-base font-black focus:outline-none ${
+                  isRefSource ? 'focus:border-[#00df89]' : 'focus:border-[#ff2d55]'
+                }`}
                 placeholder="1000"
               />
               <button
-                onClick={() => setAmount(availableForWithdraw.toString())}
-                className="absolute right-3 top-2.5 px-2.5 py-1 bg-[#ff2d55]/20 text-[#ff2d55] rounded-lg text-xs font-black border border-[#ff2d55]/30"
+                onClick={() => setAmount(currentAvailableWithdraw.toString())}
+                className={`absolute right-3 top-2.5 px-2.5 py-1 rounded-lg text-xs font-black border ${
+                  isRefSource 
+                    ? 'bg-[#00df89]/20 text-[#00df89] border-[#00df89]/30' 
+                    : 'bg-[#ff2d55]/20 text-[#ff2d55] border-[#ff2d55]/30'
+                }`}
               >
                 MAX
               </button>
@@ -645,7 +731,9 @@ export const WalletView: React.FC<WalletViewProps> = ({
               type="text"
               value={withdrawAddress}
               onChange={(e) => { setWithdrawAddress(e.target.value); setErrorMessage(null); }}
-              className="w-full bg-[#0b0e17] border border-[#1f293d] rounded-2xl py-3 px-4 text-white text-xs font-mono focus:outline-none focus:border-[#ff2d55]"
+              className={`w-full bg-[#0b0e17] border border-[#1f293d] rounded-2xl py-3 px-4 text-white text-xs font-mono focus:outline-none ${
+                isRefSource ? 'focus:border-[#00df89]' : 'focus:border-[#ff2d55]'
+              }`}
               placeholder="Paste your TRC20 address (starts with T...)"
             />
           </div>
@@ -656,27 +744,35 @@ export const WalletView: React.FC<WalletViewProps> = ({
               <span className="font-bold text-gray-200">${withdrawBreakdown.grossAmount.toFixed(2)} USDT</span>
             </div>
             <div className="flex justify-between text-gray-400">
-              <span>Percentage Fee (19%):</span>
-              <span className="font-bold text-[#ff2d55]">-${withdrawBreakdown.percentageFee.toFixed(2)} USDT</span>
-            </div>
-            <div className="flex justify-between text-gray-400">
-              <span>Fixed Network Fee ($5.00 USD):</span>
-              <span className="font-bold text-[#ff2d55]">-$5.00 USDT</span>
-            </div>
-
-            <div className="bg-[#131927] p-2.5 rounded-xl border border-[#1f293d] space-y-1 my-1">
-              <div className="flex justify-between text-amber-400 font-bold text-[11px]">
-                <span>Treasury Reserve Retention (10% included in 19% fee):</span>
-                <span className="font-mono">${withdrawBreakdown.effectiveRetainedFee?.toFixed(2)} USDT</span>
-              </div>
-              <span className="text-[9px] text-gray-500 block leading-tight">
-                (Allocated to liquidity reserve & reseller affiliate pool)
+              <span>{isRefSource ? 'Phí Sàn (Treasury Policy):' : 'Percentage Fee (19%):'}</span>
+              <span className={isRefSource ? "font-bold text-[#00df89]" : "font-bold text-[#ff2d55]"}>
+                {isRefSource ? '0% (MIỄN PHÍ - KHÔNG MẤT 19%)' : `-$${withdrawBreakdown.percentageFee.toFixed(2)} USDT`}
               </span>
             </div>
+            <div className="flex justify-between text-gray-400">
+              <span>Fixed On-Chain Network Fee ($5.00 USD):</span>
+              <span className="font-bold text-amber-400">-$5.00 USDT</span>
+            </div>
+
+            {isRefSource ? (
+              <div className="bg-[#131927] p-2.5 rounded-xl border border-[#1f293d] space-y-1 my-1 text-[10px] text-gray-400 leading-relaxed">
+                🛡️ <strong className="text-white">BẢO TOÀN DOANH THU ĐẠI LÝ:</strong> Tiền hoa hồng là doanh thu của bạn nên được miễn 100% phí sàn (hoàn toàn không chịu phí 19% chính sách Treasury). Bạn chỉ chi trả $5.00 phí truyền mạng On-chain TRC20.
+              </div>
+            ) : (
+              <div className="bg-[#131927] p-2.5 rounded-xl border border-[#1f293d] space-y-1 my-1">
+                <div className="flex justify-between text-amber-400 font-bold text-[11px]">
+                  <span>Treasury Reserve Retention (10% included in 19% fee):</span>
+                  <span className="font-mono">${withdrawBreakdown.effectiveRetainedFee?.toFixed(2)} USDT</span>
+                </div>
+                <span className="text-[9px] text-gray-500 block leading-tight">
+                  (Allocated to liquidity reserve & reseller affiliate pool)
+                </span>
+              </div>
+            )}
 
             <div className="border-t border-[#1f293d] pt-2 flex justify-between font-black text-sm text-white">
-              <span className="text-[#ff2d55]">Net Payout to Your Wallet:</span>
-              <span className={withdrawBreakdown.netAmount <= 0 ? "text-red-500 font-black" : "text-[#ff2d55]"}>
+              <span className={isRefSource ? "text-[#00df89]" : "text-[#ff2d55]"}>Net Payout to Your Wallet:</span>
+              <span className={withdrawBreakdown.netAmount <= 0 ? "text-red-500 font-black" : (isRefSource ? "text-[#00df89]" : "text-[#ff2d55]")}>
                 ${withdrawBreakdown.netAmount.toFixed(2)} USDT
               </span>
             </div>
@@ -691,19 +787,23 @@ export const WalletView: React.FC<WalletViewProps> = ({
 
           <button
             onClick={handleWithdrawConfirm}
-            disabled={loading || withdrawBreakdown.netAmount <= 0 || numAmount > availableForWithdraw}
+            disabled={loading || withdrawBreakdown.netAmount <= 0 || numAmount > currentAvailableWithdraw}
             className={`w-full py-3.5 rounded-2xl font-black text-sm uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${
-              loading || withdrawBreakdown.netAmount <= 0 || numAmount > availableForWithdraw
+              loading || withdrawBreakdown.netAmount <= 0 || numAmount > currentAvailableWithdraw
                 ? 'bg-gray-700 text-gray-400 cursor-not-allowed border border-gray-600'
+                : isRefSource
+                ? 'bg-gradient-to-r from-[#00df89] to-[#00b06b] text-black shadow-[0_4px_14px_rgba(0,223,137,0.4)] hover:opacity-95'
                 : 'bg-[#ff2d55] text-white shadow-[0_4px_14px_rgba(255,45,85,0.4)] hover:opacity-95'
             }`}
           >
             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
             <span>
-              {numAmount > availableForWithdraw
-                ? 'LOCKED (INSUFFICIENT AVAILABLE BALANCE)'
+              {numAmount > currentAvailableWithdraw
+                ? (isRefSource ? 'LOCKED (VƯỢT QUÁ HOA HỒNG KHẢ DỤNG)' : 'LOCKED (INSUFFICIENT AVAILABLE BALANCE)')
                 : withdrawBreakdown.netAmount <= 0
                 ? 'CANNOT WITHDRAW (NEGATIVE AMOUNT)'
+                : isRefSource
+                ? `XÁC NHẬN RÚT HOA HỒNG (THỰC NHẬN $${withdrawBreakdown.netAmount.toFixed(2)} USDT)`
                 : `Confirm Withdrawal (Net Payout $${withdrawBreakdown.netAmount.toFixed(2)} USDT)`}
             </span>
           </button>

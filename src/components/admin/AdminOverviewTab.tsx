@@ -200,11 +200,19 @@ export const AdminOverviewTab: React.FC<AdminOverviewTabProps> = ({
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <span className={`text-[10px] font-black px-2 py-0.5 rounded border uppercase ${
-                        tx.type === 'DEPOSIT' ? 'bg-[#00df89]/15 text-[#00df89] border-[#00df89]/30' : 'bg-[#ff2d55]/15 text-[#ff2d55] border-[#ff2d55]/30'
-                      }`}>
-                        {tx.type === 'DEPOSIT' ? 'NẠP TIỀN' : 'RÚT TIỀN'}
-                      </span>
+                      {tx.type === 'DEPOSIT' ? (
+                        <span className="text-[10px] font-black px-2 py-0.5 rounded border uppercase bg-[#00df89]/15 text-[#00df89] border-[#00df89]/30">
+                          NẠP TIỀN
+                        </span>
+                      ) : (tx.id?.includes('REF') || tx.memoCode?.includes('REF')) ? (
+                        <span className="text-[10px] font-black px-2 py-0.5 rounded border uppercase bg-emerald-500/20 text-emerald-300 border-emerald-500/40">
+                          RÚT HOA HỒNG (0% PHÍ)
+                        </span>
+                      ) : (
+                        <span className="text-[10px] font-black px-2 py-0.5 rounded border uppercase bg-[#ff2d55]/15 text-[#ff2d55] border-[#ff2d55]/30">
+                          RÚT VỐN BOT
+                        </span>
+                      )}
                       <span className="font-extrabold text-white">@{tx.username}</span>
                       <span className="text-[10px] text-gray-500">(ID: {tx.userId})</span>
                     </div>

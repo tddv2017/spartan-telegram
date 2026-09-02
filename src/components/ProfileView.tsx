@@ -480,20 +480,27 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
               </button>
             </div>
 
-            <div className="bg-[#131927] p-3 rounded-2xl border border-[#1f293d] space-y-1.5 text-xs">
+            <div className="bg-[#131927] p-3.5 rounded-2xl border border-[#1f293d] space-y-2 text-xs">
               <div className="flex justify-between">
                 <span className="text-gray-400">Hoa hồng khả dụng:</span>
                 <span className="font-bold text-[#00df89]">${localRefBal.toFixed(2)} USDT</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-400">Phí mạng On-chain Gas:</span>
-                <span className="font-bold text-[#ff2d55]">-$5.00 USDT</span>
+                <span className="text-gray-400">Phí sàn (Treasury Policy):</span>
+                <span className="font-bold text-[#00df89]">0% (MIỄN PHÍ - KHÔNG MẤT 19%)</span>
               </div>
-              <div className="border-t border-[#1f293d] pt-1.5 flex justify-between font-bold">
+              <div className="flex justify-between">
+                <span className="text-gray-400">Phí mạng On-chain TRC20 Gas:</span>
+                <span className="font-bold text-amber-400">-$5.00 USDT</span>
+              </div>
+              <div className="border-t border-[#1f293d] pt-2 flex justify-between font-black text-sm">
                 <span className="text-white">Thực nhận về ví:</span>
                 <span className="text-[#00df89]">
                   ${Math.max(0, (parseFloat(withdrawAmount) || 0) - 5).toFixed(2)} USDT
                 </span>
+              </div>
+              <div className="bg-[#0b0e17] p-2 rounded-xl text-[10px] text-gray-400 leading-relaxed border border-[#1f293d]">
+                🛡️ <strong className="text-white">BẢO TOÀN DOANH THU ĐẠI LÝ:</strong> Hoa hồng là doanh thu của Reseller nên được miễn 100% phí sàn (hoàn toàn không chịu phí 19% chính sách Treasury), chỉ chi trả $5.00 phí truyền mạng On-chain TRC20.
               </div>
             </div>
 
