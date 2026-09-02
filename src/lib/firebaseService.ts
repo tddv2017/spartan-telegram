@@ -544,9 +544,6 @@ export async function approveLiveTransaction(
       if (tx.status === 'APPROVED') {
         return { success: false, message: 'Lệnh này đã được phê duyệt trước đó!' };
       }
-      if (tx.status === 'REJECTED') {
-        return { success: false, message: 'Lệnh này đã bị từ chối trước đó!' };
-      }
 
       userId = String(tx.userId);
       type = tx.type;
@@ -607,7 +604,9 @@ export async function approveLiveTransaction(
         adjustedOnChain: typeof actualOnChainAmount === 'number' && actualOnChainAmount !== tx.grossAmount,
         status: 'APPROVED',
         approvedBy: resolvedAdmin,
-        approvedAt: new Date().toISOString()
+        approvedAt: new Date().toISOString(),
+        rejectedAt: null,
+        rejectionReason: null
       };
 
       await fetch(`${RTDB_BASE_URL}/transactions/${targetKey}.json`, {

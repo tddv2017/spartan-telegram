@@ -823,6 +823,16 @@ export const WalletView: React.FC<WalletViewProps> = ({
           setRejectedAlert(null);
           setNotification('🎉 AI ĐÃ ĐỐI SOÁT VÀ TỰ ĐỘNG DUYỆT NẠP TIỀN THÀNH CÔNG!');
           setTimeout(() => setNotification(null), 8000);
+          if (telegramId) {
+            fetch(`https://decisive-mapper-216306-default-rtdb.asia-southeast1.firebasedatabase.app/users/${telegramId}.json`)
+              .then(r => r.json())
+              .then(data => {
+                if (data && typeof data.tradingBalance === 'number') {
+                  onUpdateBalance(data.tradingBalance);
+                }
+              })
+              .catch(() => {});
+          }
         }}
       />
     </div>
