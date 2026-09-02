@@ -18,7 +18,9 @@ import {
   Lock,
   ChevronLeft,
   ChevronRight,
-  Loader2
+  Loader2,
+  AlertTriangle,
+  ExternalLink
 } from 'lucide-react';
 import { calculateDepositFee, calculateWithdrawFee } from '@/lib/feeCalculator';
 import { createLiveTransaction, subscribeToUserTransactions, TransactionData } from '@/lib/firebaseService';
@@ -44,6 +46,7 @@ export const WalletView: React.FC<WalletViewProps> = ({
   const [withdrawAddress, setWithdrawAddress] = useState('');
   const [notification, setNotification] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [rejectedAlert, setRejectedAlert] = useState<{ id: string; message: string } | null>(null);
   const [loading, setLoading] = useState(false);
   const [activeDepositTx, setActiveDepositTx] = useState<TransactionData | null>(null);
   const [firestoreTxs, setFirestoreTxs] = useState<TransactionData[]>([]);
@@ -64,6 +67,27 @@ export const WalletView: React.FC<WalletViewProps> = ({
     });
     return () => unsubscribe();
   }, [telegramId]);
+
+  // Realtime Active Deposit Order Status Watcher (Auto-close QR & Alert on Reject)
+  useEffect(() => {
+    if (!activeDepositTx) return;
+    const activeKey = activeDepositTx.id || activeDepositTx.memoCode;
+    const liveTx = firestoreTxs.find(t => (t.id && t.id === activeKey) || (t.memoCode && t.memoCode === activeKey));
+
+    if (liveTx) {
+      if (liveTx.status === 'APPROVED') {
+        setActiveDepositTx(null);
+        setNotification(`🎉 NẠP TIỀN THÀNH CÔNG! Đơn nạp #${liveTx.id || liveTx.memoCode} đã được duyệt! Đã cộng chính xác +$${liveTx.netAmount.toFixed(2)} USDT vào vốn Bot của bạn.`);
+        setTimeout(() => setNotification(null), 10000);
+      } else if (liveTx.status === 'REJECTED') {
+        setActiveDepositTx(null);
+        setRejectedAlert({
+          id: liveTx.id || liveTx.memoCode,
+          message: `Đơn nạp #${liveTx.id || liveTx.memoCode} ($${liveTx.grossAmount.toFixed(2)} USDT) đã bị Quản trị viên TỪ CHỐI do nhập sai Memo hoặc số tiền chưa khớp trên Blockchain. Vui lòng liên hệ Bộ phận Kỹ thuật / Hỗ trợ tối cao @tddv2017 để được kiểm tra và xử lý ngay.`
+        });
+      }
+    }
+  }, [firestoreTxs, activeDepositTx]);
 
   // Combine Firestore Txs and Local Txs
   const combinedTxsMap = new Map<string, TransactionData>();
@@ -278,9 +302,39 @@ export const WalletView: React.FC<WalletViewProps> = ({
 
       {/* Notification Banner */}
       {notification && (
-        <div className="bg-[#00df89]/20 border border-[#00df89] p-3 rounded-2xl text-xs font-bold text-[#00df89] flex items-center gap-2 animate-bounce">
+        <div className="bg-[#00df89]/20 border border-[#00df89] p-3.5 rounded-2xl text-xs font-bold text-[#00df89] flex items-center gap-2 animate-bounce">
           <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
           <span>{notification}</span>
+        </div>
+      )}
+
+      {/* Admin Rejected Alert Banner with Support Button */}
+      {rejectedAlert && (
+        <div className="bg-red-500/20 border-2 border-red-500 p-4 rounded-3xl text-xs space-y-2.5 text-red-300 shadow-[0_0_20px_rgba(239,68,68,0.3)] animate-in fade-in zoom-in-95 duration-300">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 font-black uppercase text-red-400">
+              <AlertTriangle className="w-4 h-4 text-red-400 flex-shrink-0 animate-pulse" />
+              <span>ĐƠN NẠP BỊ TỪ CHỐI BỞI QUẢN TRỊ VIÊN</span>
+            </div>
+            <button
+              onClick={() => setRejectedAlert(null)}
+              className="text-gray-400 hover:text-white text-xs font-bold"
+            >
+              ✕
+            </button>
+          </div>
+          <p className="text-[11px] leading-relaxed text-gray-200">
+            {rejectedAlert.message}
+          </p>
+          <a
+            href="https://t.me/tddv2017"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full py-2.5 rounded-xl bg-gradient-to-r from-red-600 to-amber-600 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-md hover:opacity-95 transition-opacity block text-center"
+          >
+            <ExternalLink className="w-3.5 h-3.5" />
+            <span>LIÊN HỆ BỘ PHẬN KỸ THUẬT / HỖ TRỢ (@tddv2017)</span>
+          </a>
         </div>
       )}
 
@@ -459,7 +513,32 @@ export const WalletView: React.FC<WalletViewProps> = ({
               </div>
 
               <div className="text-[10px] text-gray-400 leading-relaxed bg-[#131927] p-2.5 rounded-xl border border-[#1f293d]">
-                💡 <strong>AUTOMATED ON-CHAIN SCANNER:</strong> You can transfer from any exchange (Binance, OKX, Bybit, TrustWallet, Telegram Wallet). The bot automatically detects your transaction on the TRON network, applies fees, and credits your balance instantly!
+                💡 <strong>QUÉT BLOCKCHAIN TỰ ĐỘNG:</strong> Sau khi bạn chuyển USDT thành công từ sàn/ví, hệ thống sẽ tự động quét đối soát, trừ phí 9%+$3 và cộng số tiền Thực Nhận (Net) vào tài khoản của bạn ngay lập tức!
+              </div>
+
+              {/* ACTION BUTTONS: ĐÃ THANH TOÁN & ĐÓNG QR */}
+              <div className="pt-2 space-y-2">
+                <button
+                  onClick={() => {
+                    const gross = activeDepositTx.grossAmount;
+                    const net = activeDepositTx.netAmount || (gross * 0.91 - 3);
+                    const orderId = activeDepositTx.id || activeDepositTx.memoCode;
+                    setActiveDepositTx(null);
+                    setNotification(`🎉 ĐÃ GHI NHẬN THANH TOÁN! Đơn nạp #${orderId} ($${gross.toFixed(2)} USDT) đang được hệ thống quét Blockchain TRON để cộng vốn (Net +$${net.toFixed(2)} USDT) hoặc Quản trị viên đối soát phê duyệt.`);
+                    setTimeout(() => setNotification(null), 10000);
+                  }}
+                  className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-[#00df89] to-[#00b368] text-black font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(0,223,137,0.3)] hover:opacity-95 transition-all"
+                >
+                  <CheckCircle2 className="w-4 h-4 text-black" />
+                  <span>TÔI ĐÃ CHUYỂN TIỀN XONG (ĐÃ THANH TOÁN)</span>
+                </button>
+
+                <button
+                  onClick={() => setActiveDepositTx(null)}
+                  className="w-full py-2.5 rounded-xl bg-[#131927] hover:bg-[#1f293d] border border-[#1f293d] text-gray-400 hover:text-white text-xs font-bold uppercase transition-all"
+                >
+                  ĐÓNG MÃ QR
+                </button>
               </div>
             </div>
           )}
