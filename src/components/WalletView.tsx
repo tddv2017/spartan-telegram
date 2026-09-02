@@ -18,6 +18,9 @@ import {
   Lock,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
+  ChevronUp,
+  Receipt,
   Loader2,
   AlertTriangle,
   ExternalLink,
@@ -51,6 +54,7 @@ export const WalletView: React.FC<WalletViewProps> = ({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [rejectedAlert, setRejectedAlert] = useState<{ id: string; message: string; txData?: TransactionData } | null>(null);
   const [aiAppealTx, setAiAppealTx] = useState<TransactionData | null>(null);
+  const [expandedTxId, setExpandedTxId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [activeDepositTx, setActiveDepositTx] = useState<TransactionData | null>(null);
   const [firestoreTxs, setFirestoreTxs] = useState<TransactionData[]>([]);
@@ -700,78 +704,157 @@ export const WalletView: React.FC<WalletViewProps> = ({
         <div className="space-y-2">
           {paginatedTxs.length === 0 ? (
             <div className="text-center py-6 text-xs font-bold text-gray-500">
-              No transactions recorded yet.
+              Chưa có giao dịch nào được ghi nhận.
             </div>
           ) : (
-            paginatedTxs.map((tx) => (
-              <div
-                key={tx.id || tx.memoCode}
-                className="flex items-center justify-between p-3 rounded-xl bg-[#0b0e17] border border-[#1f293d] hover:border-gray-700 transition-colors text-xs animate-in fade-in slide-in-from-top-2 duration-300"
-              >
-                <div className="flex items-center gap-2.5">
-                  <div
-                    className={`w-8 h-8 rounded-xl flex items-center justify-center font-black ${
-                      tx.type === 'DEPOSIT'
-                        ? 'bg-[#00df89]/15 text-[#00df89] border border-[#00df89]/30'
-                        : 'bg-[#ff2d55]/15 text-[#ff2d55] border border-[#ff2d55]/30'
-                    }`}
-                  >
-                    {tx.type === 'DEPOSIT' ? (
-                      <ArrowDown className="w-4 h-4" />
-                    ) : (
-                      <ArrowUp className="w-4 h-4" />
-                    )}
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-extrabold text-white">
-                        {tx.type === 'DEPOSIT' ? 'DEPOSIT' : 'WITHDRAWAL'}
-                      </span>
-                      <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded border font-black ${
-                        tx.status === 'APPROVED' 
-                          ? 'text-[#00df89] bg-[#00df89]/10 border-[#00df89]/20' 
-                          : tx.status === 'PENDING' 
-                          ? 'text-[#facc15] bg-[#facc15]/10 border-[#facc15]/20' 
-                          : 'text-[#ff2d55] bg-[#ff2d55]/10 border-[#ff2d55]/20'
-                      }`}>
-                        {tx.status === 'APPROVED' ? 'APPROVED' : tx.status === 'PENDING' ? 'PENDING' : 'REJECTED'}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2 text-[10px] text-gray-500 font-mono mt-0.5">
-                      <span>Memo: {tx.memoCode}</span>
-                      <span>•</span>
-                      <span className="flex items-center gap-0.5 text-gray-400">
-                        <Clock className="w-3 h-3 text-gray-500" />
-                        {formatTxTime(tx.createdAt)}
-                      </span>
-                    </div>
+            paginatedTxs.map((tx) => {
+              const txKey = tx.id || tx.memoCode || 'TX';
+              const isExpanded = expandedTxId === txKey;
 
-                    {tx.type === 'DEPOSIT' && tx.status === 'REJECTED' && (
-                      <button
-                        onClick={() => setAiAppealTx(tx)}
-                        className="mt-1.5 px-2.5 py-1 rounded-lg bg-purple-600/30 hover:bg-purple-600/50 border border-purple-500/50 text-purple-300 text-[10px] font-bold flex items-center gap-1 transition-all"
+              return (
+                <div
+                  key={txKey}
+                  className="rounded-2xl bg-[#0b0e17] border border-[#1f293d] hover:border-gray-700 transition-all text-xs animate-in fade-in slide-in-from-top-2 duration-300 overflow-hidden"
+                >
+                  {/* Summary Header Row (Clickable) */}
+                  <div 
+                    onClick={() => setExpandedTxId(isExpanded ? null : txKey)}
+                    className="p-3 flex items-center justify-between cursor-pointer hover:bg-[#131927]/60 transition-colors select-none"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <div
+                        className={`w-8 h-8 rounded-xl flex items-center justify-center font-black ${
+                          tx.type === 'DEPOSIT'
+                            ? 'bg-[#00df89]/15 text-[#00df89] border border-[#00df89]/30'
+                            : 'bg-[#ff2d55]/15 text-[#ff2d55] border border-[#ff2d55]/30'
+                        }`}
                       >
-                        <Camera className="w-3 h-3 text-purple-400" />
-                        <span>Gửi Bill AI Quét & Duyệt</span>
-                      </button>
-                    )}
-                  </div>
-                </div>
+                        {tx.type === 'DEPOSIT' ? <ArrowDown className="w-4 h-4" /> : <ArrowUp className="w-4 h-4" />}
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-extrabold text-white">
+                            {tx.type === 'DEPOSIT' ? 'NẠP TIỀN' : 'RÚT TIỀN'}
+                          </span>
+                          <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded border font-black ${
+                            tx.status === 'APPROVED' 
+                              ? 'text-[#00df89] bg-[#00df89]/10 border-[#00df89]/20' 
+                              : tx.status === 'PENDING' 
+                              ? 'text-[#facc15] bg-[#facc15]/10 border-[#facc15]/20' 
+                              : 'text-[#ff2d55] bg-[#ff2d55]/10 border-[#ff2d55]/20'
+                          }`}>
+                            {tx.status === 'APPROVED' ? 'ĐÃ DUYỆT' : tx.status === 'PENDING' ? 'CHỜ DUYỆT' : 'TỪ CHỐI'}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 text-[10px] text-gray-500 font-mono mt-0.5">
+                          <span>Memo: {tx.memoCode}</span>
+                          <span>•</span>
+                          <span className="flex items-center gap-0.5 text-gray-400">
+                            <Clock className="w-3 h-3 text-gray-500" />
+                            {formatTxTime(tx.createdAt)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
 
-                <div className="text-right">
-                  <span
-                    className={`font-black text-xs block ${
-                      tx.type === 'DEPOSIT' ? 'text-[#00df89]' : 'text-[#ff2d55]'
-                    }`}
-                  >
-                    {tx.type === 'DEPOSIT' ? `+$${tx.netAmount.toFixed(2)}` : `-$${tx.netAmount.toFixed(2)}`}
-                  </span>
-                  <span className="text-[9px] text-gray-500 font-bold block">
-                    Fee: -${tx.feeAmount.toFixed(2)}
-                  </span>
+                    <div className="flex items-center gap-2">
+                      <div className="text-right">
+                        <span
+                          className={`font-black text-xs block ${
+                            tx.type === 'DEPOSIT' ? 'text-[#00df89]' : 'text-[#ff2d55]'
+                          }`}
+                        >
+                          {tx.type === 'DEPOSIT' ? `+$${tx.netAmount.toFixed(2)}` : `-$${tx.netAmount.toFixed(2)}`}
+                        </span>
+                        <span className="text-[9px] text-gray-400 font-bold block">
+                          Phí: -${tx.feeAmount.toFixed(2)}
+                        </span>
+                      </div>
+                      <button className="p-1 rounded-lg text-gray-400 hover:text-white transition-colors">
+                        {isExpanded ? <ChevronUp className="w-4 h-4 text-[#ff5500]" /> : <ChevronDown className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Button to Appeal AI Scanner if Rejected */}
+                  {tx.type === 'DEPOSIT' && tx.status === 'REJECTED' && (
+                    <div className="px-3 pb-2.5 pt-0">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setAiAppealTx(tx); }}
+                        className="w-full py-1.5 rounded-xl bg-purple-600/30 hover:bg-purple-600/50 border border-purple-500/50 text-purple-300 text-[11px] font-bold flex items-center justify-center gap-1.5 transition-all shadow-sm"
+                      >
+                        <Camera className="w-3.5 h-3.5 text-purple-400" />
+                        <span>📸 Gửi Bill AI Quét & Duyệt Lại</span>
+                      </button>
+                    </div>
+                  )}
+
+                  {/* EXPANDED FEE & ON-CHAIN DETAIL BREAKDOWN */}
+                  {isExpanded && (
+                    <div className="p-3.5 bg-[#131927]/90 border-t border-[#1f293d] space-y-2.5 text-[11px] animate-in slide-in-from-top-2 duration-200">
+                      <div className="flex items-center justify-between text-gray-400 font-mono">
+                        <span className="flex items-center gap-1.5 text-amber-400 font-bold">
+                          <Receipt className="w-3.5 h-3.5 text-amber-400" />
+                          <span>CHI TIẾT BẢNG KÊ KHẤU TRỪ PHÍ:</span>
+                        </span>
+                        <span className="text-[10px] text-gray-500">Mã đơn: #{tx.id || tx.memoCode}</span>
+                      </div>
+
+                      <div className="space-y-1.5 bg-[#07090e] p-3 rounded-2xl border border-[#1f293d] font-mono text-[11px]">
+                        <div className="flex justify-between text-gray-300 pb-1 border-b border-[#1f293d]/50">
+                          <span>• Số tiền gốc ({tx.type === 'DEPOSIT' ? 'Nạp vào' : 'Yêu cầu rút'}):</span>
+                          <span className="text-white font-bold">${tx.grossAmount.toFixed(2)} USDT</span>
+                        </div>
+
+                        {tx.type === 'DEPOSIT' ? (
+                          <>
+                            <div className="flex justify-between text-amber-300/90 text-[10px] pl-2">
+                              <span>  - Phí quản trị & nền tảng (9%):</span>
+                              <span>-${(tx.grossAmount * 0.09).toFixed(2)} USDT</span>
+                            </div>
+                            <div className="flex justify-between text-amber-300/90 text-[10px] pl-2">
+                              <span>  - Phí On-Chain Gas & Đối soát:</span>
+                              <span>-$3.00 USDT</span>
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <div className="flex justify-between text-blue-300/90 text-[10px] pl-2">
+                              <span>  - Trích giữ Quỹ Dự Phòng (10% Retention):</span>
+                              <span>-${(tx.grossAmount * 0.10).toFixed(2)} USDT</span>
+                            </div>
+                            <div className="flex justify-between text-amber-300/90 text-[10px] pl-2">
+                              <span>  - Phí cổng thanh toán & xử lý (9%):</span>
+                              <span>-${(tx.grossAmount * 0.09).toFixed(2)} USDT</span>
+                            </div>
+                            <div className="flex justify-between text-amber-300/90 text-[10px] pl-2">
+                              <span>  - Phí On-Chain Gas chuyển tiền:</span>
+                              <span>-$5.00 USDT</span>
+                            </div>
+                          </>
+                        )}
+
+                        <div className="border-t border-[#1f293d] pt-1.5 flex justify-between text-[#ff2d55] font-bold">
+                          <span>Tổng các khoản phí đã trừ:</span>
+                          <span>-${tx.feeAmount.toFixed(2)} USDT</span>
+                        </div>
+
+                        <div className="border-t border-[#1f293d] pt-1.5 flex justify-between text-[#00df89] font-black text-xs">
+                          <span>{tx.type === 'DEPOSIT' ? '✓ Thực nhận vào Vốn Bot:' : '✓ Thực chuyển về ví:'}</span>
+                          <span>+${tx.netAmount.toFixed(2)} USDT</span>
+                        </div>
+                      </div>
+
+                      {/* Mechanism & Approved Info */}
+                      <div className="flex items-center justify-between text-[10px] text-gray-400 font-mono px-1">
+                        <span>Duyệt bởi: <strong className="text-white">{tx.approvedBy || (tx.status === 'PENDING' ? 'Đang chờ duyệt' : 'Hệ thống')}</strong></span>
+                        {tx.rejectionReason && <span className="text-red-400 truncate max-w-[180px]">Lý do: {tx.rejectionReason}</span>}
+                      </div>
+                    </div>
+                  )}
                 </div>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
 
