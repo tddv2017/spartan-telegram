@@ -65,6 +65,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
   const [withdrawLoading, setWithdrawLoading] = useState(false);
   const [withdrawSuccess, setWithdrawSuccess] = useState<string | null>(null);
   const [withdrawError, setWithdrawError] = useState<string | null>(null);
+  const [showTierMatrix, setShowTierMatrix] = useState(false);
 
   useEffect(() => {
     setLocalRefBal(referralBalance);
@@ -198,87 +199,35 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
         </div>
       </div>
 
-      {/* 10 RESELLER TIERS SYSTEM SPECIFICATION CARD */}
-      <div className="spartan-card rounded-3xl p-5 border border-[#1f293d] space-y-3 shadow-lg">
-        <div className="flex items-center justify-between border-b border-[#1f293d] pb-2.5">
-          <h3 className="text-xs font-black text-white uppercase tracking-wider flex items-center gap-1.5">
-            <Trophy className="w-4 h-4 text-[#ff5500]" /> 10-LEVEL RESELLER TIER MATRIX
-          </h3>
-          <span className="text-[9px] font-black text-[#ff5500] bg-[#ff5500]/10 px-2 py-0.5 rounded-full border border-[#ff5500]/30">
-            {isAdmin ? '👑 SUPREME LEADER' : `Current: LEVEL ${effectiveTier}`}
-          </span>
-        </div>
-
-        {/* COMPACT SCROLLABLE BOX */}
-        <div className="space-y-2 max-h-56 overflow-y-auto pr-1.5 scrollbar-thin scrollbar-thumb-[#ff5500]/40 scrollbar-track-[#0b0e17]">
-          {resellerLevelsList.map((item) => {
-            const isCurrent = !isAdmin && effectiveTier === item.level;
-            return (
-              <div
-                key={item.level}
-                className={`p-2.5 rounded-2xl border flex items-center justify-between transition-all ${
-                  isCurrent
-                    ? 'bg-[#131927] border-[#ff5500] shadow-[0_0_15px_rgba(255,85,0,0.3)]'
-                    : 'bg-[#0b0e17] border-[#1f293d]'
-                }`}
-              >
-                <div className="flex items-center gap-2.5">
-                  <span className="text-sm font-black text-[#ff5500]">🎖️</span>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className={`text-xs font-black uppercase tracking-wider ${item.badge.split(' ')[1]}`}>
-                        {item.title}
-                      </span>
-                      {isCurrent && (
-                        <span className="text-[9px] font-black px-1.5 py-0.2 bg-[#ff5500] text-white rounded uppercase">
-                          CURRENT TIER
-                        </span>
-                      )}
-                    </div>
-                    <span className="text-[10px] text-gray-400 block mt-0.5">{item.req}</span>
-                  </div>
-                </div>
-
-                <div className="text-right">
-                  <span className="text-xs font-mono font-black text-[#00df89] block">
-                    {item.share}
-                  </span>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Referral Program Overview Card */}
+      {/* 1. Referral Program Overview Card (PRIMARY ACTIONS AT THE TOP) */}
       <div className="spartan-card rounded-3xl p-5 border border-[#1f293d] space-y-4 shadow-lg">
         <div className="flex items-center justify-between border-b border-[#1f293d] pb-3">
           <div className="flex items-center gap-2">
             <Share2 className="w-4 h-4 text-[#ff5500]" />
             <h3 className="text-xs font-black text-white uppercase tracking-wider">
-              LEGION RESELLER AFFILIATE PROGRAM
+              CHƯƠNG TRÌNH ĐỐI TÁC RESELLER
             </h3>
           </div>
           <span className="text-[10px] font-extrabold text-[#00df89] bg-[#00df89]/10 px-2.5 py-0.5 rounded-full border border-[#00df89]/20">
-            Up to 20% Rebate
+            Hoa hồng tới 20%
           </span>
         </div>
 
         {/* Stats Grid */}
         <div className="grid grid-cols-2 gap-3">
           <div className="bg-[#0b0e17] p-3 rounded-2xl border border-[#1f293d]">
-            <span className="text-[10px] text-gray-400 font-extrabold uppercase block mb-1">TOTAL RESELLER EARNINGS</span>
+            <span className="text-[10px] text-gray-400 font-extrabold uppercase block mb-1">TỔNG HOA HỒNG CỦA BẠN</span>
             <div className="text-lg font-black text-[#00df89]">
               ${localRefBal.toLocaleString('en-US', { minimumFractionDigits: 2 })} USDT
             </div>
           </div>
 
           <div className="bg-[#0b0e17] p-3 rounded-2xl border border-[#1f293d]">
-            <span className="text-[10px] text-gray-400 font-extrabold uppercase block mb-1">TOTAL DIRECT CLIENTS</span>
+            <span className="text-[10px] text-gray-400 font-extrabold uppercase block mb-1">KHÁCH TRỰC TIẾP (F1)</span>
             <div className="text-lg font-black text-white flex items-center gap-1">
               <Users className="w-4 h-4 text-[#ff5500]" />
               <span>{referredUsers.length}</span>
-              <span className="text-xs text-gray-500 font-bold">F1s</span>
+              <span className="text-xs text-gray-500 font-bold">Thành viên</span>
             </div>
           </div>
         </div>
@@ -315,7 +264,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
         {/* Exclusive Referral Link Box */}
         <div>
           <label className="text-xs text-gray-400 font-bold block mb-1.5">
-            EXCLUSIVE RESELLER LINK (TELEGRAM BOT DEEP LINK)
+            LINK GIỚI THIỆU CỦA BẠN (GỬI BẠN BÈ ĐỂ NHẬN HOA HỒNG):
           </label>
           <div className="flex items-center gap-2 bg-[#0b0e17] border border-[#1f293d] p-2.5 rounded-2xl">
             <span className="text-xs text-[#ff5500] font-mono font-bold truncate flex-1">
@@ -326,10 +275,75 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
               className="px-3 py-1.5 rounded-xl spartan-orange-btn text-xs font-black flex items-center gap-1 hover:opacity-90 transition-opacity"
             >
               {copied ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-              <span>{copied ? 'Copied' : 'Copy Link'}</span>
+              <span>{copied ? 'Đã chép' : 'Sao chép'}</span>
             </button>
           </div>
         </div>
+      </div>
+
+      {/* 2. COLLAPSIBLE 10 RESELLER TIERS SPECIFICATION ACCORDION */}
+      <div className="spartan-card rounded-3xl p-4 border border-[#1f293d] space-y-3 shadow-md">
+        <button
+          type="button"
+          onClick={() => setShowTierMatrix(!showTierMatrix)}
+          className="w-full flex items-center justify-between text-left"
+        >
+          <div className="flex items-center gap-2">
+            <Trophy className="w-4 h-4 text-[#ff5500]" />
+            <h3 className="text-xs font-black text-white uppercase tracking-wider">
+              BẢNG 10 CẤP ĐỘ HOA HỒNG RESELLER
+            </h3>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-[9px] font-black text-[#ff5500] bg-[#ff5500]/10 px-2 py-0.5 rounded-full border border-[#ff5500]/30">
+              {isAdmin ? '👑 SUPREME LEADER' : `Cấp hiện tại: ${effectiveTier}`}
+            </span>
+            <span className="text-xs text-gray-400 font-bold">
+              {showTierMatrix ? '▲' : '▼'}
+            </span>
+          </div>
+        </button>
+
+        {showTierMatrix && (
+          <div className="space-y-2 max-h-64 overflow-y-auto pr-1.5 pt-2 border-t border-[#1f293d] scrollbar-thin scrollbar-thumb-[#ff5500]/40 scrollbar-track-[#0b0e17] animate-in fade-in duration-200">
+            {resellerLevelsList.map((item) => {
+              const isCurrent = !isAdmin && effectiveTier === item.level;
+              return (
+                <div
+                  key={item.level}
+                  className={`p-2.5 rounded-2xl border flex items-center justify-between transition-all ${
+                    isCurrent
+                      ? 'bg-[#131927] border-[#ff5500] shadow-[0_0_15px_rgba(255,85,0,0.3)]'
+                      : 'bg-[#0b0e17] border-[#1f293d]'
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <span className="text-sm font-black text-[#ff5500]">🎖️</span>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className={`text-xs font-black uppercase tracking-wider ${item.badge.split(' ')[1]}`}>
+                          {item.title}
+                        </span>
+                        {isCurrent && (
+                          <span className="text-[9px] font-black px-1.5 py-0.2 bg-[#ff5500] text-white rounded uppercase">
+                            CẤP CỦA BẠN
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-[10px] text-gray-400 block mt-0.5">{item.req}</span>
+                    </div>
+                  </div>
+
+                  <div className="text-right">
+                    <span className="text-xs font-mono font-black text-[#00df89] block">
+                      {item.share}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Referred Clients Sub-List */}

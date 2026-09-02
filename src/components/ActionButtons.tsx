@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Shield, Send, Power } from 'lucide-react';
+import { Shield, Send, MessageCircle } from 'lucide-react';
 
 interface ActionButtonsProps {
   isActive: boolean;
@@ -14,6 +14,24 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
   onStart,
   onStop,
 }) => {
+  const handleOpenSupport = () => {
+    const supportUrl = 'https://t.me/tddv2017';
+    if (typeof window !== 'undefined' && (window as any).Telegram?.WebApp?.openTelegramLink) {
+      (window as any).Telegram.WebApp.openTelegramLink(supportUrl);
+    } else {
+      window.open(supportUrl, '_blank');
+    }
+  };
+
+  const handleOpenChannel = () => {
+    const channelUrl = 'https://t.me/SpartanQuantAIBot';
+    if (typeof window !== 'undefined' && (window as any).Telegram?.WebApp?.openTelegramLink) {
+      (window as any).Telegram.WebApp.openTelegramLink(channelUrl);
+    } else {
+      window.open(channelUrl, '_blank');
+    }
+  };
+
   return (
     <div className="w-full space-y-2.5 my-2">
       {/* Row 1: Engage Bot vs Standby */}
@@ -28,7 +46,7 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
           }`}
         >
           <span className="text-sm">{isActive ? '⚔️' : '🗡️'}</span>
-          <span>ENGAGE BOT</span>
+          <span>{isActive ? 'BOT ĐANG CHẠY' : 'KÍCH HOẠT BOT'}</span>
         </button>
 
         {/* STANDBY BUTTON */}
@@ -41,26 +59,26 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
           }`}
         >
           <Shield className={`w-4 h-4 ${!isActive ? 'text-amber-400 fill-amber-400/30 animate-pulse' : 'text-gray-500'}`} />
-          <span>STANDBY</span>
+          <span>TẠM DỪNG (STANDBY)</span>
         </button>
       </div>
 
-      {/* Row 2: Spartan AI Chat vs Legion VIP Channel */}
+      {/* Row 2: Real Telegram Support vs Official Signal Channel */}
       <div className="grid grid-cols-2 gap-3">
         <button
-          onClick={() => alert('Spartan AI Chat Assistant')}
-          className="py-3 px-4 rounded-2xl font-bold text-xs flex items-center justify-center gap-2 bg-[#141926] border border-[#1e2638] text-gray-200 hover:border-gray-600 transition-all"
+          onClick={handleOpenSupport}
+          className="py-3 px-4 rounded-2xl font-bold text-xs flex items-center justify-center gap-2 bg-[#141926] border border-[#1e2638] text-gray-200 hover:border-gray-600 transition-all shadow-sm"
         >
-          <span className="text-sm">💬</span>
-          <span>Spartan AI Chat</span>
+          <MessageCircle className="w-4 h-4 text-[#00df89]" />
+          <span>Hỗ Trợ 24/7 (Admin)</span>
         </button>
 
         <button
-          onClick={() => window.open('https://t.me/spartan_trading_bot', '_blank')}
-          className="py-3 px-4 rounded-2xl font-bold text-xs flex items-center justify-center gap-2 bg-[#141926] border border-[#1e2638] text-gray-200 hover:border-gray-600 transition-all"
+          onClick={handleOpenChannel}
+          className="py-3 px-4 rounded-2xl font-bold text-xs flex items-center justify-center gap-2 bg-[#141926] border border-[#1e2638] text-gray-200 hover:border-gray-600 transition-all shadow-sm"
         >
           <Send className="w-3.5 h-3.5 text-[#ff2a54]" />
-          <span>Legion VIP Channel</span>
+          <span>Kênh Tín Hiệu Live</span>
         </button>
       </div>
     </div>

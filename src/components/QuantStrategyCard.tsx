@@ -9,12 +9,12 @@ export const QuantStrategyCard: React.FC = () => {
       <div className="flex items-center gap-2">
         <Shield className="w-4 h-4 text-amber-400 fill-amber-400/20" />
         <h3 className="text-xs font-black text-white uppercase tracking-wider">
-          SPARTAN QUANT STRATEGY
+          CHIẾN LƯỢC ĐỊNH LƯỢNG SPARTAN 300 PRO
         </h3>
       </div>
 
       <p className="text-xs text-gray-400 leading-relaxed font-medium">
-        Running <strong className="text-gray-200">Spartan 300 Multi-TF Pro</strong> on Exness ECN. Ironclad Risk Management, Auto-Breakeven at 1.0R, Hard Stop-Loss on every deal.
+        Vận hành thuật toán <strong className="text-gray-200">Spartan 300 Multi-TF Pro</strong> trực tiếp trên sàn Exness ECN. Quản trị rủi ro đa tầng: Tự động kéo Breakeven hòa vốn tại 1.0R, cài đặt Hard Stop-Loss cho 100% lệnh chốt lời/cắt lỗ chuẩn xác.
       </p>
     </div>
   );

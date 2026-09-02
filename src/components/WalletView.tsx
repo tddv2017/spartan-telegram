@@ -49,7 +49,7 @@ export const WalletView: React.FC<WalletViewProps> = ({
 }) => {
   const [mode, setMode] = useState<'deposit' | 'withdraw'>('deposit');
   const [withdrawSource, setWithdrawSource] = useState<'trading' | 'referral'>('trading');
-  const [amount, setAmount] = useState<string>('1000');
+  const [amount, setAmount] = useState<string>('100');
   const [copied, setCopied] = useState(false);
   const [copiedMemo, setCopiedMemo] = useState(false);
   const [withdrawAddress, setWithdrawAddress] = useState('');
@@ -509,12 +509,12 @@ export const WalletView: React.FC<WalletViewProps> = ({
                 <QrCode className="w-4 h-4" />
               </div>
               <div>
-                <h3 className="text-xs font-black text-white uppercase tracking-wider">DEPOSIT VIA QR CODE (USDT TRC20)</h3>
-                <span className="text-[10px] text-gray-400 font-bold block">Scan to transfer directly from Binance / OKX / Bybit / TrustWallet / @Wallet</span>
+                <h3 className="text-xs font-black text-white uppercase tracking-wider">NẠP TIỀN QUA MÃ QR (USDT TRC20)</h3>
+                <span className="text-[10px] text-gray-400 font-bold block">Chuyển trực tiếp từ Binance, OKX, Bybit, Remitano hoặc Ví cá nhân</span>
               </div>
             </div>
             <span className="text-[10px] font-bold text-[#ff5500] bg-[#ff5500]/10 px-2.5 py-0.5 rounded-full border border-[#ff5500]/20">
-              Fee: 9% + $3.00 USD
+              Phí: 9% + $3.00 USD
             </span>
           </div>
 
@@ -522,7 +522,7 @@ export const WalletView: React.FC<WalletViewProps> = ({
           <div>
             <div className="flex items-center justify-between mb-1.5">
               <label className="text-xs text-gray-400 font-bold">
-                Enter Deposit Amount ($ USD)
+                Nhập Số Tiền Muốn Nạp ($ USDT)
               </label>
               <span className="text-[10px] font-mono font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
                 Tối thiểu: $50.00 USDT
@@ -535,12 +535,31 @@ export const WalletView: React.FC<WalletViewProps> = ({
                 maxLength={10}
                 onChange={(e) => setAmount(e.target.value.slice(0, 10))}
                 className="w-full bg-[#0b0e17] border border-[#1f293d] rounded-2xl py-3 px-4 text-white text-base font-black focus:outline-none focus:border-[#ff5500]"
-                placeholder="1000"
+                placeholder="100"
               />
               <span className="absolute right-4 top-3.5 text-xs font-bold text-gray-400">
                 USDT
               </span>
             </div>
+
+            {/* Quick Amount Preset Chips */}
+            <div className="flex items-center gap-1.5 mt-2 overflow-x-auto pb-1">
+              {[50, 100, 200, 500, 1000].map((preset) => (
+                <button
+                  key={preset}
+                  type="button"
+                  onClick={() => setAmount(preset.toString())}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-mono font-bold transition-all ${
+                    amount === preset.toString()
+                      ? 'bg-[#ff5500] text-white shadow-md'
+                      : 'bg-[#0b0e17] hover:bg-[#131927] text-gray-300 border border-[#1f293d]'
+                  }`}
+                >
+                  ${preset}
+                </button>
+              ))}
+            </div>
+
             {numAmount > 0 && numAmount < 50 && (
               <span className="text-[10px] text-[#ff2d55] font-bold block mt-1.5 animate-pulse">
                 ⚠️ Số tiền nạp (${numAmount.toFixed(2)}) nhỏ hơn mức tối thiểu $50.00 USDT (để đảm bảo hiệu quả phí)!
@@ -551,19 +570,19 @@ export const WalletView: React.FC<WalletViewProps> = ({
           {/* Fee Engine Realtime Breakdown Card */}
           <div className="bg-[#0b0e17] rounded-2xl p-4 border border-[#1f293d] text-xs space-y-2">
             <div className="flex justify-between text-gray-400">
-              <span>Gross Deposit Amount:</span>
+              <span>Số Tiền Nạp Gốc (Gross):</span>
               <span className="font-bold text-gray-200">${depositBreakdown.grossAmount.toFixed(2)} USDT</span>
             </div>
             <div className="flex justify-between text-gray-400">
-              <span>Percentage Fee (9%):</span>
+              <span>Phí Vận Hành Quỹ (9%):</span>
               <span className="font-bold text-[#ff2d55]">-${depositBreakdown.percentageFee.toFixed(2)} USDT</span>
             </div>
             <div className="flex justify-between text-gray-400">
-              <span>Fixed Network Fee ($3.00 USD):</span>
+              <span>Phí Mạng Blockchain ($3.00 USD):</span>
               <span className="font-bold text-[#ff2d55]">-$3.00 USDT</span>
             </div>
             <div className="border-t border-[#1f293d] pt-2 flex justify-between font-black text-sm text-white">
-              <span className="text-[#00df89]">Net Credited to Bot Fund:</span>
+              <span className="text-[#00df89]">Thực Nhận Cộng Vốn Bot:</span>
               <span className="text-[#00df89]">${depositBreakdown.netAmount.toFixed(2)} USDT</span>
             </div>
           </div>
@@ -573,10 +592,10 @@ export const WalletView: React.FC<WalletViewProps> = ({
             <button
               onClick={handleDepositConfirm}
               disabled={loading}
-              className="w-full py-3.5 rounded-2xl spartan-orange-btn font-black text-sm uppercase tracking-wider hover:opacity-95 transition-opacity flex items-center justify-center gap-2 shadow-[0_4px_16px_rgba(255,85,0,0.4)]"
+              className="w-full py-3.5 rounded-2xl spartan-orange-btn font-black text-xs uppercase tracking-wider hover:opacity-95 transition-opacity flex items-center justify-center gap-2 shadow-[0_4px_16px_rgba(255,85,0,0.4)]"
             >
               {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
-              <span>🚀 CREATE DEPOSIT ORDER & GET QR (Net +${depositBreakdown.netAmount.toFixed(2)})</span>
+              <span>🚀 TẠO LỆNH NẠP & LẤY MÃ QR (Thực Nhận: +${depositBreakdown.netAmount.toFixed(2)} USDT)</span>
             </button>
           ) : (
             /* ON-CHAIN AUTO-APPROVE CLEAN QR CODE & FIXED MEMO CARD */

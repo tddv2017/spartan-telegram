@@ -20,7 +20,7 @@ export function getUserRankInfo(
   // 1. SUPREME LEADER (Exclusive ONLY for Admin @tddv2017 / 494232782)
   if (isAdmin || cleanHandle === 'tddv2017' || cleanHandle === 'spartan_9824029') {
     return {
-      rankName: 'SUPREME LEADER',
+      rankName: 'LÃNH ĐẠO TỐI CAO',
       badgeStyle: 'bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-[0_0_10px_rgba(245,158,11,0.3)]',
       icon: '👑'
     };
@@ -30,7 +30,7 @@ export function getUserRankInfo(
   if (role === 'RESELLER' || resellerTier > 0) {
     const tierNum = Math.min(10, Math.max(1, resellerTier));
     return {
-      rankName: `RESELLER LEVEL ${tierNum}`,
+      rankName: `ĐỐI TÁC CẤP ${tierNum}`,
       badgeStyle: 'bg-[#ff5500]/20 text-[#ff5500] border border-[#ff5500]/40 shadow-[0_0_10px_rgba(255,85,0,0.3)]',
       icon: '🎖️'
     };
@@ -38,7 +38,7 @@ export function getUserRankInfo(
 
   // 3. SPARTAN TRADER
   return {
-    rankName: 'SPARTAN TRADER',
+    rankName: 'NHÀ ĐẦU TƯ SPARTAN',
     badgeStyle: 'bg-[#131927] text-gray-300 border border-[#1f293d]',
     icon: '🛡️'
   };
@@ -74,18 +74,29 @@ export const Header: React.FC<HeaderProps> = ({
       {/* Top Telegram Header Bar */}
       <div className="flex items-center justify-between text-sm text-gray-400 mb-3">
         <button 
-          onClick={onClose} 
+          onClick={() => {
+            if (typeof window !== 'undefined' && (window as any).Telegram?.WebApp?.close) {
+              (window as any).Telegram.WebApp.close();
+            } else if (onClose) {
+              onClose();
+            }
+          }} 
           className="text-[#ff5500] font-bold text-xs hover:opacity-80 transition-opacity"
         >
-          Close
+          Đóng
         </button>
         <div className="text-center flex items-center gap-1.5 justify-center">
-          <h1 className="font-extrabold text-white text-sm tracking-wide">SPARTAN TRADING SYSTEM</h1>
-          <span className="text-[9px] text-[#ff5500] font-black uppercase tracking-widest px-1.5 py-0.5 bg-[#ff5500]/15 rounded border border-[#ff5500]/40">LIVE</span>
+          <h1 className="font-extrabold text-white text-sm tracking-wide">SPARTAN QUANT 300 AI</h1>
+          <span className="text-[9px] text-[#00df89] font-black uppercase tracking-widest px-2 py-0.5 bg-[#00df89]/15 rounded-full border border-[#00df89]/40 flex items-center gap-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#00df89] animate-ping" />
+            LIVE MT5
+          </span>
         </div>
-        <button className="p-1 rounded-full hover:bg-gray-800 text-gray-400">
-          <MoreHorizontal className="w-5 h-5" />
-        </button>
+        <div className="w-8 flex justify-end">
+          <button className="p-1 rounded-full hover:bg-gray-800 text-gray-400">
+            <MoreHorizontal className="w-5 h-5" />
+          </button>
+        </div>
       </div>
 
       {/* Brand Header & Supreme Leader / 10-Level Reseller Badge */}
@@ -135,15 +146,15 @@ export const Header: React.FC<HeaderProps> = ({
           {isTechOpsPaused ? (
             <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-red-500/15 border border-red-500/40 text-red-400 text-[10px] font-black shadow-[0_0_10px_rgba(239,68,68,0.3)] animate-pulse">
               <span className="w-2 h-2 rounded-full bg-red-500"></span>
-              <span>BOT PAUSED</span>
+              <span>BOT DỪNG</span>
             </div>
           ) : isBotActive ? (
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#ff5500]/10 border border-[#ff5500]/40 text-[#ff5500] text-[11px] font-extrabold shadow-[0_0_10px_rgba(255,85,0,0.2)]">
-              <Activity className="w-3.5 h-3.5 text-[#ff5500] animate-pulse" />
-              <span>BOT ACTIVE</span>
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#00df89]/10 border border-[#00df89]/40 text-[#00df89] text-[11px] font-extrabold shadow-[0_0_10px_rgba(0,223,137,0.2)]">
+              <Activity className="w-3.5 h-3.5 text-[#00df89] animate-pulse" />
+              <span>BOT LIVE</span>
             </div>
           ) : (
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gray-800 border border-gray-700 text-gray-400 text-[11px] font-extrabold">
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gray-800 border border-gray-700 text-gray-400 text-[11px] font-bold">
               <span className="w-2 h-2 rounded-full bg-gray-500"></span>
               <span>STANDBY</span>
             </div>

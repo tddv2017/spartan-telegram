@@ -27,7 +27,7 @@ export const BalanceCard: React.FC<BalanceCardProps> = ({
       {/* Header Line */}
       <div className="flex items-center justify-between mb-2">
         <span className="text-xs font-bold text-white/95 tracking-tight">
-          Total Balance (Incl. Reseller Rebates):
+          Tổng Tài Sản (Gồm Vốn & Hoa Hồng):
         </span>
         <span className="text-[10px] font-black px-3 py-1 rounded-full bg-black/40 text-white border border-white/20 uppercase tracking-wider">
           SPARTAN 300 AI
@@ -45,18 +45,18 @@ export const BalanceCard: React.FC<BalanceCardProps> = ({
       {/* Bottom Row */}
       <div className="flex items-center justify-between pt-2">
         <span className="text-xs font-bold text-white/95">
-          Trading Capital: ${tradingBalance.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 2 })}
+          Vốn Bot Giao Dịch: ${tradingBalance.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 2 })}
         </span>
 
         <span className="text-xs font-black text-[#00df89] px-3 py-1.5 rounded-xl bg-[#00df89]/15 border border-[#00df89]/60 shadow-[0_0_10px_rgba(0,223,137,0.15)]">
-          Reseller Rebate: +${referralsIncome.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USDT
+          Hoa Hồng: +${referralsIncome.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USDT
         </span>
       </div>
 
       {/* Realtime Profit Allocation Row */}
       <div className="mt-3 pt-2.5 border-t border-white/20 flex items-center justify-between text-xs">
         <span className="text-xs font-bold text-white/90">
-          Lợi nhuận tích lũy từ Bot:
+          Lợi Nhuận Tích Lũy Từ Bot:
         </span>
         <span className={`text-sm font-mono font-black ${estimatedPoolProfit >= 0 ? 'text-[#00df89]' : 'text-red-300'}`}>
           {estimatedPoolProfit >= 0 ? '+' : ''}${estimatedPoolProfit.toFixed(2)} USDT

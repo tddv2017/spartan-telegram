@@ -17,11 +17,11 @@ export const BottomNav: React.FC<BottomNavProps> = ({
   isAdmin = false,
 }) => {
   const navItems = [
-    { id: 'home' as TabType, label: 'BATTLEGROUND', icon: Home },
-    { id: 'wallet' as TabType, label: 'INVEST', icon: Wallet },
-    { id: 'analytics' as TabType, label: 'ANALYTICS', icon: BarChart2 },
-    { id: 'profile' as TabType, label: 'RESELLER', icon: Award },
-    ...(isAdmin ? [{ id: 'admin' as TabType, label: 'ADMIN', icon: ShieldAlert }] : []),
+    { id: 'home' as TabType, label: 'TỔNG QUAN', icon: Home },
+    { id: 'wallet' as TabType, label: 'VÍ ĐẦU TƯ', icon: Wallet },
+    { id: 'analytics' as TabType, label: 'THỐNG KÊ', icon: BarChart2 },
+    { id: 'profile' as TabType, label: 'ĐỐI TÁC', icon: Award },
+    ...(isAdmin ? [{ id: 'admin' as TabType, label: 'QUẢN TRỊ', icon: ShieldAlert }] : []),
   ];
 
   return (
