@@ -22,10 +22,11 @@ import { TechOpsTab } from '@/components/admin/TechOpsTab';
 import { AiAgentsCommandCenter } from '@/components/admin/AiAgentsCommandCenter';
 import { AdminUserCrudManager } from '@/components/admin/AdminUserCrudManager';
 import { AdminTransactionCrudManager } from '@/components/admin/AdminTransactionCrudManager';
-import { AdminPinAuthModal } from '@/components/admin/AdminPinAuthModal';
+import { AdminBinance3FaModal } from '@/components/admin/AdminBinance3FaModal';
 import { SecurityPenTestLab } from '@/components/admin/SecurityPenTestLab';
 import { NotificationModal } from '@/components/NotificationModal';
 import { generateUserNotifications } from '@/lib/notificationService';
+import { getAdmin3FaConfig, saveAdmin3FaConfig, Admin3FaConfig } from '@/lib/admin3faService';
 import { 
   ShieldCheck, 
   Layers, 
@@ -45,7 +46,9 @@ import {
   LogOut,
   KeyRound,
   ShieldAlert,
-  Bell
+  Bell,
+  Smartphone,
+  Mail
 } from 'lucide-react';
 
 type AdminNavSection = 
@@ -92,6 +95,21 @@ export default function StandaloneAdminPortalPage() {
   const [isChangePinOpen, setIsChangePinOpen] = useState(false);
   const [newPinInput, setNewPinInput] = useState('');
   const [pinChangeSuccess, setPinChangeSuccess] = useState<string | null>(null);
+
+  // 3FA Custody Settings Modal State
+  const [is3FaSettingsOpen, setIs3FaSettingsOpen] = useState(false);
+  const [threeFaConfig, setThreeFaConfig] = useState<Admin3FaConfig>(getAdmin3FaConfig());
+  const [threeFaSaveSuccess, setThreeFaSaveSuccess] = useState<string | null>(null);
+
+  const handleSave3FaConfig = (e: React.FormEvent) => {
+    e.preventDefault();
+    saveAdmin3FaConfig(threeFaConfig);
+    setThreeFaSaveSuccess('✓ Đã cập nhật thành công cấu hình Gmail Lưu Ký và Thiết Bị Di Động!');
+    setTimeout(() => {
+      setThreeFaSaveSuccess(null);
+      setIs3FaSettingsOpen(false);
+    }, 2000);
+  };
 
   // Load All System Data
   const loadSystemData = async () => {
@@ -215,9 +233,9 @@ export default function StandaloneAdminPortalPage() {
     { id: 'security_lab' as AdminNavSection, label: 'TEST AN NINH (5 KỊCH BẢN)', icon: ShieldAlert, badge: 'LAB' },
   ];
 
-  // If not authenticated, render 6-digit military Master PIN Gate
+  // If not authenticated, render Binance-Grade 3FA Institutional Security Suite (Master PIN + Gmail Custody + Phone Biometrics)
   if (!isAuthenticated) {
-    return <AdminPinAuthModal onSuccess={() => setIsAuthenticated(true)} />;
+    return <AdminBinance3FaModal onSuccess={() => setIsAuthenticated(true)} />;
   }
 
   return (
@@ -277,6 +295,16 @@ export default function StandaloneAdminPortalPage() {
             title="Làm mới toàn bộ dữ liệu"
           >
             <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin text-amber-400' : ''}`} />
+          </button>
+
+          {/* Binance 3FA Custody Settings Button */}
+          <button
+            onClick={() => setIs3FaSettingsOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-300 text-xs font-bold transition-all shadow-sm"
+            title="Cấu hình bảo mật 3 lớp Gmail & Thiết bị di động"
+          >
+            <ShieldCheck className="w-4 h-4 text-amber-400" />
+            <span className="hidden md:inline">Bảo Mật 3FA</span>
           </button>
 
           {/* Change PIN Button */}
@@ -486,6 +514,89 @@ export default function StandaloneAdminPortalPage() {
                   className="px-4 py-3 rounded-xl bg-[#131927] text-gray-400 hover:text-white border border-[#1f293d] text-xs font-bold"
                 >
                   HỦY
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* 3FA Custody Settings Modal */}
+      {is3FaSettingsOpen && (
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-[#0b0e17] border-2 border-amber-500/40 rounded-3xl p-6 max-w-md w-full space-y-4 shadow-[0_0_40px_rgba(245,158,11,0.2)] animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between border-b border-[#1f293d] pb-3">
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="w-5 h-5 text-amber-400" />
+                <h3 className="text-sm font-black text-white uppercase tracking-wider">
+                  CẤU HÌNH BẢO MẬT 3FA BINANCE
+                </h3>
+              </div>
+              <button
+                onClick={() => setIs3FaSettingsOpen(false)}
+                className="text-gray-400 hover:text-white text-xs font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            {threeFaSaveSuccess && (
+              <div className="p-3 bg-[#00df89]/20 border border-[#00df89] rounded-2xl text-[#00df89] text-xs font-bold">
+                {threeFaSaveSuccess}
+              </div>
+            )}
+
+            <form onSubmit={handleSave3FaConfig} className="space-y-4 text-xs">
+              <div className="space-y-1.5">
+                <label className="text-gray-300 font-bold flex items-center gap-1.5">
+                  <Mail className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Gmail Ký Lưu Ký Số (Nhận OTP):</span>
+                </label>
+                <input
+                  type="email"
+                  required
+                  value={threeFaConfig.adminEmail}
+                  onChange={(e) => setThreeFaConfig({ ...threeFaConfig, adminEmail: e.target.value })}
+                  placeholder="admin@spartan.trade hoặc yourname@gmail.com"
+                  className="w-full bg-[#131927] border border-[#1f293d] rounded-xl py-2.5 px-3 text-white text-xs font-mono focus:outline-none focus:border-amber-400"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-gray-300 font-bold flex items-center gap-1.5">
+                  <Smartphone className="w-3.5 h-3.5 text-[#00df89]" />
+                  <span>Thiết Bị Di Động Tin Cậy (Chấp Thuận / Passkey):</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={threeFaConfig.deviceName}
+                  onChange={(e) => setThreeFaConfig({ ...threeFaConfig, deviceName: e.target.value })}
+                  placeholder="VD: iPhone 15 Pro Max của Chỉ Huy"
+                  className="w-full bg-[#131927] border border-[#1f293d] rounded-xl py-2.5 px-3 text-white text-xs font-mono focus:outline-none focus:border-[#00df89]"
+                />
+              </div>
+
+              <div className="p-3 bg-[#07090e] rounded-xl border border-[#1f293d] text-[10px] text-gray-400 font-mono space-y-1">
+                <span className="text-amber-400 font-bold block uppercase">Cơ chế bảo vệ 3 lớp:</span>
+                <span>• Lớp 1: Mã Master PIN 6 số.</span>
+                <span>• Lớp 2: Ký mật mã số & OTP gửi về Gmail.</span>
+                <span>• Lớp 3: Chấp thuận trực tiếp trên phần cứng điện thoại (Biometrics / Authenticator).</span>
+              </div>
+
+              <div className="flex items-center gap-2 pt-2">
+                <button
+                  type="submit"
+                  className="flex-1 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-[#ff5500] text-black font-black text-xs uppercase shadow-md hover:opacity-90 transition-all"
+                >
+                  LƯU CẤU HÌNH 3FA
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIs3FaSettingsOpen(false)}
+                  className="px-4 py-3 rounded-xl bg-[#131927] text-gray-400 hover:text-white border border-[#1f293d] text-xs font-bold"
+                >
+                  ĐÓNG
                 </button>
               </div>
             </form>
