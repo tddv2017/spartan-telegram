@@ -8,8 +8,8 @@
  */
 
 import { approveLiveTransaction, TransactionData } from './firebaseService';
-import { DEFAULT_TREASURY_VAULT } from './walletConfig';
-import { fetchTronScanTRC20Transfers, fetchTronGridTRC20Transfers } from './tronService';
+import { fetchTreasuryVault, DEFAULT_TREASURY_VAULT } from './walletConfig';
+import { fetchTronScanTRC20Transfers, fetchTronGridTRC20Transfers, TronTRC20Transfer } from './tronService';
 
 export interface AiScanResult {
   status: 'VERIFIED_MATCH' | 'FRAUD_WARNING' | 'PROCESSING' | 'ERROR';
@@ -34,6 +34,55 @@ export interface AiScanResult {
 }
 
 const RTDB_BASE_URL = "https://decisive-mapper-216306-default-rtdb.asia-southeast1.firebasedatabase.app";
+const USDT_CONTRACT = 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t';
+
+/**
+ * Direct TronScan API Query by specific Transaction Hash
+ */
+export async function queryTronScanTransactionByHash(txHash: string): Promise<TronTRC20Transfer | null> {
+  const cleanHash = txHash.trim();
+  if (cleanHash.length < 20) return null;
+
+  try {
+    const url = `https://apilist.tronscanapi.com/api/transaction-info?hash=${cleanHash}`;
+    const res = await fetch(url, { headers: { 'Accept': 'application/json' }, next: { revalidate: 5 } });
+    
+    if (res.ok) {
+      const data = await res.json();
+      if (data && (data.confirmed || data.contractRet === 'SUCCESS')) {
+        const transferList = data.trc20TransferInfo || data.transfersAllList || [];
+        const usdtTransfer = transferList.find((t: any) => 
+          t.symbol === 'USDT' || 
+          t.contract_address === USDT_CONTRACT ||
+          t.tokenType === 'trc20'
+        ) || transferList[0];
+
+        if (usdtTransfer) {
+          const rawVal = parseFloat(usdtTransfer.amount_str || usdtTransfer.amount || usdtTransfer.quant || '0');
+          const decimals = usdtTransfer.decimals || 6;
+          const amount = rawVal > 1000 ? rawVal / Math.pow(10, decimals) : rawVal;
+
+          return {
+            transaction_id: data.hash || cleanHash,
+            from: usdtTransfer.from_address || data.ownerAddress || 'Unknown',
+            to: usdtTransfer.to_address,
+            value: usdtTransfer.amount_str || String(amount),
+            amount: amount,
+            token_info: {
+              symbol: usdtTransfer.symbol || 'USDT',
+              address: usdtTransfer.contract_address || USDT_CONTRACT,
+              decimals: decimals
+            },
+            block_timestamp: data.timestamp
+          };
+        }
+      }
+    }
+  } catch (err) {
+    console.error('Error querying TronScan by hash:', err);
+  }
+  return null;
+}
 
 /**
  * Log fraud alert to Firebase for the Cybersecurity Task Force
@@ -74,10 +123,15 @@ export async function scanReceiptAndVerifyOnChain(
   customMemoOrTxHash?: string,
   expectedGrossAmount?: number
 ): Promise<AiScanResult> {
-  const masterWallet = DEFAULT_TREASURY_VAULT.exnessMasterWallet;
+  const vault = await fetchTreasuryVault();
+  const validMasterWallets = [
+    vault.exnessMasterWallet, 
+    vault.treasuryReserveWallet, 
+    DEFAULT_TREASURY_VAULT.exnessMasterWallet,
+    DEFAULT_TREASURY_VAULT.treasuryReserveWallet
+  ].filter(Boolean);
 
-  // 1. Simulate AI Vision OCR analysis on the receipt image
-  // Extract information based on input or image signature
+  // 1. Extract information from input or image signature
   const cleanInput = (customMemoOrTxHash || '').trim();
   const isLikelyTxHash = cleanInput.length >= 24 && /^[a-zA-Z0-9_-]+$/.test(cleanInput);
   
@@ -88,23 +142,34 @@ export async function scanReceiptAndVerifyOnChain(
   const extractedMemo = (!isLikelyTxHash && cleanInput) ? cleanInput : `SPARTAN_${userId}_${Math.floor(Date.now() / 1000).toString().slice(-4)}`;
   const extractedAmount = expectedGrossAmount && expectedGrossAmount > 0 ? expectedGrossAmount : 1000;
 
-  // 2. Query On-Chain Blockchain Data via TRON API
-  const transfers = await fetchTronScanTRC20Transfers();
-  const altTransfers = await fetchTronGridTRC20Transfers();
-  const allTransfers = [...transfers, ...altTransfers];
+  // 2. Query On-Chain Blockchain Data via Direct Hash Lookup OR Account History
+  let match: TronTRC20Transfer | null = null;
 
-  // Look for match on TxHash OR Memo OR exact amount within recent window
-  const match = allTransfers.find(tr => 
-    (tr.transaction_id && tr.transaction_id.toLowerCase() === extractedTxHash.toLowerCase()) ||
-    (tr.memo && tr.memo.toLowerCase() === extractedMemo.toLowerCase()) ||
-    (expectedGrossAmount && Math.abs(tr.amount - expectedGrossAmount) < 0.01)
-  );
+  // A. Direct hash lookup if hash was typed or extracted from OCR
+  if (isLikelyTxHash || cleanInput.length >= 24) {
+    match = await queryTronScanTransactionByHash(cleanInput);
+  }
+
+  // B. Fallback: Search in recent transfers of vault wallets
+  if (!match) {
+    const transfers = await fetchTronScanTRC20Transfers();
+    const altTransfers = await fetchTronGridTRC20Transfers();
+    const allTransfers = [...transfers, ...altTransfers];
+
+    match = allTransfers.find(tr => 
+      (tr.transaction_id && tr.transaction_id.toLowerCase() === extractedTxHash.toLowerCase()) ||
+      (tr.memo && tr.memo.toLowerCase() === extractedMemo.toLowerCase()) ||
+      (expectedGrossAmount && Math.abs(tr.amount - expectedGrossAmount) < 0.01)
+    ) || null;
+  }
 
   // 3. Evaluation & Forensics Verdict
   if (match) {
-    // Check A: Recipient address matches Master Wallet
-    if (match.to && match.to !== masterWallet) {
-      const anomaly = `Địa chỉ ví nhận trên Blockchain (${match.to.slice(0, 8)}...) không khớp với Ví Master Exness (${masterWallet.slice(0, 8)}...).`;
+    // Check A: Recipient address matches Master Wallet or Treasury Vault
+    const isRecipientValid = validMasterWallets.some(w => w && match?.to && w.toLowerCase() === match.to.toLowerCase());
+
+    if (!isRecipientValid) {
+      const anomaly = `Địa chỉ ví nhận trên Blockchain (${match.to.slice(0, 8)}...) không khớp với Ví Master Exness (${vault.exnessMasterWallet.slice(0, 8)}...).`;
       await logSecurityFraudAlert({
         userId,
         username,
@@ -124,7 +189,7 @@ export async function scanReceiptAndVerifyOnChain(
           memo: extractedMemo,
           recipientAddress: match.to
         },
-        aiVerdict: `🚨 CẢNH BÁO AN NINH: Phát hiện giao dịch chuyển tới ví lạ không thuộc hệ thống! Hồ sơ đã được chuyển giao cho Đội An Ninh AI (Spartan Forensics AI) thụ lý.`,
+        aiVerdict: `🚨 CẢNH BÁO AN NINH: Phát hiện giao dịch chuyển tới ví lạ không thuộc hệ thống (${match.to})! Hồ sơ đã được chuyển giao cho Đội An Ninh AI thụ lý.`,
         anomalyReasons: [anomaly]
       };
     }
@@ -137,7 +202,7 @@ export async function scanReceiptAndVerifyOnChain(
         if (allTxs) {
           const isAlreadyClaimed = Object.values(allTxs).some((t: any) => 
             t && t.id !== orderId && t.status === 'APPROVED' && 
-            (t.memoCode === match.transaction_id || t.id === match.transaction_id || (t.approvedBy && t.approvedBy.includes(match.transaction_id)))
+            (t.memoCode === match?.transaction_id || t.id === match?.transaction_id || (t.approvedBy && t.approvedBy.includes(match?.transaction_id)))
           );
 
           if (isAlreadyClaimed) {
@@ -159,7 +224,7 @@ export async function scanReceiptAndVerifyOnChain(
                 txHash: match.transaction_id,
                 amount: match.amount,
                 memo: extractedMemo,
-                recipientAddress: masterWallet
+                recipientAddress: match.to
               },
               aiVerdict: `🚨 CẢNH BÁO GIAN LẬN: Mã TxHash này đã được ghi nhận nạp tiền cho người khác! Hệ thống đã ghi nhận hành vi mạo danh chiếm đoạt tiền và chuyển giao hồ sơ cho Đội An Ninh.`,
               anomalyReasons: [anomaly, 'Hành vi cố ý copy mã TxHash của người khác trên TronScan là vi phạm nghiêm trọng.']
@@ -179,7 +244,7 @@ export async function scanReceiptAndVerifyOnChain(
         txHash: match.transaction_id,
         amount: match.amount,
         memo: extractedMemo,
-        recipientAddress: masterWallet,
+        recipientAddress: match.to,
         senderAddress: match.from
       },
       blockchainData: {
@@ -188,7 +253,7 @@ export async function scanReceiptAndVerifyOnChain(
         contractRet: 'SUCCESS'
       },
       resolvedOrderId: orderId,
-      aiVerdict: `🎉 AI FORENSICS ĐỐI SOÁT THÀNH CÔNG: Bill chuyển khoản khớp 100% với giao dịch On-Chain trên Blockchain TRON! Đã tự động duyệt đơn nạp #${orderId} (+${(match.amount * 0.91 - 3).toFixed(2)} USDT) vào vốn Bot.`
+      aiVerdict: `🎉 AI FORENSICS ĐỐI SOÁT THÀNH CÔNG: Giao dịch ${match.transaction_id.slice(0, 12)}... (${match.amount.toFixed(2)} USDT) gửi tới ví Master ${match.to.slice(0, 8)}... đã được xác thực 100% trên Blockchain TRON! Đã tự động duyệt đơn nạp #${orderId} và cộng vốn Net.`
     };
   }
 
@@ -215,7 +280,7 @@ export async function scanReceiptAndVerifyOnChain(
       txHash: extractedTxHash,
       amount: extractedAmount,
       memo: extractedMemo,
-      recipientAddress: masterWallet
+      recipientAddress: vault.exnessMasterWallet
     },
     blockchainData: {
       confirmed: false,
