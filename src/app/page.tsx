@@ -168,7 +168,7 @@ export default function Home() {
   const effectiveBotActive = isBotActive && isGlobalBotActive && !isAccountFrozen;
 
   return (
-    <main className="flex-1 flex flex-col pb-20">
+    <main className="max-w-md mx-auto w-full min-h-screen flex flex-col bg-[#080c14] relative shadow-2xl pb-20">
       {/* Clean App Header */}
       <Header 
         username={currentTelegramUser}

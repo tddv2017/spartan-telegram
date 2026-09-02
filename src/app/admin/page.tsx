@@ -271,8 +271,8 @@ export default function StandaloneAdminPortalPage() {
           </div>
         </aside>
 
-        {/* Right Content Workspace */}
-        <main className="flex-1 p-4 md:p-8 overflow-y-auto max-w-7xl mx-auto w-full space-y-6">
+        {/* Right Content Workspace (100% Full Width Desktop Screen) */}
+        <main className="flex-1 p-4 md:p-8 overflow-y-auto w-full space-y-6">
           {/* Status Toast Banner */}
           {adminStatusMsg && (
             <div className="p-4 bg-amber-500/20 border border-amber-500 rounded-3xl text-amber-300 text-xs font-bold flex items-center gap-2 animate-bounce shadow-lg">

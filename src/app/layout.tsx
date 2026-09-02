@@ -17,8 +17,8 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Spartan Quant AI Bot - Telegram Mini App",
-  description: "Institutional AI Spartan Quant Trading Bot Mini App",
+  title: "Spartan Quant AI Bot - Institutional Portal",
+  description: "Institutional AI Spartan Quant Trading Bot & Admin Portal",
 };
 
 export default function RootLayout({
@@ -32,7 +32,7 @@ export default function RootLayout({
         <script src="https://telegram.org/js/telegram-web-app.js" async />
       </head>
       <body className="bg-[#080c14] text-white min-h-screen font-sans antialiased selection:bg-[#00ff88] selection:text-black">
-        <div className="max-w-md mx-auto min-h-screen flex flex-col bg-[#080c14] relative shadow-2xl">
+        <div className="w-full min-h-screen flex flex-col bg-[#080c14] relative">
           {children}
         </div>
       </body>
