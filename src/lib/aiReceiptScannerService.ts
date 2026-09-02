@@ -102,7 +102,7 @@ export async function scanReceiptAndVerifyOnChain(
 
   // 3. Evaluation & Forensics Verdict
   if (match) {
-    // Check if recipient address matches Master Wallet
+    // Check A: Recipient address matches Master Wallet
     if (match.to && match.to !== masterWallet) {
       const anomaly = `Địa chỉ ví nhận trên Blockchain (${match.to.slice(0, 8)}...) không khớp với Ví Master Exness (${masterWallet.slice(0, 8)}...).`;
       await logSecurityFraudAlert({
@@ -128,6 +128,46 @@ export async function scanReceiptAndVerifyOnChain(
         anomalyReasons: [anomaly]
       };
     }
+
+    // Check B: Anti-Replay Single-Use Hash Lock (Chống ăn trộm TxHash đã dùng)
+    try {
+      const txsRes = await fetch(`${RTDB_BASE_URL}/transactions.json`);
+      if (txsRes.ok) {
+        const allTxs = await txsRes.json();
+        if (allTxs) {
+          const isAlreadyClaimed = Object.values(allTxs).some((t: any) => 
+            t && t.id !== orderId && t.status === 'APPROVED' && 
+            (t.memoCode === match.transaction_id || t.id === match.transaction_id || (t.approvedBy && t.approvedBy.includes(match.transaction_id)))
+          );
+
+          if (isAlreadyClaimed) {
+            const anomaly = `Mã giao dịch On-Chain "${match.transaction_id}" đã được một tài khoản khác sử dụng để nạp tiền thành công trước đó (Replay / Spoofing Attack)!`;
+            await logSecurityFraudAlert({
+              userId,
+              username,
+              orderId,
+              inputMemo: extractedMemo,
+              txHash: match.transaction_id,
+              reason: anomaly,
+              timestamp: new Date().toISOString()
+            });
+
+            return {
+              status: 'FRAUD_WARNING',
+              score: 5,
+              extractedData: {
+                txHash: match.transaction_id,
+                amount: match.amount,
+                memo: extractedMemo,
+                recipientAddress: masterWallet
+              },
+              aiVerdict: `🚨 CẢNH BÁO GIAN LẬN: Mã TxHash này đã được ghi nhận nạp tiền cho người khác! Hệ thống đã ghi nhận hành vi mạo danh chiếm đoạt tiền và chuyển giao hồ sơ cho Đội An Ninh.`,
+              anomalyReasons: [anomaly, 'Hành vi cố ý copy mã TxHash của người khác trên TronScan là vi phạm nghiêm trọng.']
+            };
+          }
+        }
+      }
+    } catch (e) {}
 
     // MATCH SUCCESS -> Auto Approve Deposit
     const approveRes = await approveLiveTransaction(orderId, 'AI_VISION_OCR_RESOLVER', match.amount);
