@@ -404,6 +404,8 @@ export default function Home() {
             masterPoolBalance={masterPoolBalance}
             totalMasterProfit={masterPoolProfit}
             userCapitalJoinedAt={userCapitalJoinedAt}
+            username={currentTelegramUser}
+            telegramId={currentTelegramId}
           />
         </div>
       )}

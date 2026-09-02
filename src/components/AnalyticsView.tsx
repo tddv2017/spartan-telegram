@@ -2,14 +2,17 @@
 
 import React, { useState, useEffect } from 'react';
 import { TradeHistoryCard, TradeOrder } from '@/components/TradeHistoryCard';
-import { BarChart3 } from 'lucide-react';
+import { BarChart3, Share2, Sparkles, Flame } from 'lucide-react';
 import { subscribeToLiveTrades } from '@/lib/firebaseService';
+import { ViralPnlModal } from '@/components/ViralPnlModal';
 
 interface AnalyticsViewProps {
   tradingBalance?: number;
   masterPoolBalance?: number;
   totalMasterProfit?: number;
   userCapitalJoinedAt?: string | null;
+  username?: string;
+  telegramId?: string;
 }
 
 export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
@@ -17,8 +20,11 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   masterPoolBalance = 50308.20,
   totalMasterProfit = 0,
   userCapitalJoinedAt,
+  username = 'spartan_trader',
+  telegramId = '494232782',
 }) => {
   const [trades, setTrades] = useState<TradeOrder[]>([]);
+  const [isOverallShareOpen, setIsOverallShareOpen] = useState(false);
 
   useEffect(() => {
     const unsub = subscribeToLiveTrades((liveTrades) => {
@@ -130,8 +136,32 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
         </div>
       </div>
 
+      {/* VIRAL SHARE OVERALL PNL POSTER BUTTON */}
+      <button
+        onClick={() => setIsOverallShareOpen(true)}
+        className="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-[#ff5500] via-amber-500 to-[#00df89] text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-[0_4px_16px_rgba(255,85,0,0.4)] hover:opacity-95 transition-opacity"
+      >
+        <Flame className="w-4 h-4 animate-bounce" />
+        <span>📸 TẠO POSTER KHOE LÃI & CHIA SẺ TELEGRAM (NHẬN REF)</span>
+      </button>
+
       {/* TRADE HISTORY CARD SCALED TO USER'S CAPITAL */}
-      <TradeHistoryCard shareRatio={userRatio} userCapitalJoinedAt={userCapitalJoinedAt} />
+      <TradeHistoryCard 
+        shareRatio={userRatio} 
+        userCapitalJoinedAt={userCapitalJoinedAt}
+        username={username}
+        telegramId={telegramId}
+      />
+
+      {/* VIRAL PNL MODAL FOR OVERALL PERFORMANCE */}
+      <ViralPnlModal
+        isOpen={isOverallShareOpen}
+        onClose={() => setIsOverallShareOpen(false)}
+        overallPnl={userGrossProfit - userGrossLoss > 0 ? (userGrossProfit - userGrossLoss) : (totalMasterProfit || 365.00)}
+        overallGrowth={Number(winRate) > 0 ? Number(winRate) : 1.46}
+        username={username}
+        telegramId={telegramId}
+      />
     </div>
   );
 };

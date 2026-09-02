@@ -63,6 +63,53 @@ export async function POST(req: Request) {
         body: JSON.stringify(tradeData)
       });
 
+      // Automatically Broadcast Live Signal to Telegram Channel if configured
+      try {
+        const configRes = await fetch(`${RTDB_BASE_URL}/system_config.json`);
+        let channelId = process.env.TELEGRAM_SIGNAL_CHANNEL_ID || '';
+        if (configRes.ok) {
+          const cfg = await configRes.json();
+          if (cfg?.signalChannelId) channelId = cfg.signalChannelId;
+        }
+
+        if (channelId) {
+          const botToken = process.env.BOT_TOKEN || '8897704483:AAFRtOHaF4UdH25pgf_IffQUNpCAy0YFp_Q';
+          const isWin = cleanPnl >= 0;
+          const statusHeader = isWin 
+            ? '🎯 *[SPARTAN QUANT 300 AI • CHỐT LỜI THÀNH CÔNG]*' 
+            : '🛡️ *[SPARTAN QUANT 300 AI • BẢO TOÀN RỦI RO STOPLOSS]*';
+
+          const signalMessage = 
+            `${statusHeader}\n\n` +
+            `📊 *Cặp giao dịch:* #${tradeData.symbol} (Gold Scalp M5)\n` +
+            `📌 *Vị thế:* ${tradeData.type} ${tradeData.lots} Lot\n` +
+            `💵 *Lợi nhuận Master Pool:* *${isWin ? '+' : ''}$${cleanPnl.toFixed(2)} USD* (${isWin ? '+' : ''}${cleanPnlPct.toFixed(2)}%)\n` +
+            (openPrice > 0 ? `⏱ *Khớp lệnh:* ${openPrice} ➔ ${closePrice}\n` : '') +
+            `👥 *Phân bổ:* 100% nhà đầu tư có vốn góp đã được tự động chia lãi vào tài khoản!\n\n` +
+            `🚀 *Tham gia góp vốn & nhận chia sẻ lợi nhuận 24/7 cùng Bot tại:*`;
+
+          fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              chat_id: channelId,
+              text: signalMessage,
+              parse_mode: 'Markdown',
+              reply_markup: {
+                inline_keyboard: [
+                  [
+                    {
+                      text: "🚀 VÀO MINI APP NHẬN LÃI NGAY",
+                      url: "https://t.me/SpartanQuantAIBot"
+                    }
+                  ]
+                ]
+              }
+            })
+          }).catch(() => {});
+        }
+      } catch (broadcastErr) {}
+
       return NextResponse.json({
         success: true,
         message: `✓ Đã đồng bộ lệnh ${tradeType} ${tradeData.symbol} (#${tradeId}) vào hệ thống thành công!`,

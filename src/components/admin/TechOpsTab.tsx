@@ -39,6 +39,10 @@ export const TechOpsTab: React.FC<TechOpsTabProps> = ({
   const [updatingSystem, setUpdatingSystem] = useState(false);
   const [statusMsg, setStatusMsg] = useState<string | null>(null);
   const [maintenanceNotice, setMaintenanceNotice] = useState(systemConfig.broadcastNotice || '');
+  const [signalChannel, setSignalChannel] = useState(systemConfig.signalChannelId || '');
+  const [testingSignal, setTestingSignal] = useState(false);
+  const [signalResult, setSignalResult] = useState<string | null>(null);
+  const [savingChannel, setSavingChannel] = useState(false);
 
   // Live EA Master Pool State
   const [masterPool, setMasterPool] = useState<any>(null);
@@ -251,6 +255,122 @@ export const TechOpsTab: React.FC<TechOpsTabProps> = ({
           <div>1. Mở MT5/MT4 -&gt; Bấm <strong className="text-white">Ctrl + O</strong> -&gt; Tab <strong className="text-white">Expert Advisors</strong> -&gt; Tích chọn <strong className="text-amber-300">Allow WebRequest for listed URL</strong> -&gt; Thêm URL: <strong className="text-amber-300">https://spartan-telegram.vercel.app</strong></div>
           <div>2. Tải file <strong className="text-white">SpartanBridgeEA.mq5</strong> ở trên -&gt; Bỏ vào thư mục <strong className="text-white">MQL5/Experts</strong> (hoặc MQL4/Experts) -&gt; Biên dịch (F7) -&gt; Kéo thả vào bất kỳ biểu đồ nào (VD: XAUUSD).</div>
           <div>3. Điền Khóa API: <strong className="text-[#00df89]">SPARTAN_EA_LIVE_2026</strong> -&gt; Bấm OK. Mọi lệnh đóng và số dư sẽ tự động nhảy lên Mini App realtime 0.01s!</div>
+        </div>
+      </div>
+
+      {/* Telegram Live Signal Broadcast Channel Card */}
+      <div className="spartan-card rounded-3xl p-5 border border-[#1f293d] space-y-4 shadow-lg">
+        <div className="flex items-center justify-between border-b border-[#1f293d] pb-2.5">
+          <div className="flex items-center gap-2">
+            <Radio className="w-4 h-4 text-[#ff5500] animate-pulse" />
+            <h3 className="text-xs font-black text-white uppercase tracking-wider">
+              KÊNH TELEGRAM BẮN TÍN HIỆU LIVE (SIGNAL BROADCAST)
+            </h3>
+          </div>
+          <span className="text-[10px] font-mono font-bold text-[#00df89] bg-[#00df89]/10 px-2 py-0.5 rounded-full border border-[#00df89]/20">
+            AUTO BROADCAST
+          </span>
+        </div>
+
+        <p className="text-xs text-gray-400 leading-relaxed">
+          Mỗi khi EA trên MetaTrader 5 chốt lời thành công, hệ thống sẽ tự động phát tín hiệu kèm nút bấm mở Mini App vào Channel hoặc Group Telegram của bạn để thu hút nhà đầu tư mới!
+        </p>
+
+        <div className="space-y-3">
+          <div>
+            <label className="text-xs font-bold text-gray-300 block mb-1">
+              TELEGRAM CHANNEL / GROUP USERNAME HOẶC CHAT ID:
+            </label>
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                value={signalChannel}
+                onChange={(e) => setSignalChannel(e.target.value)}
+                placeholder="Ví dụ: @SpartanQuant_Signals hoặc -100xxxxxxxxxx"
+                className="flex-1 bg-[#0b0e17] border border-[#1f293d] rounded-xl px-3.5 py-2.5 text-xs text-white font-mono focus:border-[#ff5500] outline-none"
+              />
+              <button
+                type="button"
+                onClick={async () => {
+                  setSavingChannel(true);
+                  try {
+                    await updateSystemConfig({ signalChannelId: signalChannel.trim() });
+                    setSignalResult(`✓ Đã lưu cấu hình Kênh tín hiệu: ${signalChannel.trim()}`);
+                    onRefresh();
+                  } catch (e: any) {
+                    setSignalResult(`Lỗi lưu kênh: ${e.message}`);
+                  } finally {
+                    setSavingChannel(false);
+                  }
+                }}
+                disabled={savingChannel}
+                className="px-4 py-2.5 rounded-xl spartan-orange-btn font-black text-xs uppercase"
+              >
+                {savingChannel ? 'Đang lưu...' : 'Lưu Kênh'}
+              </button>
+            </div>
+          </div>
+
+          {/* Test Signal Button */}
+          <div className="pt-1 flex items-center gap-2">
+            <button
+              type="button"
+              disabled={testingSignal || !signalChannel}
+              onClick={async () => {
+                setTestingSignal(true);
+                setSignalResult(null);
+                try {
+                  const res = await fetch('/api/broadcast-signal', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      channelId: signalChannel.trim(),
+                      symbol: 'XAUUSD',
+                      type: 'BUY',
+                      lots: 0.5,
+                      pnl: 365.00,
+                      pnlPercentage: 1.46,
+                      openPrice: 2498.50,
+                      closePrice: 2505.80,
+                      isTest: true
+                    })
+                  });
+                  const data = await res.json();
+                  if (data.success) {
+                    setSignalResult(`🎉 THÀNH CÔNG: ${data.message}`);
+                  } else {
+                    setSignalResult(`⚠️ LỖI: ${data.message}`);
+                  }
+                } catch (err: any) {
+                  setSignalResult(`⚠️ Lỗi kết nối: ${err.message}`);
+                } finally {
+                  setTestingSignal(false);
+                }
+              }}
+              className="py-2.5 px-4 rounded-xl bg-gradient-to-r from-blue-600 via-sky-500 to-cyan-500 hover:opacity-90 text-white font-black text-xs uppercase flex items-center gap-1.5 shadow-md transition-all"
+            >
+              {testingSignal ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Zap className="w-3.5 h-3.5" />}
+              <span>⚡ BẮN THỬ TÍN HIỆU VÀO KÊNH (TEST SIGNAL)</span>
+            </button>
+          </div>
+
+          {signalResult && (
+            <div className={`p-3 rounded-xl text-xs font-bold ${
+              signalResult.includes('THÀNH CÔNG') || signalResult.includes('✓')
+                ? 'bg-[#00df89]/20 text-[#00df89] border border-[#00df89]/40'
+                : 'bg-red-500/20 text-red-300 border border-red-500/40'
+            }`}>
+              {signalResult}
+            </div>
+          )}
+
+          <div className="bg-[#0b0e17] p-3 rounded-2xl border border-[#1f293d] text-[10px] text-gray-400 leading-relaxed space-y-1">
+            <span className="font-bold text-amber-300 block">💡 HƯỚNG DẪN KẾT NỐI KÊNH TELEGRAM:</span>
+            <div>1. Tạo 1 Kênh (Channel) hoặc Nhóm Telegram mới (hoặc dùng kênh hiện có).</div>
+            <div>2. Thêm con bot <strong className="text-white">@SpartanQuantAIBot</strong> vào Kênh đó.</div>
+            <div>3. Cấp quyền <strong className="text-white">Quản trị viên (Admin)</strong> kèm quyền <strong className="text-[#00df89]">Đăng tin nhắn (Post Messages)</strong> cho bot.</div>
+            <div>4. Điền Username kênh (vd: <strong className="text-cyan-300">@SpartanQuant_Signals</strong>) vào ô trên rồi bấm <strong className="text-white">Bắn Thử Tín Hiệu</strong> để kiểm tra!</div>
+          </div>
         </div>
       </div>
 

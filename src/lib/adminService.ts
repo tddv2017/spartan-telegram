@@ -12,6 +12,7 @@ export interface SystemConfig {
   maintenanceMode: boolean;
   globalBotActive: boolean;
   broadcastNotice?: string;
+  signalChannelId?: string;
   updatedAt?: string;
 }
 

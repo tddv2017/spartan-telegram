@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { History, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, Clock, ChevronLeft, ChevronRight, Activity, Radio } from 'lucide-react';
+import { History, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, Clock, ChevronLeft, ChevronRight, Activity, Radio, Share2 } from 'lucide-react';
 import { subscribeToLiveTrades } from '@/lib/firebaseService';
+import { ViralPnlModal } from '@/components/ViralPnlModal';
 
 export interface TradeOrder {
   id: string;
@@ -19,15 +20,20 @@ export interface TradeOrder {
 interface TradeHistoryCardProps {
   shareRatio?: number;
   userCapitalJoinedAt?: string | null;
+  username?: string;
+  telegramId?: string;
 }
 
 export const TradeHistoryCard: React.FC<TradeHistoryCardProps> = ({
   shareRatio = 1,
   userCapitalJoinedAt,
+  username = 'spartan_trader',
+  telegramId = '494232782',
 }) => {
   const [trades, setTrades] = useState<TradeOrder[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [currentPage, setCurrentPage] = useState(1);
+  const [selectedTradeForShare, setSelectedTradeForShare] = useState<TradeOrder | null>(null);
   const ITEMS_PER_PAGE = 5;
 
   const userRatio = (typeof shareRatio === 'number' && shareRatio > 0 && shareRatio <= 1) ? shareRatio : 1;
@@ -158,6 +164,18 @@ export const TradeHistoryCard: React.FC<TradeHistoryCardProps> = ({
                       >
                         {trade.pnlPercentage >= 0 ? `+${trade.pnlPercentage.toFixed(2)}%` : `${trade.pnlPercentage.toFixed(2)}%`}
                       </span>
+
+                      {/* Khoe Lai Button on profitable trades */}
+                      {trade.pnl > 0 && (
+                        <button
+                          onClick={() => setSelectedTradeForShare(trade)}
+                          className="mt-1 px-2 py-0.5 rounded-lg bg-gradient-to-r from-[#ff5500]/20 to-amber-500/20 hover:from-[#ff5500] hover:to-amber-500 border border-[#ff5500]/40 text-[#ff5500] hover:text-white text-[9px] font-black flex items-center gap-1 transition-all ml-auto shadow-sm"
+                          title="Tạo ảnh poster khoe lãi để chia sẻ nhận hoa hồng"
+                        >
+                          <Share2 className="w-2.5 h-2.5" />
+                          <span>Khoe Lãi</span>
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>
@@ -201,6 +219,15 @@ export const TradeHistoryCard: React.FC<TradeHistoryCardProps> = ({
           </button>
         </div>
       )}
+
+      {/* VIRAL PNL SHARE POSTER MODAL */}
+      <ViralPnlModal
+        isOpen={!!selectedTradeForShare}
+        onClose={() => setSelectedTradeForShare(null)}
+        trade={selectedTradeForShare}
+        username={username}
+        telegramId={telegramId}
+      />
     </div>
   );
 };
