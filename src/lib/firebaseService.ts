@@ -28,6 +28,7 @@ export interface UserData {
   botActive?: boolean;
   isFrozen?: boolean;
   freezeReason?: string;
+  capitalJoinedAt?: string;
   createdAt?: any;
   updatedAt?: any;
 }
@@ -648,7 +649,10 @@ export async function approveLiveTransaction(
               const currentBal = user.tradingBalance || 0;
               if (type === 'DEPOSIT') {
                 finalBal = currentBal + netAmount;
-                const balPayload = { tradingBalance: Math.max(0, finalBal) };
+                const balPayload: any = { 
+                  tradingBalance: Math.max(0, finalBal),
+                  capitalJoinedAt: user.capitalJoinedAt || updatePayload.approvedAt || new Date().toISOString()
+                };
                 await fetch(`${RTDB_BASE_URL}/users/${userId}.json`, {
                   method: "PATCH",
                   headers: { "Content-Type": "application/json" },

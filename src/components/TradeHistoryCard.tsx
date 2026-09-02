@@ -18,10 +18,12 @@ export interface TradeOrder {
 
 interface TradeHistoryCardProps {
   shareRatio?: number;
+  userCapitalJoinedAt?: string | null;
 }
 
 export const TradeHistoryCard: React.FC<TradeHistoryCardProps> = ({
   shareRatio = 1,
+  userCapitalJoinedAt,
 }) => {
   const [trades, setTrades] = useState<TradeOrder[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -81,8 +83,12 @@ export const TradeHistoryCard: React.FC<TradeHistoryCardProps> = ({
       ) : (
         <div className="space-y-2">
           {paginatedOrders.map((trade) => {
-            const effectiveLots = Math.max(0.01, Number((trade.lots * userRatio).toFixed(2)));
-            const effectivePnl = trade.pnl * userRatio;
+            const isTradeBeforeJoin = userCapitalJoinedAt 
+              ? new Date(trade.timestamp).getTime() < new Date(userCapitalJoinedAt).getTime()
+              : false;
+
+            const effectiveLots = isTradeBeforeJoin ? 0 : Math.max(0.01, Number((trade.lots * userRatio).toFixed(2)));
+            const effectivePnl = isTradeBeforeJoin ? 0 : trade.pnl * userRatio;
 
             return (
               <div
@@ -114,7 +120,7 @@ export const TradeHistoryCard: React.FC<TradeHistoryCardProps> = ({
                             : 'bg-[#ff2d55]/20 text-[#ff2d55]'
                         }`}
                       >
-                        {trade.type} {effectiveLots} Lot
+                        {trade.type} {effectiveLots > 0 ? `${effectiveLots} Lot` : `${trade.lots} Lot (Master)`}
                       </span>
                     </div>
                     <div className="flex items-center gap-2 text-[10px] text-gray-500 font-mono mt-0.5">
@@ -129,20 +135,31 @@ export const TradeHistoryCard: React.FC<TradeHistoryCardProps> = ({
                 </div>
 
                 <div className="text-right font-mono">
-                  <span
-                    className={`font-black text-xs block ${
-                      effectivePnl >= 0 ? 'text-[#00df89]' : 'text-[#ff2d55]'
-                    }`}
-                  >
-                    {effectivePnl >= 0 ? `+$${effectivePnl.toFixed(2)}` : `-$${Math.abs(effectivePnl).toFixed(2)}`}
-                  </span>
-                  <span
-                    className={`text-[9px] font-bold block ${
-                      trade.pnlPercentage >= 0 ? 'text-[#00df89]' : 'text-[#ff2d55]'
-                    }`}
-                  >
-                    {trade.pnlPercentage >= 0 ? `+${trade.pnlPercentage.toFixed(2)}%` : `${trade.pnlPercentage.toFixed(2)}%`}
-                  </span>
+                  {isTradeBeforeJoin ? (
+                    <div>
+                      <span className="font-bold text-gray-500 text-xs block">$0.00</span>
+                      <span className="text-[8px] font-bold text-amber-400/90 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20 block mt-0.5" title="Lệnh mở trước khi bạn nạp vốn vào Pool">
+                        Chưa góp vốn
+                      </span>
+                    </div>
+                  ) : (
+                    <div>
+                      <span
+                        className={`font-black text-xs block ${
+                          effectivePnl >= 0 ? 'text-[#00df89]' : 'text-[#ff2d55]'
+                        }`}
+                      >
+                        {effectivePnl >= 0 ? `+$${effectivePnl.toFixed(2)}` : `-$${Math.abs(effectivePnl).toFixed(2)}`}
+                      </span>
+                      <span
+                        className={`text-[9px] font-bold block ${
+                          trade.pnlPercentage >= 0 ? 'text-[#00df89]' : 'text-[#ff2d55]'
+                        }`}
+                      >
+                        {trade.pnlPercentage >= 0 ? `+${trade.pnlPercentage.toFixed(2)}%` : `${trade.pnlPercentage.toFixed(2)}%`}
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
             );

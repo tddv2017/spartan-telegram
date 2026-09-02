@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Header } from '@/components/Header';
 import { BalanceCard } from '@/components/BalanceCard';
 import { EquityChart } from '@/components/EquityChart';
@@ -50,6 +50,8 @@ export default function Home() {
   // Live Master Pool & Bot Profit State for Capital Share Allocation
   const [masterPoolBalance, setMasterPoolBalance] = useState<number>(50308.2);
   const [masterPoolProfit, setMasterPoolProfit] = useState<number>(0);
+  const [userCapitalJoinedAt, setUserCapitalJoinedAt] = useState<string | null>(null);
+  const [tradesList, setTradesList] = useState<any[]>([]);
 
   // Dynamic Real Telegram SDK User Detection & Force Firebase Profile Write
   useEffect(() => {
@@ -117,12 +119,18 @@ export default function Home() {
         if (typeof userData.isFrozen === 'boolean') setIsAccountFrozen(userData.isFrozen);
         if (typeof userData.freezeReason === 'string') setFreezeReason(userData.freezeReason);
         if (typeof userData.botActive === 'boolean') setIsBotActive(userData.botActive);
+        if (userData.capitalJoinedAt) setUserCapitalJoinedAt(userData.capitalJoinedAt);
       }
     });
 
     // Realtime Listener for User Transactions
     const unsubTxs = subscribeToUserTransactions(id, (txs) => {
       setUserTransactions(txs);
+      const approvedDeps = txs.filter(t => t.type === 'DEPOSIT' && t.status === 'APPROVED');
+      if (approvedDeps.length > 0) {
+        const earliest = approvedDeps[0].approvedAt || approvedDeps[0].createdAt;
+        if (earliest) setUserCapitalJoinedAt(prev => prev || earliest);
+      }
     });
 
     // Realtime Listener for System Maintenance & Global Bot
@@ -158,7 +166,9 @@ export default function Home() {
         if (tradesRes.ok) {
           const t = await tradesRes.json();
           if (t && typeof t === 'object') {
-            const sumPnl = Object.values(t).reduce((acc: number, item: any) => acc + (Number(item.pnl) || 0), 0);
+            const list = Object.values(t);
+            setTradesList(list);
+            const sumPnl = list.reduce((acc: number, item: any) => acc + (Number(item.pnl) || 0), 0);
             setMasterPoolProfit(sumPnl);
           }
         }
@@ -175,6 +185,22 @@ export default function Home() {
       clearInterval(poolInterval);
     };
   }, []);
+
+  // Only share profit from trades opened AT OR AFTER user's capital entered the pool
+  const eligibleUserProfit = useMemo(() => {
+    if (!userCapitalJoinedAt || tradingBalance <= 0 || masterPoolBalance <= 0) return 0;
+    const joinTimestamp = new Date(userCapitalJoinedAt).getTime();
+    if (isNaN(joinTimestamp)) return 0;
+
+    const eligibleTrades = tradesList.filter(trade => {
+      const tradeTime = new Date(trade.timestamp).getTime();
+      return !isNaN(tradeTime) && tradeTime >= joinTimestamp;
+    });
+
+    const eligibleSumPnl = eligibleTrades.reduce((acc: number, item: any) => acc + (Number(item.pnl) || 0), 0);
+    const userRatio = tradingBalance / masterPoolBalance;
+    return eligibleSumPnl * userRatio;
+  }, [userCapitalJoinedAt, tradingBalance, masterPoolBalance, tradesList]);
 
   const handleTabChange = (newTab: TabType) => {
     if (!isAdmin && newTab === 'admin') {
@@ -323,6 +349,7 @@ export default function Home() {
         </div>
       )}
 
+
       {/* Dynamic View Router based on active bottom tab */}
       {activeTab === 'home' && (
         <div className="p-4 space-y-4">
@@ -330,7 +357,7 @@ export default function Home() {
             tradingBalance={tradingBalance} 
             referralsIncome={referralsIncome} 
             poolSharePercentage={masterPoolBalance > 0 ? (tradingBalance / masterPoolBalance) * 100 : 0}
-            estimatedPoolProfit={masterPoolProfit * (masterPoolBalance > 0 ? (tradingBalance / masterPoolBalance) : 0)}
+            estimatedPoolProfit={eligibleUserProfit}
             totalMasterProfit={masterPoolProfit}
           />
 
@@ -368,6 +395,7 @@ export default function Home() {
             tradingBalance={tradingBalance}
             masterPoolBalance={masterPoolBalance}
             totalMasterProfit={masterPoolProfit}
+            userCapitalJoinedAt={userCapitalJoinedAt}
           />
         </div>
       )}

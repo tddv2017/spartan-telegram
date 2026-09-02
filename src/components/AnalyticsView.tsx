@@ -9,12 +9,14 @@ interface AnalyticsViewProps {
   tradingBalance?: number;
   masterPoolBalance?: number;
   totalMasterProfit?: number;
+  userCapitalJoinedAt?: string | null;
 }
 
 export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   tradingBalance = 0,
   masterPoolBalance = 50308.20,
   totalMasterProfit = 0,
+  userCapitalJoinedAt,
 }) => {
   const [trades, setTrades] = useState<TradeOrder[]>([]);
 
@@ -25,9 +27,14 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
     return () => unsub();
   }, []);
 
-  const totalTrades = trades.length;
-  const winningTrades = trades.filter(t => t.pnl > 0);
-  const losingTrades = trades.filter(t => t.pnl < 0);
+  // Filter trades eligible for this user (entered at or after user deposit)
+  const eligibleTrades = userCapitalJoinedAt
+    ? trades.filter(t => new Date(t.timestamp).getTime() >= new Date(userCapitalJoinedAt).getTime())
+    : trades;
+
+  const totalTrades = eligibleTrades.length;
+  const winningTrades = eligibleTrades.filter(t => t.pnl > 0);
+  const losingTrades = eligibleTrades.filter(t => t.pnl < 0);
   const winRate = totalTrades > 0 ? ((winningTrades.length / totalTrades) * 100).toFixed(1) : '0.0';
   const grossProfit = winningTrades.reduce((acc, t) => acc + t.pnl, 0);
   const grossLoss = Math.abs(losingTrades.reduce((acc, t) => acc + t.pnl, 0));
@@ -124,7 +131,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
       </div>
 
       {/* TRADE HISTORY CARD SCALED TO USER'S CAPITAL */}
-      <TradeHistoryCard shareRatio={userRatio} />
+      <TradeHistoryCard shareRatio={userRatio} userCapitalJoinedAt={userCapitalJoinedAt} />
     </div>
   );
 };

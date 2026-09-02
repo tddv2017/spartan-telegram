@@ -193,9 +193,75 @@ export const AccountingAuditTab: React.FC<AccountingAuditTabProps> = ({
   const investorSharePercent = (totalInvestorCapital / effectiveTotalPool) * 100;
   const platformSharePercent = (platformCapitalContribution / effectiveTotalPool) * 100;
 
-  // Profit Allocation by Capital Share
-  const investorProfitDistributed = totalBotProfit * (investorSharePercent / 100);
-  const platformCapitalProfit = totalBotProfit * (platformSharePercent / 100);
+  // Helper: Get user's capital participation time
+  const getUserCapitalJoinTime = (u: any): number => {
+    if (u.capitalJoinedAt) {
+      const t = new Date(u.capitalJoinedAt).getTime();
+      if (!isNaN(t)) return t;
+    }
+    const uApprovedDeposits = transactions.filter(t => 
+      (String(t.userId) === String(u.telegramId) || t.username === u.username) && 
+      t.type === 'DEPOSIT' && 
+      t.status === 'APPROVED'
+    );
+    if (uApprovedDeposits.length > 0) {
+      const timestamps = uApprovedDeposits
+        .map(t => new Date(t.approvedAt || t.createdAt).getTime())
+        .filter(t => !isNaN(t));
+      if (timestamps.length > 0) return Math.min(...timestamps);
+    }
+    return Infinity;
+  };
+
+  // Helper: Compute eligible profit for a user based on entry timing vs trade timestamp
+  // RULE: Nếu khách tham gia sau khi Bot đã mở lệnh thì khách KHÔNG được chia lợi nhuận từ lệnh đó
+  const computeUserEligibleProfit = (u: any, uShare: number): { 
+    uProfit: number; 
+    eligibleTradesCount: number; 
+    preJoinTradesCount: number;
+    capitalJoinTime: number;
+    capitalJoinTimeFormatted: string;
+  } => {
+    const capitalJoinTime = getUserCapitalJoinTime(u);
+    const capitalJoinTimeFormatted = capitalJoinTime !== Infinity 
+      ? new Date(capitalJoinTime).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' })
+      : 'Chưa nạp vốn';
+
+    if (capitalJoinTime === Infinity || (u.tradingBalance || 0) <= 0) {
+      return { uProfit: 0, eligibleTradesCount: 0, preJoinTradesCount: trades.length, capitalJoinTime, capitalJoinTimeFormatted };
+    }
+
+    let eligibleTradesProfit = 0;
+    let eligibleTradesCount = 0;
+    let preJoinTradesCount = 0;
+
+    trades.forEach(t => {
+      const tradeTime = new Date(t.timestamp).getTime();
+      // Chỉ tính lãi nếu lệnh được mở SAU hoặc TẠI thời điểm khách đã nạp vốn vào Pool
+      if (!isNaN(tradeTime) && tradeTime >= capitalJoinTime) {
+        eligibleTradesProfit += (Number(t.pnl) || 0);
+        eligibleTradesCount++;
+      } else {
+        preJoinTradesCount++;
+      }
+    });
+
+    const uProfit = eligibleTradesProfit * (uShare / 100);
+    return { uProfit, eligibleTradesCount, preJoinTradesCount, capitalJoinTime, capitalJoinTimeFormatted };
+  };
+
+  // Profit Allocation by Capital Share & Entry Timing:
+  // Tổng lãi thực tế chia cho các Nhà đầu tư hợp lệ (chỉ tính lệnh mở sau khi nạp vốn)
+  const investorProfitDistributed = users.reduce((sum, u) => {
+    const uCap = u.tradingBalance || 0;
+    const uShare = effectiveTotalPool > 0 ? (uCap / effectiveTotalPool) * 100 : 0;
+    const { uProfit } = computeUserEligibleProfit(u, uShare);
+    return sum + uProfit;
+  }, 0);
+
+  // Lợi nhuận Vốn Góp của Sàn = Tổng Lãi Bot - Tổng Lãi chia cho khách hợp lệ
+  // Bất kỳ lệnh nào Bot mở trước khi khách nạp vốn thì 100% thuộc về Sàn / Quỹ gánh rủi ro
+  const platformCapitalProfit = Math.max(0, totalBotProfit - investorProfitDistributed);
 
   // Operating Costs
   const totalOnChainGasCost = (approvedDeposits.length * 3.00) + (approvedWithdrawals.length * 5.00);
@@ -233,6 +299,7 @@ export const AccountingAuditTab: React.FC<AccountingAuditTabProps> = ({
       "Username",
       "Vốn Gốc Đầu Tư (USDT)",
       "Tỷ Lệ Góp Vốn (%)",
+      "Thời Điểm Nạp Vốn",
       "Tổng Nạp Ròng (USDT)",
       "Tổng Rút (USDT)",
       "Lợi Nhuận Bot Chia (USDT)",
@@ -244,7 +311,7 @@ export const AccountingAuditTab: React.FC<AccountingAuditTabProps> = ({
     const rows = users.map(u => {
       const uCap = u.tradingBalance || 0;
       const uShare = effectiveTotalPool > 0 ? (uCap / effectiveTotalPool) * 100 : 0;
-      const uProfit = totalBotProfit * (uShare / 100);
+      const { uProfit, capitalJoinTimeFormatted } = computeUserEligibleProfit(u, uShare);
       const uDeposits = transactions.filter(t => (String(t.userId) === String(u.telegramId) || t.username === u.username) && t.type === 'DEPOSIT' && t.status === 'APPROVED');
       const uNetDep = uDeposits.reduce((s, t) => s + (t.netAmount || 0), 0);
       const uWithdraws = transactions.filter(t => (String(t.userId) === String(u.telegramId) || t.username === u.username) && t.type === 'WITHDRAW' && t.status === 'APPROVED');
@@ -259,6 +326,7 @@ export const AccountingAuditTab: React.FC<AccountingAuditTabProps> = ({
         `@${u.username || 'user'}`,
         uCap.toFixed(2),
         `${uShare.toFixed(2)}%`,
+        `"${capitalJoinTimeFormatted}"`,
         uNetDep.toFixed(2),
         uGrossWdr.toFixed(2),
         uProfit.toFixed(2),
@@ -322,7 +390,7 @@ export const AccountingAuditTab: React.FC<AccountingAuditTabProps> = ({
 
     const uCap = u.tradingBalance || 0;
     const uShare = effectiveTotalPool > 0 ? (uCap / effectiveTotalPool) * 100 : 0;
-    const uProfit = totalBotProfit * (uShare / 100);
+    const { uProfit } = computeUserEligibleProfit(u, uShare);
     const uDeposits = transactions.filter(t => (String(t.userId) === String(u.telegramId) || t.username === u.username) && t.type === 'DEPOSIT' && t.status === 'APPROVED');
     const uNetDep = uDeposits.reduce((s, t) => s + (t.netAmount || 0), 0);
     const uWithdraws = transactions.filter(t => (String(t.userId) === String(u.telegramId) || t.username === u.username) && t.type === 'WITHDRAW' && t.status === 'APPROVED');
@@ -703,7 +771,7 @@ export const AccountingAuditTab: React.FC<AccountingAuditTabProps> = ({
             {filteredAuditUsers.map((u) => {
               const uCap = u.tradingBalance || 0;
               const uShare = effectiveTotalPool > 0 ? (uCap / effectiveTotalPool) * 100 : 0;
-              const uProfit = totalBotProfit * (uShare / 100);
+              const { uProfit, eligibleTradesCount, preJoinTradesCount, capitalJoinTimeFormatted } = computeUserEligibleProfit(u, uShare);
 
               // Cashflow breakdown for this user
               const uDeposits = transactions.filter(t => (String(t.userId) === String(u.telegramId) || t.username === u.username) && t.type === 'DEPOSIT' && t.status === 'APPROVED');
@@ -725,13 +793,18 @@ export const AccountingAuditTab: React.FC<AccountingAuditTabProps> = ({
                   className="p-3 rounded-xl bg-[#131927] border border-[#1f293d] hover:border-gray-600 transition-all space-y-2"
                 >
                   {/* Top line: User Info & Match Status */}
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-black text-white text-xs">@{u.username || 'user'}</span>
                       <span className="text-[9px] text-gray-500 font-mono">ID: {u.telegramId}</span>
                       <span className="text-[9px] font-bold text-blue-300 bg-blue-500/15 px-2 py-0.5 rounded border border-blue-500/30">
                         {uShare.toFixed(2)}% Master Pool
                       </span>
+                      {preJoinTradesCount > 0 && (
+                        <span className="text-[8px] font-bold text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/30" title="Khách tham gia sau khi lệnh đã mở, không chia lãi lệnh trước">
+                          🛡️ {eligibleTradesCount}/{trades.length} lệnh đủ điều kiện
+                        </span>
+                      )}
                     </div>
 
                     <div className="flex items-center gap-2">
@@ -758,6 +831,9 @@ export const AccountingAuditTab: React.FC<AccountingAuditTabProps> = ({
                           totalEquity,
                           variance,
                           isMatched,
+                          eligibleTradesCount,
+                          preJoinTradesCount,
+                          capitalJoinTimeFormatted,
                           deposits: uDeposits,
                           withdrawals: uWithdraws
                         })}
@@ -789,6 +865,11 @@ export const AccountingAuditTab: React.FC<AccountingAuditTabProps> = ({
                       <span className={`font-black ${uProfit >= 0 ? 'text-[#00df89]' : 'text-red-400'}`}>
                         {uProfit >= 0 ? '+' : ''}${uProfit.toFixed(2)} USD
                       </span>
+                      {preJoinTradesCount > 0 && eligibleTradesCount === 0 && (
+                        <span className="text-[7px] text-amber-400 block leading-none mt-0.5">
+                          (Lệnh trước khi nạp)
+                        </span>
+                      )}
                     </div>
                     <div className="text-left sm:text-right">
                       <span className="text-amber-400 block text-[8px] font-bold">TỔNG TÀI SẢN (EQUITY):</span>
@@ -1214,6 +1295,16 @@ export const AccountingAuditTab: React.FC<AccountingAuditTabProps> = ({
             {/* Detailed Financial Ledger Breakdown */}
             <div className="bg-[#131927] p-3.5 rounded-2xl border border-[#1f293d] space-y-2 text-[11px]">
               <div className="flex justify-between text-gray-300">
+                <span>(⏱️) Thời Điểm Nạp Vốn Vào Pool:</span>
+                <strong className="text-cyan-300 font-mono">{selectedAuditUser.capitalJoinTimeFormatted}</strong>
+              </div>
+              <div className="flex justify-between text-gray-300">
+                <span>(📊) Lệnh Bot Đủ Điều Kiện Chia Lãi:</span>
+                <strong className={selectedAuditUser.eligibleTradesCount > 0 ? "text-[#00df89]" : "text-amber-400 font-mono"}>
+                  {selectedAuditUser.eligibleTradesCount} / {trades.length} lệnh
+                </strong>
+              </div>
+              <div className="flex justify-between text-gray-300 border-t border-[#1f293d] pt-1.5">
                 <span>(+) Tổng Nạp Ròng Vào Master (Net):</span>
                 <strong className="text-[#00df89]">+{selectedAuditUser.uNetDep.toFixed(2)} USDT</strong>
               </div>
@@ -1231,12 +1322,19 @@ export const AccountingAuditTab: React.FC<AccountingAuditTabProps> = ({
               </div>
               <div className="flex justify-between text-gray-300 border-t border-[#1f293d] pt-1.5">
                 <span>(+) Lợi Nhuận Bot Sinh Thêm ({selectedAuditUser.uShare.toFixed(2)}%):</span>
-                <strong className="text-[#00df89]">+{selectedAuditUser.uProfit.toFixed(2)} USDT</strong>
+                <strong className={selectedAuditUser.uProfit > 0 ? "text-[#00df89]" : "text-gray-400"}>
+                  +{selectedAuditUser.uProfit.toFixed(2)} USDT
+                </strong>
               </div>
+              {selectedAuditUser.preJoinTradesCount > 0 && selectedAuditUser.eligibleTradesCount === 0 && (
+                <div className="text-[10px] text-amber-300/90 bg-amber-500/10 p-2 rounded-xl border border-amber-500/20 leading-relaxed">
+                  🛡️ <strong>Nguyên tắc Quỹ:</strong> Khách tham gia sau khi Bot đã mở lệnh nên không được chia lợi nhuận từ các lệnh mở trước thời điểm nạp vốn ({selectedAuditUser.preJoinTradesCount} lệnh trước đó).
+                </div>
+              )}
               <div className="border-t border-[#00df89]/30 pt-2 flex items-center justify-between text-amber-300 font-bold bg-[#00df89]/5 p-2.5 rounded-xl">
                 <div>
                   <span className="block text-xs text-white uppercase font-black">(💎) TỔNG GIÁ TRỊ TẤT TOÁN (EQUITY):</span>
-                  <span className="text-[9px] text-gray-400 font-normal">Vốn Gốc Thực Tế + Lợi Nhuận Bot Tích Lũy</span>
+                  <span className="text-[9px] text-gray-400 font-normal">Vốn Gốc Thực Tế + Lợi Nhuận Bot Hợp Lệ</span>
                 </div>
                 <span className="font-black text-base text-[#00df89] font-mono">${selectedAuditUser.totalEquity.toFixed(2)} USDT</span>
               </div>
