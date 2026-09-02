@@ -97,7 +97,7 @@ export async function scanReceiptAndVerifyOnChain(
   const match = allTransfers.find(tr => 
     (tr.transaction_id && tr.transaction_id.toLowerCase() === extractedTxHash.toLowerCase()) ||
     (tr.memo && tr.memo.toLowerCase() === extractedMemo.toLowerCase()) ||
-    (extractedGrossAmount && Math.abs(tr.amount - extractedGrossAmount) < 0.01)
+    (expectedGrossAmount && Math.abs(tr.amount - expectedGrossAmount) < 0.01)
   );
 
   // 3. Evaluation & Forensics Verdict
