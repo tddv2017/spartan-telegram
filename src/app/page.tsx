@@ -48,7 +48,8 @@ export default function Home() {
   const [refreshNotifCount, setRefreshNotifCount] = useState(0);
 
   // Live Master Pool & Bot Profit State for Capital Share Allocation
-  const [masterPoolBalance, setMasterPoolBalance] = useState<number>(50308.2);
+  const [masterPoolBalance, setMasterPoolBalance] = useState<number>(49790.3);
+  const [masterPoolEquity, setMasterPoolEquity] = useState<number>(49969.52);
   const [masterPoolProfit, setMasterPoolProfit] = useState<number>(0);
   const [userCapitalJoinedAt, setUserCapitalJoinedAt] = useState<string | null>(null);
   const [tradesList, setTradesList] = useState<any[]>([]);
@@ -162,6 +163,7 @@ export default function Home() {
         if (poolRes.ok) {
           const p = await poolRes.json();
           if (p?.balance) setMasterPoolBalance(Number(p.balance));
+          if (p?.equity) setMasterPoolEquity(Number(p.equity));
         }
         if (tradesRes.ok) {
           const t = await tradesRes.json();
@@ -371,7 +373,11 @@ export default function Home() {
             isActive={effectiveBotActive}
           />
 
-          <EquityChart />
+          <EquityChart 
+            masterPoolBalance={masterPoolBalance} 
+            masterPoolEquity={masterPoolEquity} 
+            trades={tradesList} 
+          />
 
           <QuantStrategyCard />
         </div>
