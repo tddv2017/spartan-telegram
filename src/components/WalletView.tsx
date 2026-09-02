@@ -937,6 +937,17 @@ export const WalletView: React.FC<WalletViewProps> = ({
                               <span>-$3.00 USDT</span>
                             </div>
                           </>
+                        ) : (String(tx.id || '').includes('REF') || String(tx.memoCode || '').includes('REF') || tx.feeAmount <= 5.0) ? (
+                          <>
+                            <div className="flex justify-between text-[#00df89] text-[10px] pl-2">
+                              <span>  - Phí sàn (Treasury Policy):</span>
+                              <span>0% ($0.00 USDT - MIỄN PHÍ ĐẠI LÝ)</span>
+                            </div>
+                            <div className="flex justify-between text-amber-300/90 text-[10px] pl-2">
+                              <span>  - Phí On-Chain Gas chuyển tiền (TRC20):</span>
+                              <span>-${tx.feeAmount.toFixed(2)} USDT</span>
+                            </div>
+                          </>
                         ) : (
                           <>
                             <div className="flex justify-between text-blue-300/90 text-[10px] pl-2">
@@ -970,6 +981,12 @@ export const WalletView: React.FC<WalletViewProps> = ({
                         <span>Duyệt bởi: <strong className="text-white">{tx.approvedBy || (tx.status === 'PENDING' ? 'Đang chờ duyệt' : 'Hệ thống')}</strong></span>
                         {tx.rejectionReason && <span className="text-red-400 truncate max-w-[180px]">Lý do: {tx.rejectionReason}</span>}
                       </div>
+
+                      {tx.status === 'REJECTED' && tx.type === 'WITHDRAW' && (
+                        <div className="bg-[#00df89]/10 border border-[#00df89]/30 p-2 rounded-xl text-[10px] text-[#00df89] font-bold text-center">
+                          ✓ ĐÃ HOÀN TRẢ 100% (+${tx.grossAmount.toFixed(2)} USDT) VỀ LẠI SỐ DƯ TÀI KHOẢN
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
