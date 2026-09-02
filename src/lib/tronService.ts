@@ -1,4 +1,4 @@
-import { approveLiveTransaction, TransactionData } from "./firebaseService";
+import { approveLiveTransaction, rejectLiveTransaction, TransactionData } from "./firebaseService";
 
 /**
  * TRON / TRONGRID / TRONSCAN REALTIME BLOCKCHAIN INTEGRATION SERVICE
@@ -159,9 +159,12 @@ export async function scanAndVerifyOnChainDeposit(memoCode: string, expectedGros
 }
 
 /**
- * BACKGROUND AUTO-SCANNER WORKER (Bot tự động quét TronScan/TronGrid & Phê duyệt tự động)
+ * BACKGROUND AUTO-SCANNER WORKER (Bot tự động quét TronScan/TronGrid & Phê duyệt / Từ chối thông minh khi sai Memo)
  */
-export function startAutoScanWorker(onTxApproved?: (tx: TransactionData, actualAmount: number) => void) {
+export function startAutoScanWorker(
+  onTxApproved?: (tx: TransactionData, actualAmount: number) => void,
+  onTxRejected?: (tx: TransactionData, reason: string) => void
+) {
   console.log(`🚀 [BOT AUTO-SCANNER WORKER] Đã kích hoạt Bot tự động quét TronGrid & TronScan (Tần suất: 8 giây/lần)...`);
 
   const intervalId = setInterval(async () => {
@@ -179,8 +182,6 @@ export function startAutoScanWorker(onTxApproved?: (tx: TransactionData, actualA
 
       if (pendingDeposits.length === 0) return;
 
-      console.log(`🤖 [BOT AUTO-SCANNER] Đang có ${pendingDeposits.length} đơn nạp PENDING. Đang quét On-Chain TRON...`);
-
       // 2. Fetch recent TRON TRC20 transfers
       const transfers = await fetchTronGridTRC20Transfers();
       if (transfers.length === 0) return;
@@ -189,21 +190,35 @@ export function startAutoScanWorker(onTxApproved?: (tx: TransactionData, actualA
       for (const tx of pendingDeposits) {
         if (!tx.id || !tx.memoCode) continue;
 
-        // Check if any transfer matches memoCode OR amount
-        const match = transfers.find(tr => 
+        // Check if any transfer matches memoCode exactly OR exact amount
+        const exactMatch = transfers.find(tr => 
           (tr.memo && tr.memo === tx.memoCode) ||
-          Math.abs(tr.amount - tx.grossAmount) < 0.01 ||
           tr.transaction_id.includes(tx.memoCode)
         );
 
-        if (match) {
-          console.log(`🎉 [BOT AUTO-SCANNER SUCCESS] Tìm thấy TxHash On-Chain ${match.transaction_id} cho đơn nạp ${tx.id}!`);
-          console.log(`  • Số tiền thực tế chuyển On-Chain: $${match.amount.toFixed(2)} USDT`);
-          console.log(`  • Tiến hành tự động duyệt đơn và cộng vốn Net...`);
-
-          const result = await approveLiveTransaction(tx.id, 'BOT_TRONGRID_AUTOMATION', match.amount);
+        if (exactMatch) {
+          console.log(`🎉 [BOT AUTO-SCANNER SUCCESS] Khớp chính xác Memo On-Chain ${exactMatch.transaction_id} cho đơn nạp ${tx.id}!`);
+          const result = await approveLiveTransaction(tx.id, 'BOT_TRONGRID_AUTOMATION', exactMatch.amount);
           if (result.success && onTxApproved) {
-            onTxApproved(tx, match.amount);
+            onTxApproved(tx, exactMatch.amount);
+          }
+          continue;
+        }
+
+        // Check if a transfer arrived with matching amount but mismatched memo
+        const mismatchedTransfer = transfers.find(tr => 
+          Math.abs(tr.amount - tx.grossAmount) < 0.01 && 
+          tr.memo && 
+          tr.memo !== tx.memoCode
+        );
+
+        if (mismatchedTransfer) {
+          const rejectReason = `Tự động từ chối bởi AI Sentinel: Phát hiện giao dịch on-chain $${mismatchedTransfer.amount.toFixed(2)} USDT nhưng sai Memo (Nội dung nhận được: "${mismatchedTransfer.memo}" - Memo yêu cầu: "${tx.memoCode}"). Vui lòng gửi ảnh bill để AI đối soát lại.`;
+          console.log(`⚠️ [BOT AUTO-SCANNER MISMATCH] Đơn ${tx.id} sai Memo! AI tự động từ chối và yêu cầu gửi bill...`);
+          
+          const rejectRes = await rejectLiveTransaction(tx.id, 'SPARTAN_AI_SENTINEL', rejectReason);
+          if (rejectRes.success && onTxRejected) {
+            onTxRejected(tx, rejectReason);
           }
         }
       }

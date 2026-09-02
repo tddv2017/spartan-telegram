@@ -129,10 +129,16 @@ export default function Home() {
     });
 
     // START AUTOMATED BACKGROUND TRONSCAN / TRONGRID SCANNER WORKER
-    const unsubWorker = startAutoScanWorker((tx, actualAmount) => {
-      setSyncStatus(`🎉 BOT AUTOMATION: Detected on-chain TRON transfer of $${actualAmount.toFixed(2)} USDT and auto-approved order ${tx.id} for @${tx.username}!`);
-      setTimeout(() => setSyncStatus(null), 10000);
-    });
+    const unsubWorker = startAutoScanWorker(
+      (tx, actualAmount) => {
+        setSyncStatus(`🎉 BOT AUTOMATION: Đã khớp lệnh On-Chain TRON $${actualAmount.toFixed(2)} USDT và tự động duyệt nạp cho @${tx.username}!`);
+        setTimeout(() => setSyncStatus(null), 10000);
+      },
+      (tx, reason) => {
+        setSyncStatus(`⚠️ AI SENTINEL: Đơn nạp #${tx.id} bị từ chối do sai Memo! Đã mở cổng nộp bill đối soát tự động.`);
+        setTimeout(() => setSyncStatus(null), 10000);
+      }
+    );
 
     return () => {
       unsubUser();
