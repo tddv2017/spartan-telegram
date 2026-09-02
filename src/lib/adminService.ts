@@ -149,7 +149,7 @@ export async function updateUserRoleAndTier(
   userId: string, 
   updates: { resellerTier?: number; role?: string; isFrozen?: boolean; tradingBalance?: number; referralBalance?: number }
 ): Promise<boolean> {
-  return updateUserDetails(userId, updates);
+  return updateUserDetails(userId, updates as any);
 }
 
 // ==================================================
