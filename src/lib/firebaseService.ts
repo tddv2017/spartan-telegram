@@ -49,6 +49,7 @@ export interface TransactionData {
   rejectionReason?: string;
   actualOnChainAmount?: number;
   adjustedOnChain?: boolean;
+  recipientAddress?: string;
   createdAt?: any;
   updatedAt?: any;
 }
@@ -844,6 +845,89 @@ export async function reinvestReferralBalance(
     };
   } catch (err: any) {
     return { success: false, message: 'Lỗi xử lý tái đầu tư: ' + err.message };
+  }
+}
+
+// 9.2. Withdraw Referral Earnings to External TRC20 Wallet
+export async function withdrawReferralBalance(
+  telegramId: string, 
+  amount: number,
+  recipientAddress: string
+): Promise<{ success: boolean; message: string; newRefBal?: number; tx?: TransactionData }> {
+  const cleanId = String(telegramId || '494232782');
+  try {
+    const res = await fetch(`${RTDB_BASE_URL}/users/${cleanId}.json`);
+    if (!res.ok) return { success: false, message: 'Không thể kết nối máy chủ dữ liệu.' };
+    const user = await res.json();
+    if (!user) return { success: false, message: 'Không tìm thấy thông tin tài khoản.' };
+
+    const currentRefBal = Number(user.referralBalance) || 0;
+    if (amount <= 0 || amount > currentRefBal) {
+      return { success: false, message: `Số tiền rút không hợp lệ. Số dư hoa hồng hiện có: $${currentRefBal.toFixed(2)} USDT.` };
+    }
+
+    const cleanAddress = recipientAddress.trim();
+    if (!cleanAddress || !cleanAddress.startsWith('T') || cleanAddress.length < 30) {
+      return { success: false, message: 'Vui lòng nhập địa chỉ ví USDT TRC20 hợp lệ (bắt đầu bằng T, gồm 34 ký tự)!' };
+    }
+
+    // Network on-chain gas fee for withdrawal
+    const feeAmount = 5.00;
+    if (amount <= feeAmount) {
+      return { success: false, message: `Số tiền rút tối thiểu là $${(feeAmount + 1).toFixed(2)} USDT để bù phí On-Chain Gas $5.00!` };
+    }
+
+    const netAmount = amount - feeAmount;
+    const newRefBal = Math.max(0, currentRefBal - amount);
+
+    const patchPayload = {
+      referralBalance: newRefBal
+    };
+
+    await fetch(`${RTDB_BASE_URL}/users/${cleanId}.json`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(patchPayload)
+    });
+    await saveToFirestoreREST(`users/${cleanId}`, patchPayload);
+
+    // Create pending withdrawal transaction
+    const txId = `WDR_REF_${cleanId}_${Date.now().toString().slice(-6)}`;
+    const txData: TransactionData = {
+      id: txId,
+      userId: cleanId,
+      username: user.username || 'user',
+      type: 'WITHDRAW',
+      grossAmount: amount,
+      feeAmount,
+      netAmount,
+      status: 'PENDING',
+      memoCode: `REF_WITHDRAW_${cleanId.slice(-4)}`,
+      recipientAddress: cleanAddress,
+      createdAt: new Date().toISOString()
+    };
+
+    await fetch(`${RTDB_BASE_URL}/users/${cleanId}/transactions/${txId}.json`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(txData)
+    });
+    await fetch(`${RTDB_BASE_URL}/transactions/${txId}.json`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(txData)
+    });
+    await saveToFirestoreREST(`users/${cleanId}/transactions/${txId}`, txData);
+    await saveToFirestoreREST(`transactions/${txId}`, txData);
+
+    return {
+      success: true,
+      message: `✓ Đã tạo lệnh rút hoa hồng $${amount.toFixed(2)} USDT thành công! Thực nhận về ví: +$${netAmount.toFixed(2)} USDT. Lệnh đang chờ giải ngân.`,
+      newRefBal,
+      tx: txData
+    };
+  } catch (err: any) {
+    return { success: false, message: 'Lỗi rút hoa hồng: ' + err.message };
   }
 }
 

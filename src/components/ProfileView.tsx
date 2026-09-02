@@ -19,7 +19,7 @@ import {
   Zap,
   ArrowRight
 } from 'lucide-react';
-import { subscribeToReferredUsers, reinvestReferralBalance } from '@/lib/firebaseService';
+import { subscribeToReferredUsers, reinvestReferralBalance, withdrawReferralBalance } from '@/lib/firebaseService';
 import { getUserRankInfo } from './Header';
 import { checkIsAdmin } from '@/lib/adminAuth';
 import { calculateResellerTier } from '@/lib/resellerEngine';
@@ -50,11 +50,21 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
 
   const [localRefBal, setLocalRefBal] = useState<number>(referralBalance);
   const [localTradingBal, setLocalTradingBal] = useState<number>(tradingBalance);
+
+  // Reinvest States
   const [isReinvestOpen, setIsReinvestOpen] = useState(false);
   const [reinvestAmount, setReinvestAmount] = useState('');
   const [reinvestLoading, setReinvestLoading] = useState(false);
   const [reinvestSuccess, setReinvestSuccess] = useState<string | null>(null);
   const [reinvestError, setReinvestError] = useState<string | null>(null);
+
+  // Withdraw Referral States
+  const [isWithdrawOpen, setIsWithdrawOpen] = useState(false);
+  const [withdrawAmount, setWithdrawAmount] = useState('');
+  const [withdrawAddress, setWithdrawAddress] = useState('');
+  const [withdrawLoading, setWithdrawLoading] = useState(false);
+  const [withdrawSuccess, setWithdrawSuccess] = useState<string | null>(null);
+  const [withdrawError, setWithdrawError] = useState<string | null>(null);
 
   useEffect(() => {
     setLocalRefBal(referralBalance);
@@ -63,6 +73,44 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
   useEffect(() => {
     setLocalTradingBal(tradingBalance);
   }, [tradingBalance]);
+
+  const handleWithdrawSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const val = parseFloat(withdrawAmount);
+    if (isNaN(val) || val <= 0) {
+      setWithdrawError('Vui lòng nhập số tiền rút hợp lệ!');
+      return;
+    }
+    if (val > localRefBal) {
+      setWithdrawError(`Số tiền rút vượt quá số dư hoa hồng ($${localRefBal.toFixed(2)} USDT)!`);
+      return;
+    }
+    if (!withdrawAddress.trim() || !withdrawAddress.trim().startsWith('T') || withdrawAddress.trim().length < 30) {
+      setWithdrawError('Vui lòng nhập đúng địa chỉ ví USDT TRC20 (bắt đầu bằng chữ T, 34 ký tự)!');
+      return;
+    }
+
+    setWithdrawLoading(true);
+    setWithdrawError(null);
+    try {
+      const res = await withdrawReferralBalance(telegramId, val, withdrawAddress.trim());
+      if (res.success) {
+        setWithdrawSuccess(res.message);
+        if (typeof res.newRefBal === 'number') setLocalRefBal(res.newRefBal);
+        setTimeout(() => {
+          setIsWithdrawOpen(false);
+          setWithdrawSuccess(null);
+          setWithdrawAddress('');
+        }, 3000);
+      } else {
+        setWithdrawError(res.message);
+      }
+    } catch (err: any) {
+      setWithdrawError('Lỗi rút hoa hồng: ' + err.message);
+    } finally {
+      setWithdrawLoading(false);
+    }
+  };
 
   const handleReinvestSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -251,7 +299,10 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
             </button>
             <button
               onClick={() => {
-                alert("💡 Bạn có thể chuyển tiền hoa hồng vào Vốn Bot để sinh lãi ngay, hoặc rút về ví cá nhân tại tab WALLET!");
+                setIsWithdrawOpen(true);
+                setWithdrawAmount(String(localRefBal));
+                setWithdrawError(null);
+                setWithdrawSuccess(null);
               }}
               className="py-2.5 px-3 rounded-xl bg-[#131927] hover:bg-[#1f293d] border border-[#1f293d] text-gray-300 font-bold text-[11px] uppercase flex items-center justify-center gap-1.5 transition-all"
             >
@@ -400,6 +451,115 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                 <button
                   type="button"
                   onClick={() => setIsReinvestOpen(false)}
+                  className="px-4 py-3 rounded-xl bg-[#131927] text-gray-400 hover:text-white border border-[#1f293d] text-xs font-bold"
+                >
+                  HỦY
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Withdraw Referral Commission Modal Dialog */}
+      {isWithdrawOpen && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-[#0b0e17] border border-[#1f293d] rounded-3xl p-6 max-w-sm w-full space-y-4 shadow-[0_0_30px_rgba(255,45,85,0.2)] animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between border-b border-[#1f293d] pb-3">
+              <div className="flex items-center gap-2">
+                <ArrowUpRight className="w-5 h-5 text-[#ff2d55]" />
+                <h3 className="text-sm font-black text-white uppercase tracking-wider">
+                  RÚT HOA HỒNG VỀ VÍ TRC20
+                </h3>
+              </div>
+              <button
+                onClick={() => setIsWithdrawOpen(false)}
+                className="text-gray-400 hover:text-white text-xs font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="bg-[#131927] p-3 rounded-2xl border border-[#1f293d] space-y-1.5 text-xs">
+              <div className="flex justify-between">
+                <span className="text-gray-400">Hoa hồng khả dụng:</span>
+                <span className="font-bold text-[#00df89]">${localRefBal.toFixed(2)} USDT</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-400">Phí mạng On-chain Gas:</span>
+                <span className="font-bold text-[#ff2d55]">-$5.00 USDT</span>
+              </div>
+              <div className="border-t border-[#1f293d] pt-1.5 flex justify-between font-bold">
+                <span className="text-white">Thực nhận về ví:</span>
+                <span className="text-[#00df89]">
+                  ${Math.max(0, (parseFloat(withdrawAmount) || 0) - 5).toFixed(2)} USDT
+                </span>
+              </div>
+            </div>
+
+            {withdrawSuccess && (
+              <div className="p-3 bg-[#00df89]/20 border border-[#00df89] rounded-2xl text-[#00df89] text-xs font-bold text-center">
+                {withdrawSuccess}
+              </div>
+            )}
+
+            {withdrawError && (
+              <div className="p-3 bg-red-500/20 border border-red-500 rounded-2xl text-red-400 text-xs font-bold text-center">
+                {withdrawError}
+              </div>
+            )}
+
+            <form onSubmit={handleWithdrawSubmit} className="space-y-3">
+              <div className="space-y-1">
+                <label className="text-xs text-gray-400 font-bold block">
+                  Số tiền hoa hồng muốn rút ($ USDT):
+                </label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    step="any"
+                    required
+                    value={withdrawAmount}
+                    onChange={(e) => setWithdrawAmount(e.target.value)}
+                    className="w-full bg-[#131927] border border-[#1f293d] rounded-2xl py-3 px-4 text-white text-base font-black focus:outline-none focus:border-[#ff2d55]"
+                    placeholder="VD: 50"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setWithdrawAmount(String(localRefBal))}
+                    className="absolute right-3 top-2.5 px-2 py-1 bg-gray-800 text-gray-300 hover:text-white text-[10px] font-bold rounded-lg transition-all"
+                  >
+                    TẤT CẢ
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs text-gray-400 font-bold block">
+                  Địa chỉ ví USDT (TRC20) nhận tiền:
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={withdrawAddress}
+                  onChange={(e) => setWithdrawAddress(e.target.value)}
+                  className="w-full bg-[#131927] border border-[#1f293d] rounded-2xl py-2.5 px-3 text-white text-xs font-mono focus:outline-none focus:border-[#ff2d55]"
+                  placeholder="VD: TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t"
+                />
+              </div>
+
+              <div className="flex items-center gap-2 pt-2">
+                <button
+                  type="submit"
+                  disabled={withdrawLoading}
+                  className="flex-1 py-3 rounded-xl bg-gradient-to-r from-[#ff2d55] to-[#ff5500] hover:opacity-90 text-white font-black text-xs uppercase shadow-md transition-all flex items-center justify-center gap-1.5"
+                >
+                  {withdrawLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowUpRight className="w-4 h-4" />}
+                  <span>GỬI LỆNH RÚT HOA HỒNG</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsWithdrawOpen(false)}
                   className="px-4 py-3 rounded-xl bg-[#131927] text-gray-400 hover:text-white border border-[#1f293d] text-xs font-bold"
                 >
                   HỦY
