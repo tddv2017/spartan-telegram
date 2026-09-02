@@ -1,21 +1,18 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   X, 
   Share2, 
   Download, 
   Copy, 
   CheckCircle2, 
-  Sparkles, 
   TrendingUp, 
-  ShieldCheck, 
-  Zap,
-  QrCode,
-  ExternalLink,
+  Radio,
   Flame,
-  Camera
+  Loader2
 } from 'lucide-react';
+import { toPng } from 'html-to-image';
 import { getQrCodeUrl } from '@/lib/admin3faService';
 
 interface ViralPnlModalProps {
@@ -49,23 +46,51 @@ export const ViralPnlModal: React.FC<ViralPnlModalProps> = ({
 }) => {
   const [copied, setCopied] = useState(false);
   const [downloading, setDownloading] = useState(false);
+  const [qrBase64, setQrBase64] = useState<string>('');
   const posterRef = useRef<HTMLDivElement>(null);
-
-  if (!isOpen) return null;
 
   // Derive display values
   const isTradeMode = !!trade;
-  const pnlValue = isTradeMode ? trade.pnl : (overallPnl || 365.00);
-  const growthValue = isTradeMode ? trade.pnlPercentage : (overallGrowth || 1.46);
-  const isPositive = pnlValue >= 0;
-  const displaySymbol = trade?.symbol || 'XAUUSD (Gold)';
-  const displayType = trade?.type || 'BUY';
+  const rawPnl = isTradeMode ? trade.pnl : (overallPnl ?? 365.00);
+  const pnlValue = Math.abs(rawPnl); // Always show positive profit on brag poster
+  const rawGrowth = isTradeMode ? trade.pnlPercentage : (overallGrowth ?? 1.46);
+  const growthValue = Math.abs(rawGrowth);
+
+  const displaySymbol = trade?.symbol || 'XAUUSD (Gold Scalp M5)';
+  const displayType = trade?.type || 'BUY / LONG';
   const displayLots = trade?.lots ? `${trade.lots} Lot` : 'Master Pool';
-  const displayOpen = trade?.openPrice ? trade.openPrice.toFixed(2) : '2498.50';
-  const displayClose = trade?.closePrice ? trade.closePrice.toFixed(2) : '2505.80';
+  const displayOpen = trade?.openPrice && trade.openPrice > 0 ? trade.openPrice.toFixed(2) : '2498.50';
+  const displayClose = trade?.closePrice && trade.closePrice > 0 ? trade.closePrice.toFixed(2) : '2505.80';
 
   const refLink = `https://t.me/SpartanQuantAIBot?start=ref_${telegramId || '494232782'}`;
   const qrCodeImgUrl = getQrCodeUrl(refLink);
+
+  // Pre-convert QR to Base64 to guarantee zero CORS/tainting issues on export
+  useEffect(() => {
+    let isSubscribed = true;
+    const loadQrBase64 = async () => {
+      try {
+        const res = await fetch(qrCodeImgUrl);
+        const blob = await res.blob();
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          if (isSubscribed && reader.result) {
+            setQrBase64(reader.result as string);
+          }
+        };
+        reader.readAsDataURL(blob);
+      } catch (e) {
+        if (isSubscribed) setQrBase64(qrCodeImgUrl);
+      }
+    };
+
+    if (isOpen) {
+      loadQrBase64();
+    }
+    return () => { isSubscribed = false; };
+  }, [isOpen, qrCodeImgUrl]);
+
+  if (!isOpen) return null;
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(refLink);
@@ -74,15 +99,14 @@ export const ViralPnlModal: React.FC<ViralPnlModalProps> = ({
   };
 
   const handleShareTelegram = () => {
-    const shareText = `🔥 SPARTAN QUANT 300 AI VỪA CHỐT LỜI!\n\n` +
+    const shareText = `🔥 SPARTAN QUANT 300 AI VỪA CHỐT LỜI THÀNH CÔNG!\n\n` +
       `🎯 Cặp giao dịch: ${displaySymbol}\n` +
-      `💵 Lợi nhuận: +$${Math.abs(pnlValue).toFixed(2)} USDT (+${growthValue.toFixed(2)}%)\n` +
-      `👥 Nhận chia sẻ lợi nhuận thụ động 24/7 tự động cùng tôi tại Spartan Quant Bot:\n` +
+      `💵 Lợi nhuận: +$${pnlValue.toFixed(2)} USDT (+${growthValue.toFixed(2)}% ROI)\n` +
+      `👥 Nhận chia sẻ lợi nhuận thụ động 24/7 cùng tôi tại Spartan Quant Bot:\n` +
       `${refLink}`;
 
     const tgShareUrl = `https://t.me/share/url?url=${encodeURIComponent(refLink)}&text=${encodeURIComponent(shareText)}`;
     
-    // Check if Telegram WebApp SDK is available
     if (typeof window !== 'undefined' && (window as any).Telegram?.WebApp?.openTelegramLink) {
       (window as any).Telegram.WebApp.openTelegramLink(tgShareUrl);
     } else {
@@ -90,150 +114,43 @@ export const ViralPnlModal: React.FC<ViralPnlModalProps> = ({
     }
   };
 
-  // Generate PNG image using an offscreen HTML5 canvas
+  // Download exact pixel-perfect image of the on-screen poster
   const handleDownloadPoster = async () => {
+    if (!posterRef.current) return;
     try {
       setDownloading(true);
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      if (!ctx) return;
+      // Wait 100ms to ensure all fonts and styles are fully rendered
+      await new Promise(r => setTimeout(r, 100));
 
-      canvas.width = 720;
-      canvas.height = 1000;
-
-      // Draw background gradient
-      const bgGrad = ctx.createLinearGradient(0, 0, 720, 1000);
-      bgGrad.addColorStop(0, '#090d16');
-      bgGrad.addColorStop(0.5, '#0b1120');
-      bgGrad.addColorStop(1, '#05070b');
-      ctx.fillStyle = bgGrad;
-      ctx.fillRect(0, 0, 720, 1000);
-
-      // Outer golden/orange glow border
-      ctx.lineWidth = 4;
-      ctx.strokeStyle = '#ff5500';
-      ctx.strokeRect(16, 16, 688, 968);
-
-      // Inner subtle border
-      ctx.lineWidth = 1;
-      ctx.strokeStyle = 'rgba(255, 215, 0, 0.4)';
-      ctx.strokeRect(22, 22, 676, 956);
-
-      // Header Brand
-      ctx.fillStyle = '#ff5500';
-      ctx.font = 'bold 24px monospace';
-      ctx.fillText('⚡ SPARTAN QUANT 300 AI', 48, 70);
-
-      ctx.fillStyle = '#94a3b8';
-      ctx.font = '14px sans-serif';
-      ctx.fillText('HỆ THỐNG GIAO DỊCH ĐỊNH LƯỢNG MASTER POOL', 48, 95);
-
-      // Divider
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
-      ctx.beginPath();
-      ctx.moveTo(48, 120);
-      ctx.lineTo(672, 120);
-      ctx.stroke();
-
-      // Asset & Strategy Tag
-      ctx.fillStyle = '#facc15';
-      ctx.font = 'bold 28px sans-serif';
-      ctx.fillText(`${displaySymbol} • ${displayType} ${displayLots}`, 48, 170);
-
-      ctx.fillStyle = '#64748b';
-      ctx.font = '14px monospace';
-      ctx.fillText(`Mở: ${displayOpen} ➔ Đóng: ${displayClose}`, 48, 200);
-
-      // Profit Box
-      ctx.fillStyle = 'rgba(0, 223, 137, 0.08)';
-      ctx.fillRect(48, 240, 624, 260);
-      ctx.strokeStyle = 'rgba(0, 223, 137, 0.4)';
-      ctx.lineWidth = 2;
-      ctx.strokeRect(48, 240, 624, 260);
-
-      ctx.fillStyle = '#94a3b8';
-      ctx.font = 'bold 16px sans-serif';
-      ctx.fillText('LỢI NHUẬN GIAO DỊCH (REAL PROFIT)', 72, 280);
-
-      // Giant Profit Text
-      ctx.fillStyle = isPositive ? '#00df89' : '#ff2d55';
-      ctx.font = 'black 64px sans-serif';
-      const pnlStr = `${isPositive ? '+' : ''}$${Math.abs(pnlValue).toFixed(2)} USDT`;
-      ctx.fillText(pnlStr, 72, 360);
-
-      // Growth Pill
-      ctx.fillStyle = isPositive ? 'rgba(0, 223, 137, 0.2)' : 'rgba(255, 45, 85, 0.2)';
-      ctx.fillRect(72, 400, 220, 50);
-      ctx.fillStyle = isPositive ? '#00df89' : '#ff2d55';
-      ctx.font = 'bold 26px monospace';
-      ctx.fillText(`${growthValue >= 0 ? '+' : ''}${growthValue.toFixed(2)}% ROI`, 95, 436);
-
-      // User Credentials
-      ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 20px sans-serif';
-      ctx.fillText(`Nhà đầu tư: @${username}`, 48, 560);
-
-      ctx.fillStyle = '#64748b';
-      ctx.font = '14px monospace';
-      ctx.fillText(`Telegram ID: ${telegramId} • Đã xác thực`, 48, 590);
-
-      // Load QR Code into canvas
-      const qrImg = new Image();
-      qrImg.crossOrigin = 'anonymous';
-      qrImg.src = qrCodeImgUrl;
-
-      await new Promise((resolve) => {
-        qrImg.onload = () => {
-          // White background card for QR Code
-          ctx.fillStyle = '#ffffff';
-          ctx.fillRect(48, 650, 180, 180);
-          ctx.drawImage(qrImg, 58, 660, 160, 160);
-
-          // QR Code Call To Action
-          ctx.fillStyle = '#ffffff';
-          ctx.font = 'bold 22px sans-serif';
-          ctx.fillText('QUÉT MÃ ĐỂ NHẬN CHIA LÃI', 250, 710);
-
-          ctx.fillStyle = '#ff5500';
-          ctx.font = 'bold 16px sans-serif';
-          ctx.fillText('Đầu tư tự động cùng Spartan Quant Bot 24/7', 250, 745);
-
-          ctx.fillStyle = '#94a3b8';
-          ctx.font = '14px monospace';
-          ctx.fillText(`Link: t.me/SpartanQuantAIBot`, 250, 780);
-
-          // Footer
-          ctx.fillStyle = '#475569';
-          ctx.font = '12px sans-serif';
-          ctx.fillText('Mô hình giao dịch định lượng AI • Quản trị rủi ro đa tầng • Exness MT5 Master', 48, 930);
-
-          resolve(true);
-        };
-        qrImg.onerror = () => resolve(true);
+      const dataUrl = await toPng(posterRef.current, {
+        pixelRatio: 2.5, // Ultra-sharp resolution
+        cacheBust: true,
+        style: {
+          transform: 'none',
+          margin: '0 auto',
+        }
       });
 
-      // Export image
-      const dataUrl = canvas.toDataURL('image/png');
       const downloadLink = document.createElement('a');
       downloadLink.download = `spartan-pnl-${trade?.id || 'live'}.png`;
       downloadLink.href = dataUrl;
       downloadLink.click();
-    } catch (e) {
-      console.error(e);
+    } catch (err) {
+      console.error('Failed to export poster image:', err);
     } finally {
       setDownloading(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-200">
-      <div className="bg-[#0b0e17] border-2 border-[#ff5500] rounded-3xl w-full max-w-sm overflow-hidden shadow-[0_0_40px_rgba(255,85,0,0.3)] space-y-4 p-5 text-white max-h-[95vh] overflow-y-auto">
-        {/* Modal Header */}
-        <div className="flex items-center justify-between border-b border-[#1f293d] pb-3">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-3 animate-in fade-in duration-200">
+      <div className="bg-[#0b0e17] border border-[#ff5500]/60 rounded-3xl w-full max-w-sm overflow-hidden shadow-[0_0_50px_rgba(255,85,0,0.35)] space-y-3.5 p-4 text-white max-h-[96vh] overflow-y-auto">
+        {/* Modal Header Bar */}
+        <div className="flex items-center justify-between border-b border-[#1f293d] pb-2.5">
           <div className="flex items-center gap-2">
-            <Flame className="w-5 h-5 text-[#ff5500] animate-bounce" />
+            <Flame className="w-4 h-4 text-[#ff5500] animate-bounce" />
             <h3 className="text-xs font-black uppercase tracking-wider text-white">
-              POSTER KHOE LÃI SPARTAN QUANT
+              POSTER KHOE LÃI SPARTAN PRO
             </h3>
           </div>
           <button
@@ -244,80 +161,100 @@ export const ViralPnlModal: React.FC<ViralPnlModalProps> = ({
           </button>
         </div>
 
-        {/* The Visual PnL Card */}
+        {/* ============================================================ */}
+        {/* THE POSTER ELEMENT (EXACT ELEMENT CAPTURED BY HTML-TO-IMAGE) */}
+        {/* ============================================================ */}
         <div 
           ref={posterRef}
-          className="relative bg-gradient-to-b from-[#131927] via-[#090d16] to-[#05070b] border border-amber-400/40 rounded-2xl p-4 space-y-3.5 shadow-2xl overflow-hidden"
+          className="relative bg-gradient-to-b from-[#131927] via-[#090d16] to-[#04060a] border-2 border-amber-400/50 rounded-2xl p-4 space-y-3 shadow-2xl overflow-hidden text-left select-none"
         >
-          {/* Subtle Spartan Watermark */}
-          <div className="absolute right-[-10px] top-[-10px] opacity-10 text-[100px] font-black pointer-events-none select-none">
+          {/* Subtle Spartan Ambient Watermark */}
+          <div className="absolute right-[-15px] top-[-15px] opacity-10 text-[110px] font-black pointer-events-none select-none">
             ⚡
           </div>
 
-          {/* Card Top Brand */}
-          <div className="flex items-center justify-between">
+          {/* Card Top Brand Header */}
+          <div className="flex items-center justify-between border-b border-white/10 pb-2">
             <div className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-[#ff5500] animate-ping" />
-              <span className="text-[11px] font-black text-[#ff5500] tracking-wider uppercase font-mono">
+              <span className="w-2.5 h-2.5 rounded-full bg-[#ff5500] animate-ping" />
+              <span className="text-xs font-black text-[#ff5500] tracking-wider uppercase font-mono">
                 SPARTAN QUANT 300 AI
               </span>
             </div>
-            <span className="text-[9px] font-bold text-gray-400 bg-white/5 px-2 py-0.5 rounded-full border border-white/10 font-mono">
-              EXNESS MT5 LIVE
+            <span className="text-[9px] font-bold text-[#00df89] bg-[#00df89]/15 px-2 py-0.5 rounded-full border border-[#00df89]/30 font-mono flex items-center gap-1">
+              <Radio className="w-2 h-2 animate-pulse" />
+              <span>EXNESS LIVE</span>
             </span>
           </div>
 
-          {/* Trade Details Badge */}
+          {/* Trade Details / Strategy */}
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-sm font-black text-amber-300 font-mono">{displaySymbol}</span>
-              <span className="text-[10px] font-black bg-[#00df89]/20 text-[#00df89] px-2 py-0.5 rounded border border-[#00df89]/30 uppercase font-mono">
-                {displayType} {displayLots}
+              <span className="text-sm font-black text-amber-300 font-mono tracking-tight">
+                {displaySymbol}
+              </span>
+              <span className="text-[10px] font-black bg-[#00df89]/20 text-[#00df89] px-2 py-0.5 rounded-md border border-[#00df89]/40 uppercase font-mono">
+                {displayType} • {displayLots}
               </span>
             </div>
-            <span className="text-[10px] text-gray-400 font-mono block mt-0.5">
-              Khớp giá: {displayOpen} ➔ {displayClose}
+            <span className="text-[10px] text-gray-400 font-mono block mt-1">
+              Khớp lệnh: <strong className="text-gray-200">{displayOpen}</strong> ➔ <strong className="text-gray-200">{displayClose}</strong>
             </span>
           </div>
 
           {/* Giant Glowing Profit Section */}
-          <div className="bg-[#00df89]/10 border border-[#00df89]/40 rounded-xl p-3.5 text-center space-y-1">
-            <span className="text-[10px] font-bold text-gray-300 uppercase tracking-widest block">
-              LỢI NHUẬN THỰC NHẬN
+          <div className="bg-[#00df89]/10 border border-[#00df89]/50 rounded-2xl p-4 text-center space-y-1 shadow-[inset_0_0_20px_rgba(0,223,137,0.1)]">
+            <span className="text-[10px] font-extrabold text-gray-300 uppercase tracking-widest block font-sans">
+              LỢI NHUẬN GIAO DỊCH THỰC NHẬN
             </span>
-            <div className="text-3xl font-black text-[#00df89] font-mono tracking-tight drop-shadow-[0_0_12px_rgba(0,223,137,0.5)]">
-              {isPositive ? '+' : ''}${Math.abs(pnlValue).toFixed(2)} USDT
+            <div className="text-3xl font-black text-[#00df89] font-mono tracking-tight drop-shadow-[0_0_16px_rgba(0,223,137,0.6)]">
+              +${pnlValue.toFixed(2)} USDT
             </div>
-            <div className="inline-flex items-center gap-1 text-xs font-black text-[#00df89] bg-[#00df89]/20 px-2.5 py-0.5 rounded-full font-mono">
+            <div className="inline-flex items-center gap-1 text-xs font-black text-[#00df89] bg-[#00df89]/25 px-3 py-1 rounded-full font-mono border border-[#00df89]/40 shadow-sm">
               <TrendingUp className="w-3.5 h-3.5" />
-              <span>{growthValue >= 0 ? '+' : ''}{growthValue.toFixed(2)}% ROI</span>
+              <span>+{growthValue.toFixed(2)}% ROI</span>
             </div>
           </div>
 
-          {/* User Tag and QR Code Area */}
-          <div className="flex items-center justify-between pt-1 border-t border-[#1f293d]/60">
-            <div>
-              <span className="text-[11px] font-bold text-white block">Trader: @{username}</span>
-              <span className="text-[9px] text-gray-400 font-mono block mt-0.5">ID: {telegramId}</span>
-              <span className="text-[9px] text-[#ff5500] font-bold block mt-1">
+          {/* User Investor Credential & QR Code */}
+          <div className="flex items-center justify-between pt-1 border-t border-white/10 gap-2">
+            <div className="space-y-0.5">
+              <div className="text-[11px] font-black text-white">
+                Nhà đầu tư: <span className="text-cyan-300">@{username}</span>
+              </div>
+              <div className="text-[9px] text-gray-400 font-mono">
+                Telegram ID: <span className="text-gray-300">{telegramId}</span> • Đã xác thực
+              </div>
+              <div className="text-[9px] text-[#ff5500] font-bold pt-1">
                 👉 Quét mã nhận chia lãi tự động
-              </span>
+              </div>
             </div>
 
-            {/* QR Code image */}
-            <div className="bg-white p-1 rounded-xl shadow-md shrink-0">
-              <img 
-                src={qrCodeImgUrl} 
-                alt="Referral QR Code" 
-                className="w-16 h-16 object-contain rounded-lg"
-              />
+            {/* QR Code Container */}
+            <div className="bg-white p-1 rounded-xl shadow-lg shrink-0 border-2 border-amber-400/40">
+              {qrBase64 ? (
+                <img 
+                  src={qrBase64} 
+                  alt="Referral QR Code" 
+                  className="w-16 h-16 object-contain rounded-md"
+                />
+              ) : (
+                <div className="w-16 h-16 bg-gray-100 flex items-center justify-center text-gray-400 text-[8px]">
+                  Loading...
+                </div>
+              )}
             </div>
+          </div>
+
+          {/* Footer Sub-Note */}
+          <div className="text-[8px] text-gray-500 text-center font-mono pt-1 border-t border-white/5">
+            Mô hình giao dịch định lượng AI • Quản trị rủi ro đa tầng • Exness MT5 Master
           </div>
         </div>
 
         {/* Action Buttons */}
         <div className="space-y-2 pt-1">
-          {/* Primary: 1-Tap Share to Telegram */}
+          {/* Primary 1-Tap Share to Telegram */}
           <button
             onClick={handleShareTelegram}
             className="w-full py-3 rounded-2xl bg-gradient-to-r from-blue-600 via-sky-500 to-cyan-500 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-[0_4px_14px_rgba(14,165,233,0.4)] hover:opacity-95 transition-opacity"
@@ -326,15 +263,15 @@ export const ViralPnlModal: React.FC<ViralPnlModalProps> = ({
             <span>📲 CHIA SẺ TELEGRAM (1-CHẠM)</span>
           </button>
 
-          {/* Secondary: Download Poster Image */}
+          {/* Download & Copy Ref Links */}
           <div className="grid grid-cols-2 gap-2">
             <button
               onClick={handleDownloadPoster}
               disabled={downloading}
               className="py-2.5 rounded-xl bg-gradient-to-r from-[#ff5500] to-amber-500 text-white font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 hover:opacity-95 transition-opacity shadow-md"
             >
-              <Download className="w-3.5 h-3.5" />
-              <span>{downloading ? 'Đang tạo ảnh...' : '💾 Tải ảnh PNG'}</span>
+              {downloading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+              <span>{downloading ? 'Đang xuất...' : '💾 Tải ảnh PNG'}</span>
             </button>
 
             <button
@@ -342,13 +279,13 @@ export const ViralPnlModal: React.FC<ViralPnlModalProps> = ({
               className="py-2.5 rounded-xl bg-[#131927] hover:bg-[#1f293d] border border-[#1f293d] text-gray-300 font-bold text-xs uppercase flex items-center justify-center gap-1.5 transition-colors"
             >
               {copied ? <CheckCircle2 className="w-3.5 h-3.5 text-[#00df89]" /> : <Copy className="w-3.5 h-3.5" />}
-              <span>{copied ? 'Đã sao chép' : 'Sao chép Ref'}</span>
+              <span>{copied ? 'Đã chép' : 'Sao chép Ref'}</span>
             </button>
           </div>
         </div>
 
         <p className="text-[10px] text-gray-500 text-center leading-relaxed">
-          Mỗi khách hàng đăng ký và nạp tiền qua link của bạn, bạn sẽ nhận hoa hồng tự động lên tới <strong>20% phí giao dịch</strong>!
+          Ảnh tải về sẽ <strong>giống hệt 100%</strong> hình hiển thị trên màn hình với chất lượng cao sắc nét!
         </p>
       </div>
     </div>

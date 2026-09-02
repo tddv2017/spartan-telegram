@@ -157,7 +157,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
       <ViralPnlModal
         isOpen={isOverallShareOpen}
         onClose={() => setIsOverallShareOpen(false)}
-        overallPnl={userGrossProfit - userGrossLoss > 0 ? (userGrossProfit - userGrossLoss) : (totalMasterProfit || 365.00)}
+        overallPnl={userGrossProfit > 0 ? userGrossProfit : (totalMasterProfit > 0 ? totalMasterProfit : 365.00)}
         overallGrowth={Number(winRate) > 0 ? Number(winRate) : 1.46}
         username={username}
         telegramId={telegramId}
