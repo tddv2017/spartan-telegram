@@ -12,8 +12,16 @@ import { WalletView } from '@/components/WalletView';
 import { AnalyticsView } from '@/components/AnalyticsView';
 import { ProfileView } from '@/components/ProfileView';
 import { AdminPanel } from '@/components/AdminPanel';
+import { NotificationModal } from '@/components/NotificationModal';
 import { checkIsAdmin } from '@/lib/adminAuth';
-import { forceSyncUserProfile, subscribeToUser, subscribeToSystemConfig, UserData } from '@/lib/firebaseService';
+import { 
+  forceSyncUserProfile, 
+  subscribeToUser, 
+  subscribeToSystemConfig, 
+  subscribeToUserTransactions,
+  TransactionData 
+} from '@/lib/firebaseService';
+import { generateUserNotifications, AppNotification } from '@/lib/notificationService';
 import { startAutoScanWorker } from '@/lib/tronService';
 import { CheckCircle2, Lock, Wrench, ShieldAlert, AlertTriangle, ExternalLink } from 'lucide-react';
 
@@ -33,6 +41,11 @@ export default function Home() {
   const [userFirstName, setUserFirstName] = useState<string>('');
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
   const [syncStatus, setSyncStatus] = useState<string | null>(null);
+
+  // Notification Modal & Transactions state
+  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+  const [userTransactions, setUserTransactions] = useState<TransactionData[]>([]);
+  const [refreshNotifCount, setRefreshNotifCount] = useState(0);
 
   // Dynamic Real Telegram SDK User Detection & Force Firebase Profile Write
   useEffect(() => {
@@ -103,6 +116,11 @@ export default function Home() {
       }
     });
 
+    // Realtime Listener for User Transactions
+    const unsubTxs = subscribeToUserTransactions(id, (txs) => {
+      setUserTransactions(txs);
+    });
+
     // Realtime Listener for System Maintenance & Global Bot
     const unsubSystem = subscribeToSystemConfig((config) => {
       setIsMaintenanceMode(config.maintenanceMode);
@@ -118,6 +136,7 @@ export default function Home() {
 
     return () => {
       unsubUser();
+      unsubTxs();
       unsubSystem();
       unsubWorker();
     };
@@ -167,9 +186,20 @@ export default function Home() {
 
   const effectiveBotActive = isBotActive && isGlobalBotActive && !isAccountFrozen;
 
+  // Compute Notifications List and Unread Count
+  const notifications = generateUserNotifications(
+    currentTelegramId,
+    currentTelegramUser,
+    userTransactions,
+    maintenanceNotice,
+    tradingBalance,
+    referralsIncome
+  );
+  const unreadNotificationsCount = notifications.filter(n => !n.isRead).length;
+
   return (
     <main className="max-w-md mx-auto w-full min-h-screen flex flex-col bg-[#080c14] relative shadow-2xl pb-20">
-      {/* Clean App Header */}
+      {/* Clean App Header with Notification Bell */}
       <Header 
         username={currentTelegramUser}
         isAdmin={isAdmin}
@@ -177,12 +207,14 @@ export default function Home() {
         resellerTier={resellerTier}
         isBotActive={effectiveBotActive}
         isTechOpsPaused={!isGlobalBotActive}
+        unreadNotificationsCount={unreadNotificationsCount}
+        onOpenNotifications={() => setIsNotificationOpen(true)}
         onClose={() => alert('Telegram Mini App Closed')} 
       />
 
       {/* Sync Diagnostic Status Toast */}
       {syncStatus && (
-        <div className="mx-4 my-2 p-3 rounded-2xl bg-[#00df89]/20 border border-[#00df89] text-[#00df89] text-xs font-bold flex items-center gap-2 animate-in fade-in slide-in-from-top-2 duration-300">
+        <div className="mx-4 my-2 p-3 rounded-2xl bg-[#00df89]/20 border border-[#00df89] text-[#00df89] text-xs font-bold flex items-center gap-2 animate-in fade-in slide-from-top-2 duration-300">
           <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
           <span>{syncStatus}</span>
         </div>
@@ -321,6 +353,15 @@ export default function Home() {
         activeTab={activeTab} 
         onChangeTab={handleTabChange} 
         isAdmin={isAdmin}
+      />
+
+      {/* Notification Center Modal */}
+      <NotificationModal 
+        isOpen={isNotificationOpen}
+        onClose={() => setIsNotificationOpen(false)}
+        notifications={notifications}
+        telegramId={currentTelegramId}
+        onRefreshNotifications={() => setRefreshNotifCount(c => c + 1)}
       />
     </main>
   );

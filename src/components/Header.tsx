@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Crown, Activity, MoreHorizontal, Shield, Award } from 'lucide-react';
+import { Crown, Activity, MoreHorizontal, Shield, Award, Bell } from 'lucide-react';
 
 export interface UserRankInfo {
   rankName: string;
@@ -52,6 +52,8 @@ interface HeaderProps {
   tradingBalance?: number;
   isBotActive?: boolean;
   isTechOpsPaused?: boolean;
+  unreadNotificationsCount?: number;
+  onOpenNotifications?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({ 
@@ -62,6 +64,8 @@ export const Header: React.FC<HeaderProps> = ({
   tradingBalance = 0,
   isBotActive = true,
   isTechOpsPaused = false,
+  unreadNotificationsCount = 0,
+  onOpenNotifications,
 }) => {
   const rank = getUserRankInfo(isAdmin, username, resellerTier);
 
@@ -111,23 +115,40 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
         </div>
 
-        {/* Dynamic Bot Running / Paused Status Indicator Pill */}
-        {isTechOpsPaused ? (
-          <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-red-500/15 border border-red-500/40 text-red-400 text-[10px] font-black shadow-[0_0_10px_rgba(239,68,68,0.3)] animate-pulse">
-            <span className="w-2 h-2 rounded-full bg-red-500"></span>
-            <span>BOT PAUSED (TECH_OPS)</span>
-          </div>
-        ) : isBotActive ? (
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#ff5500]/10 border border-[#ff5500]/40 text-[#ff5500] text-[11px] font-extrabold shadow-[0_0_10px_rgba(255,85,0,0.2)]">
-            <Activity className="w-3.5 h-3.5 text-[#ff5500] animate-pulse" />
-            <span>BOT ACTIVE</span>
-          </div>
-        ) : (
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gray-800 border border-gray-700 text-gray-400 text-[11px] font-extrabold">
-            <span className="w-2 h-2 rounded-full bg-gray-500"></span>
-            <span>STANDBY</span>
-          </div>
-        )}
+        {/* Right Action Group: Notification Bell + Bot Status Pill */}
+        <div className="flex items-center gap-2">
+          {/* Notification Bell Icon with Live Unread Badge */}
+          <button
+            onClick={onOpenNotifications}
+            className="relative p-2.5 rounded-2xl bg-[#131927] hover:bg-[#1f293d] border border-[#1f293d] text-gray-300 hover:text-white transition-all shadow-md group"
+            title="Xem thông báo hệ thống"
+          >
+            <Bell className="w-4 h-4 group-hover:text-amber-400 transition-colors" />
+            {unreadNotificationsCount > 0 && (
+              <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-red-500 text-white font-mono font-black text-[10px] rounded-full flex items-center justify-center shadow-[0_0_8px_#ef4444] animate-bounce">
+                {unreadNotificationsCount > 9 ? '9+' : unreadNotificationsCount}
+              </span>
+            )}
+          </button>
+
+          {/* Dynamic Bot Running / Paused Status Indicator Pill */}
+          {isTechOpsPaused ? (
+            <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-red-500/15 border border-red-500/40 text-red-400 text-[10px] font-black shadow-[0_0_10px_rgba(239,68,68,0.3)] animate-pulse">
+              <span className="w-2 h-2 rounded-full bg-red-500"></span>
+              <span>BOT PAUSED</span>
+            </div>
+          ) : isBotActive ? (
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#ff5500]/10 border border-[#ff5500]/40 text-[#ff5500] text-[11px] font-extrabold shadow-[0_0_10px_rgba(255,85,0,0.2)]">
+              <Activity className="w-3.5 h-3.5 text-[#ff5500] animate-pulse" />
+              <span>BOT ACTIVE</span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gray-800 border border-gray-700 text-gray-400 text-[11px] font-extrabold">
+              <span className="w-2 h-2 rounded-full bg-gray-500"></span>
+              <span>STANDBY</span>
+            </div>
+          )}
+        </div>
       </div>
     </header>
   );

@@ -24,6 +24,8 @@ import { AdminUserCrudManager } from '@/components/admin/AdminUserCrudManager';
 import { AdminTransactionCrudManager } from '@/components/admin/AdminTransactionCrudManager';
 import { AdminPinAuthModal } from '@/components/admin/AdminPinAuthModal';
 import { SecurityPenTestLab } from '@/components/admin/SecurityPenTestLab';
+import { NotificationModal } from '@/components/NotificationModal';
+import { generateUserNotifications } from '@/lib/notificationService';
 import { 
   ShieldCheck, 
   Layers, 
@@ -42,7 +44,8 @@ import {
   Lock,
   LogOut,
   KeyRound,
-  ShieldAlert
+  ShieldAlert,
+  Bell
 } from 'lucide-react';
 
 type AdminNavSection = 
@@ -80,6 +83,10 @@ export default function StandaloneAdminPortalPage() {
   const [adminStatusMsg, setAdminStatusMsg] = useState<string | null>(null);
   const [broadcastMsg, setBroadcastMsg] = useState<string>('');
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Notification Modal State
+  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+  const [notifRefreshTrigger, setNotifRefreshTrigger] = useState(0);
 
   // Change PIN Modal State
   const [isChangePinOpen, setIsChangePinOpen] = useState(false);
@@ -163,7 +170,7 @@ export default function StandaloneAdminPortalPage() {
     const txId = tx.id || tx.memoCode;
     setLoadingMap(prev => ({ ...prev, [key]: true }));
     try {
-      const res = await rejectLiveTransaction(txId, 'tddv2017 (Admin)', 'Từ chối bởi Quản trị viên');
+      const res = await rejectLiveTransaction(txId, 'tddv2017 (Admin)', 'Từ chối bởi Quản trị viên do sai Memo hoặc số tiền');
       if (res.success) {
         setAdminStatusMsg(`🚫 ĐÃ TỪ CHỐI đơn ${txId} của người dùng @${tx.username}!`);
         loadSystemData();
@@ -186,6 +193,17 @@ export default function StandaloneAdminPortalPage() {
   };
 
   const totalTVL = allUsers.reduce((sum, u) => sum + (u.tradingBalance || 0), 0);
+
+  // Compute Notifications for Admin
+  const adminNotifications = generateUserNotifications(
+    '494232782',
+    'tddv2017',
+    allTransactions,
+    systemConfig.broadcastNotice,
+    totalTVL,
+    0
+  );
+  const unreadNotifsCount = adminNotifications.filter(n => !n.isRead).length + pendingTxs.length;
 
   const navItems = [
     { id: 'overview' as AdminNavSection, label: 'TỔNG QUAN', icon: Layers, badge: pendingTxs.length > 0 ? `${pendingTxs.length} Chờ` : undefined },
@@ -236,6 +254,20 @@ export default function StandaloneAdminPortalPage() {
               {goldPrice.changePercent24h >= 0 ? '+' : ''}{goldPrice.changePercent24h.toFixed(2)}%
             </span>
           </div>
+
+          {/* Notification Bell Button */}
+          <button
+            onClick={() => setIsNotificationOpen(true)}
+            className="relative p-2.5 rounded-xl bg-[#131927] hover:bg-[#1f293d] border border-[#1f293d] text-gray-300 hover:text-white transition-all shadow-md group"
+            title="Xem trung tâm thông báo"
+          >
+            <Bell className="w-4 h-4 group-hover:text-amber-400 transition-colors" />
+            {unreadNotifsCount > 0 && (
+              <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-red-500 text-white font-mono font-black text-[10px] rounded-full flex items-center justify-center shadow-[0_0_8px_#ef4444] animate-bounce">
+                {unreadNotifsCount > 9 ? '9+' : unreadNotifsCount}
+              </span>
+            )}
+          </button>
 
           {/* Refresh Button */}
           <button
@@ -397,6 +429,15 @@ export default function StandaloneAdminPortalPage() {
           )}
         </main>
       </div>
+
+      {/* Notification Center Modal */}
+      <NotificationModal 
+        isOpen={isNotificationOpen}
+        onClose={() => setIsNotificationOpen(false)}
+        notifications={adminNotifications}
+        telegramId="494232782"
+        onRefreshNotifications={() => setNotifRefreshTrigger(c => c + 1)}
+      />
 
       {/* MODAL ĐỔI MÃ MASTER PIN */}
       {isChangePinOpen && (
