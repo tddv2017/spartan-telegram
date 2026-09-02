@@ -74,20 +74,36 @@ export async function fetchOnChainWalletBalance(address: string): Promise<{ usdt
     const res = await fetch(url, {
       method: 'GET',
       headers: { 'Accept': 'application/json' },
-      next: { revalidate: 15 }
+      next: { revalidate: 10 }
     });
 
     if (res.ok) {
       const data = await res.json();
-      const trc20 = data.trc20token_balances || [];
-      const usdtToken = trc20.find((t: any) => 
+      
+      // Look through all possible token balance arrays returned by TronScan API
+      const allTokens = [
+        ...(data.trc20token_balances || []),
+        ...(data.tokenBalances || []),
+        ...(data.with_price_tokens || []),
+        ...(data.tokens || [])
+      ];
+
+      const usdtToken = allTokens.find((t: any) => 
         t.tokenSymbol === 'USDT' || 
+        t.symbol === 'USDT' ||
         t.tokenId === USDT_CONTRACT || 
         t.tokenName?.toLowerCase()?.includes('tether')
       );
-      const usdtBal = usdtToken ? parseFloat(usdtToken.balance || '0') / Math.pow(10, usdtToken.tokenDecimal || 6) : 0;
+
+      let usdtBal = 0;
+      if (usdtToken) {
+        const rawBal = parseFloat(usdtToken.balance || usdtToken.amount || usdtToken.quant || '0');
+        const decimals = usdtToken.tokenDecimal || usdtToken.decimal || 6;
+        usdtBal = rawBal > 10000 ? rawBal / Math.pow(10, decimals) : rawBal;
+      }
+
       const trxBal = (data.balance || 0) / 1e6;
-      return { usdt: usdtBal, trx: trxBal };
+      return { usdt: Math.max(0, usdtBal), trx: Math.max(0, trxBal) };
     }
   } catch (err) {
     console.warn(`Could not fetch on-chain balance for ${address}:`, err);
