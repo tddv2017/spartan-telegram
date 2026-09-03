@@ -654,43 +654,12 @@ export const AdminBinance3FaModal: React.FC<AdminBinance3FaModalProps> = ({
               </span>
             </div>
 
-            {/* QR Setup Toggle */}
-            <div className="text-center">
-              <button
-                type="button"
-                onClick={() => setShowQrCode(prev => !prev)}
-                className="text-[11px] text-[#f5d77f] hover:underline font-mono inline-flex items-center gap-1"
-              >
-                <QrCode className="w-3 h-3" />
-                <span>{showQrCode ? (lang === 'vi' ? 'Ẩn mã QR cài đặt 2FA' : 'Hide 2FA QR Code') : (lang === 'vi' ? 'Quét mã QR cài đặt Authenticator mới' : 'Scan 2FA QR Setup Code')}</span>
-              </button>
+            {/* Bảo mật CISO BlueGuard AI: Ẩn mã QR và Secret Key công khai khỏi màn hình đăng nhập */}
+            <div className="text-center py-1">
+              <span className="text-[10px] text-gray-500 font-mono inline-flex items-center gap-1">
+                <span>🔒 Thiết bị bảo mật đã liên kết mã hóa. Cần cấp lại mã vui lòng liên hệ Chủ tịch (@tddv2017).</span>
+              </span>
             </div>
-
-            {showQrCode && (
-              <div className="p-4 rounded-2xl bg-white text-black space-y-3 text-center animate-in zoom-in-95 duration-200">
-                <div className="flex justify-center">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img 
-                    src={qrCodeUrl} 
-                    alt="Authenticator QR Code" 
-                    className="w-44 h-44 rounded-xl border border-gray-300 shadow-md"
-                  />
-                </div>
-                <div className="text-[11px] font-mono break-all text-gray-700 bg-gray-100 p-2 rounded-xl">
-                  <span>Khóa bí mật (Secret Key):</span>
-                  <div className="font-bold text-black flex items-center justify-center gap-1.5 mt-1">
-                    <span>{DEFAULT_TOTP_SECRET}</span>
-                    <button
-                      type="button"
-                      onClick={handleCopySecret}
-                      className="p-1 rounded hover:bg-gray-200 text-gray-600"
-                    >
-                      {copiedSecret ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
 
             {/* 6-Digit Authenticator Code Input */}
             <div className="space-y-2">

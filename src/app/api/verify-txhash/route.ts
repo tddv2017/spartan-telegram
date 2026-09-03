@@ -106,22 +106,13 @@ export async function POST(req: Request) {
       }
     }
 
-    // Nếu vẫn chưa tìm thấy trên mạng TRON (có thể vừa rút sàn và chưa đủ confirmation)
-    if (verifiedOnChainAmount <= 0) {
-      // Check pending order amount as fallback if within reasonable range
-      const orderRes = await fetch(`${RTDB_BASE_URL}/transactions/${orderId}.json`);
-      if (orderRes.ok) {
-        const orderData = await orderRes.json();
-        if (orderData && typeof orderData.grossAmount === 'number') {
-          verifiedOnChainAmount = orderData.grossAmount;
-        }
-      }
-    }
-
+    // KHẮC PHỤC LỖ HỔNG BẢO MẬT (CISO BlueGuard AI Directive):
+    // Tuyệt đối KHÔNG sử dụng fallback lấy grossAmount từ database khi on-chain chưa xác nhận.
+    // Bắt buộc 100% giao dịch phải được TronGrid / Tron RPC xác nhận on-chain thành công.
     if (verifiedOnChainAmount <= 0) {
       return NextResponse.json({
         success: false,
-        message: '⚠️ CHƯA KHỚP ON-CHAIN: Giao dịch chưa được xác nhận trên mạng TRON hoặc số tiền không hợp lệ. Nếu bạn vừa chuyển từ sàn Binance/OKX, vui lòng đợi 1-2 phút để sàn hoàn tất rút tiền rồi bấm lại!'
+        message: '⚠️ CHƯA KHỚP ON-CHAIN: Giao dịch chưa được xác nhận trên mạng TRON hoặc số tiền không hợp lệ. Nếu bạn vừa chuyển từ sàn Binance/OKX, vui lòng đợi 1-2 phút để mạng TRON hoàn tất block confirmation rồi bấm lại!'
       }, { status: 400 });
     }
 

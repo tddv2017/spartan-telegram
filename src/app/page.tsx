@@ -148,17 +148,9 @@ export default function Home() {
       setIsGlobalBotActive(config.globalBotActive);
     });
 
-    // START AUTOMATED BACKGROUND TRONSCAN / TRONGRID SCANNER WORKER
-    const unsubWorker = startAutoScanWorker(
-      (tx, actualAmount) => {
-        setSyncStatus(`🎉 BOT AUTOMATION: Đã khớp lệnh On-Chain TRON $${actualAmount.toFixed(2)} USDT và tự động duyệt nạp cho @${tx.username}!`);
-        setTimeout(() => setSyncStatus(null), 10000);
-      },
-      (tx, reason) => {
-        setSyncStatus(`⚠️ AI SENTINEL: Đơn nạp #${tx.id} bị từ chối do sai Memo! Đã mở cổng nộp bill đối soát tự động.`);
-        setTimeout(() => setSyncStatus(null), 10000);
-      }
-    );
+    // Khắc phục kiến trúc CTO & CISO:
+    // Không chạy auto-scan worker liên tục trên mọi thiết bị client (tránh rate-limit 429 TronGrid và lỗ hổng client duyệt tiền).
+    // Việc duyệt tiền tự động do Admin Command Center hoặc API serverless đảm nhiệm an toàn.
 
     // Realtime Listener for Master Pool & Trades Profit
     const fetchMasterPoolLive = async () => {
@@ -184,13 +176,12 @@ export default function Home() {
       } catch (e) {}
     };
     fetchMasterPoolLive();
-    const poolInterval = setInterval(fetchMasterPoolLive, 5000);
+    const poolInterval = setInterval(fetchMasterPoolLive, 15000);
 
     return () => {
       unsubUser();
       unsubTxs();
       unsubSystem();
-      unsubWorker();
       clearInterval(poolInterval);
     };
   }, []);

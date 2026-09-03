@@ -120,9 +120,11 @@ export async function checkP2pWaitlistStatus(userId: string): Promise<boolean> {
 export interface P2pCollateralLimitResult {
   tradingBalance: number;
   maxCollateralAllowed: number; // 70% max
+  recommendedMaxCollateral: number; // 60% CFO recommended
   safetyMarginBuffer: number;   // 30% min
   requestedAmount: number;
   ltvPercent: number;
+  autoStopOutLtvPercent: number; // 85% Auto Stop-Out
   isEligible: boolean;
   interestRateMonthly: number; // 1.5% (<=40%), 2.0% (41-60%), 2.6% (61-70%)
   interestRateAnnual: number;
@@ -132,7 +134,8 @@ export interface P2pCollateralLimitResult {
 }
 
 /**
- * Enforces the 70% Collateral Hard-Cap & 30% Safety Margin Buffer
+ * Enforces the 70% Collateral Hard-Cap, 60% Recommended Cap & 30% Safety Margin Buffer
+ * with 85% LTV Auto Stop-Out Protection (CFO & CLO Approved)
  */
 export function calculateP2pCollateralLimits(
   tradingBalance: number,
@@ -141,22 +144,23 @@ export function calculateP2pCollateralLimits(
   const cleanBalance = Math.max(0, tradingBalance);
   const cleanRequested = Math.max(0, requestedLoanAmount);
   const maxCollateralAllowed = cleanBalance * 0.70;
+  const recommendedMaxCollateral = cleanBalance * 0.60;
   const safetyMarginBuffer = cleanBalance * 0.30;
 
   const ltvPercent = cleanBalance > 0 ? (cleanRequested / cleanBalance) * 100 : 0;
   const isEligible = cleanRequested > 0 && cleanRequested <= maxCollateralAllowed;
 
   let interestRateMonthly = 2.0;
-  let tierName = 'Cân Bằng (Balanced)';
+  let tierName = 'Cân Bằng (Balanced 41-60%)';
   if (ltvPercent <= 40) {
     interestRateMonthly = 1.5;
-    tierName = 'Siêu An Toàn (Ultra-Safe)';
+    tierName = 'Siêu An Toàn (Ultra-Safe <=40%)';
   } else if (ltvPercent <= 60) {
     interestRateMonthly = 2.0;
-    tierName = 'Tiêu Chuẩn (Standard)';
+    tierName = 'Khuyến Nghị Định Chế (Standard 41-60%)';
   } else {
     interestRateMonthly = 2.6;
-    tierName = 'Chạm Trần An Toàn (Hard-Cap 70%)';
+    tierName = 'Chạm Trần Ký Quỹ (Hard-Cap 61-70%)';
   }
 
   const interestRateAnnual = interestRateMonthly * 12;
@@ -165,9 +169,11 @@ export function calculateP2pCollateralLimits(
   return {
     tradingBalance: cleanBalance,
     maxCollateralAllowed,
+    recommendedMaxCollateral,
     safetyMarginBuffer,
     requestedAmount: cleanRequested,
     ltvPercent,
+    autoStopOutLtvPercent: 85,
     isEligible,
     interestRateMonthly,
     interestRateAnnual,
@@ -179,29 +185,32 @@ export function calculateP2pCollateralLimits(
   };
 }
 
-export interface P2pMarginLoanOrder {
+export interface P2pMarginEscrowOrder {
   id: string;
   userId: string;
   username: string;
-  loanAmount: number;
+  escrowAmount: number;
   collateralPledged: number;
   safetyBufferRemaining: number;
-  monthlyInterestPct: number;
-  monthlyInterestUsdt: number;
+  autoStopOutLtvPercent: number;
+  monthlyFeePct: number;
+  monthlyFeeUsdt: number;
   termDays: number;
   status: 'PENDING_DISBURSEMENT' | 'ACTIVE' | 'SETTLED' | 'REJECTED';
   createdAt: string;
 }
 
+export type P2pMarginLoanOrder = P2pMarginEscrowOrder;
+
 /**
- * Creates an institutional P2P Collateral Loan Order locking 70% max equity
+ * Creates an institutional P2P Collateral Escrow Order locking 70% max equity
  */
 export async function requestP2pMarginLoan(
   userId: string,
   username: string,
   requestedAmount: number,
   termDays: number = 90
-): Promise<{ success: boolean; message: string; loan?: P2pMarginLoanOrder }> {
+): Promise<{ success: boolean; message: string; loan?: P2pMarginEscrowOrder }> {
   try {
     const cleanId = String(userId || '').trim();
     if (!cleanId) return { success: false, message: 'Định danh người dùng không hợp lệ!' };
@@ -214,19 +223,20 @@ export async function requestP2pMarginLoan(
 
     const limits = calculateP2pCollateralLimits(balance, requestedAmount);
     if (!limits.isEligible) {
-      return { success: false, message: limits.errorMessage || 'Số tiền vay không hợp lệ!' };
+      return { success: false, message: limits.errorMessage || 'Số tiền ký quỹ không hợp lệ!' };
     }
 
-    const loanId = `P2P_LOAN_${cleanId}_${Date.now().toString().slice(-6)}`;
-    const loanPayload: P2pMarginLoanOrder = {
+    const loanId = `P2P_ESCROW_${cleanId}_${Date.now().toString().slice(-6)}`;
+    const loanPayload: P2pMarginEscrowOrder = {
       id: loanId,
       userId: cleanId,
       username: username || 'user_' + cleanId.slice(-4),
-      loanAmount: requestedAmount,
+      escrowAmount: requestedAmount,
       collateralPledged: requestedAmount,
       safetyBufferRemaining: limits.safetyMarginBuffer,
-      monthlyInterestPct: limits.interestRateMonthly,
-      monthlyInterestUsdt: limits.monthlyInterestUsdt,
+      autoStopOutLtvPercent: 85,
+      monthlyFeePct: limits.interestRateMonthly,
+      monthlyFeeUsdt: limits.monthlyInterestUsdt,
       termDays,
       status: 'PENDING_DISBURSEMENT',
       createdAt: new Date().toISOString()
@@ -245,7 +255,7 @@ export async function requestP2pMarginLoan(
       }
     );
 
-    // Save loan in /p2p_loans
+    // Save escrow in /p2p_loans
     const saveRes = await fetch(
       `https://decisive-mapper-216306-default-rtdb.asia-southeast1.firebasedatabase.app/p2p_loans/${loanId}.json`,
       {
@@ -258,11 +268,11 @@ export async function requestP2pMarginLoan(
     if (saveRes.ok) {
       return {
         success: true,
-        message: `🎉 Đã tạo hợp đồng vay ký quỹ #${loanId} ($${requestedAmount.toFixed(2)} USDT) thành công! Quỹ Spartan Treasury đang chuẩn bị giải ngân.`,
+        message: `🎉 Đã tạo thỏa thuận ký quỹ thanh khoản #${loanId} ($${requestedAmount.toFixed(2)} USDT) thành công! Quỹ Spartan Treasury đang chuẩn bị điều phối kết chuyển.`,
         loan: loanPayload
       };
     }
-    return { success: false, message: 'Lỗi lưu trữ hợp đồng vay!' };
+    return { success: false, message: 'Lỗi lưu trữ thỏa thuận ký quỹ!' };
   } catch (err: any) {
     return { success: false, message: 'Lỗi hệ thống: ' + err.message };
   }

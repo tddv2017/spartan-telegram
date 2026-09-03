@@ -258,16 +258,13 @@ export function subscribeToUser(telegramId: string, callback: (user: UserData | 
   let rtdbUnsub = () => {};
   const cleanId = String(telegramId || '494232782');
 
-  const intervalId = setInterval(async () => {
-    try {
-      const res = await fetch(`${RTDB_BASE_URL}/users/${cleanId}.json`);
-      if (res.ok) {
-        const data = await res.json();
-        if (data) callback(data as UserData);
-      }
-    } catch (e) {}
-  }, 3000);
+  // Khắc phục kiến trúc CTO: Fetch tức thì 1 lần đầu để render không có độ trễ
+  fetch(`${RTDB_BASE_URL}/users/${cleanId}.json`)
+    .then(res => res.ok ? res.json() : null)
+    .then(data => { if (data) callback(data as UserData); })
+    .catch(() => {});
 
+  // Dùng WebSocket Realtime SDK (triệt tiêu polling 3000ms lãng phí)
   try {
     const rtdbUserRef = ref(rtdb, `users/${cleanId}`);
     rtdbUnsub = onValue(rtdbUserRef, (snapshot) => {
@@ -285,13 +282,12 @@ export function subscribeToUser(telegramId: string, callback: (user: UserData | 
   } catch (e) {}
 
   return () => {
-    clearInterval(intervalId);
     firestoreUnsub();
     rtdbUnsub();
   };
 }
 
-// 4. Listener for Referred Users List (Immediate Fetch + Polling + Realtime Listener)
+// 4. Listener for Referred Users List (Immediate Fetch + WebSocket Listener)
 export function subscribeToReferredUsers(telegramId: string, callback: (users: any[]) => void) {
   let rtdbUnsub = () => {};
   const cleanId = String(telegramId || '494232782');
@@ -311,7 +307,6 @@ export function subscribeToReferredUsers(telegramId: string, callback: (users: a
   };
 
   fetchRefs();
-  const intervalId = setInterval(fetchRefs, 3000);
 
   try {
     const refsRef = ref(rtdb, `users/${cleanId}/referrals`);
@@ -323,7 +318,6 @@ export function subscribeToReferredUsers(telegramId: string, callback: (users: a
   } catch (e) {}
 
   return () => {
-    clearInterval(intervalId);
     rtdbUnsub();
   };
 }
@@ -533,7 +527,6 @@ export function subscribeToUserTransactions(telegramId: string, callback: (txs: 
   };
 
   fetchTxs();
-  const intervalId = setInterval(fetchTxs, 3000);
 
   try {
     const userTxsRef = ref(rtdb, `users/${cleanId}/transactions`);
@@ -555,7 +548,6 @@ export function subscribeToUserTransactions(telegramId: string, callback: (txs: 
   } catch (e) {}
 
   return () => {
-    clearInterval(intervalId);
     firestoreUnsub();
     rtdbUnsub();
   };
@@ -566,18 +558,16 @@ export function subscribeToPendingTransactions(callback: (txs: TransactionData[]
   let firestoreUnsub = () => {};
   let rtdbUnsub = () => {};
 
-  const intervalId = setInterval(async () => {
-    try {
-      const res = await fetch(`${RTDB_BASE_URL}/transactions.json`);
-      if (res.ok) {
-        const data = await res.json();
-        if (data) {
-          const pending = Object.values(data).filter((t: any) => t.status === 'PENDING') as TransactionData[];
-          callback(pending);
-        }
+  // Initial immediate fetch
+  fetch(`${RTDB_BASE_URL}/transactions.json`)
+    .then(res => res.ok ? res.json() : null)
+    .then(data => {
+      if (data) {
+        const pending = Object.values(data).filter((t: any) => t.status === 'PENDING') as TransactionData[];
+        callback(pending);
       }
-    } catch (e) {}
-  }, 3000);
+    })
+    .catch(() => {});
 
   try {
     const rtdbTxRef = ref(rtdb, 'transactions');
@@ -593,7 +583,6 @@ export function subscribeToPendingTransactions(callback: (txs: TransactionData[]
   } catch (e) {}
 
   return () => {
-    clearInterval(intervalId);
     firestoreUnsub();
     rtdbUnsub();
   };
