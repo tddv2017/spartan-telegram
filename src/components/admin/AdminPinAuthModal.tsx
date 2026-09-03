@@ -28,7 +28,7 @@ export const AdminPinAuthModal: React.FC<AdminPinAuthModalProps> = ({ onSuccess 
           if (cfg.master_pin_hash) {
             setCloudMasterPinHash(String(cfg.master_pin_hash).trim());
           } else if (cfg.master_pin) {
-            hashMasterPin(String(cfg.master_pin).trim()).then(h => setCloudMasterPinHash(h));
+            setCloudMasterPinHash(hashMasterPin(String(cfg.master_pin).trim()));
           }
         }
       })
@@ -110,20 +110,26 @@ export const AdminPinAuthModal: React.FC<AdminPinAuthModalProps> = ({ onSuccess 
     setErrorMsg(null);
   };
 
-  const verifyPin = async (enteredPin: string) => {
+  const verifyPin = (enteredPin: string) => {
     const savedPin = localStorage.getItem(PIN_STORAGE_KEY) || DEFAULT_MASTER_PIN;
     const cleanEntered = enteredPin.trim();
-    const enteredHash = await hashMasterPin(cleanEntered);
 
-    const isMatched = 
-      cleanEntered === DEFAULT_MASTER_PIN || 
-      cleanEntered === savedPin || 
-      enteredHash === savedPin || 
-      (Boolean(cloudMasterPinHash) && enteredHash === cloudMasterPinHash);
+    // 1. FAST CHECK: Default PIN '888899' or direct match
+    let isMatched = cleanEntered === DEFAULT_MASTER_PIN || cleanEntered === savedPin;
+
+    // 2. CRYPTOGRAPHIC HASH CHECK
+    if (!isMatched) {
+      try {
+        const enteredHash = hashMasterPin(cleanEntered);
+        isMatched = 
+          enteredHash === savedPin || 
+          (Boolean(cloudMasterPinHash) && enteredHash === cloudMasterPinHash);
+      } catch {}
+    }
 
     if (isMatched) {
       // Success: Save 30-min session token
-      localStorage.setItem(PIN_STORAGE_KEY, enteredHash);
+      localStorage.setItem(PIN_STORAGE_KEY, cleanEntered);
       sessionStorage.setItem(
         SESSION_AUTH_KEY,
         JSON.stringify({

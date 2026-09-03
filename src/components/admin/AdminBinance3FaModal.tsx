@@ -62,7 +62,7 @@ export const AdminBinance3FaModal: React.FC<AdminBinance3FaModalProps> = ({ onSu
           if (cfg.master_pin_hash) {
             setCloudMasterPinHash(String(cfg.master_pin_hash).trim());
           } else if (cfg.master_pin) {
-            hashMasterPin(String(cfg.master_pin).trim()).then(h => setCloudMasterPinHash(h));
+            setCloudMasterPinHash(hashMasterPin(String(cfg.master_pin).trim()));
           }
         }
       })
@@ -121,35 +121,40 @@ export const AdminBinance3FaModal: React.FC<AdminBinance3FaModalProps> = ({ onSu
     }
   };
 
-  const verifyStep1Pin = async (enteredPin: string) => {
+  const verifyStep1Pin = (enteredPin: string) => {
     const savedPin = localStorage.getItem(PIN_STORAGE_KEY) || DEFAULT_MASTER_PIN;
     const cleanEntered = enteredPin.trim();
 
-    // Compute cryptographic SHA-256 hash of entered PIN
-    const enteredHash = await hashMasterPin(cleanEntered);
-
-    // Verify against DEFAULT_MASTER_PIN ('888899'), stored localStorage hash/pin, or cloud master_pin_hash
-    const isMatched = 
-      cleanEntered === DEFAULT_MASTER_PIN || 
-      cleanEntered === savedPin || 
-      enteredHash === savedPin || 
-      (Boolean(cloudMasterPinHash) && enteredHash === cloudMasterPinHash);
-
-    if (isMatched) {
-      // Store encrypted hash in localStorage for client-side security
-      localStorage.setItem(PIN_STORAGE_KEY, enteredHash);
+    // 1. FAST CHECK: Default PIN '888899' or legacy plaintext match
+    if (cleanEntered === DEFAULT_MASTER_PIN || cleanEntered === savedPin) {
       setPinError(null);
       setCurrentStep('STEP_2_GMAIL');
-      // Auto dispatch real OTP immediately to user's phone/telegram
       handleSendLiveOtp();
-    } else {
-      setPinError(
-        lang === 'vi'
-          ? `❌ MÃ MASTER PIN KHÔNG ĐÚNG! Mã mặc định: ${DEFAULT_MASTER_PIN} hoặc mã anh đã đổi.`
-          : `❌ INCORRECT MASTER PIN! Default: ${DEFAULT_MASTER_PIN} or your configured PIN.`
-      );
-      setTimeout(() => setPin(''), 500);
+      return;
     }
+
+    // 2. CRYPTOGRAPHIC HASH CHECK
+    try {
+      const enteredHash = hashMasterPin(cleanEntered);
+      const isMatched = 
+        enteredHash === savedPin || 
+        (Boolean(cloudMasterPinHash) && enteredHash === cloudMasterPinHash);
+
+      if (isMatched) {
+        localStorage.setItem(PIN_STORAGE_KEY, enteredHash);
+        setPinError(null);
+        setCurrentStep('STEP_2_GMAIL');
+        handleSendLiveOtp();
+        return;
+      }
+    } catch {}
+
+    setPinError(
+      lang === 'vi'
+        ? `❌ MÃ MASTER PIN KHÔNG ĐÚNG! Mã mặc định hệ thống: ${DEFAULT_MASTER_PIN}`
+        : `❌ INCORRECT MASTER PIN! System default: ${DEFAULT_MASTER_PIN}`
+    );
+    setTimeout(() => setPin(''), 500);
   };
 
   // ----------------------------------------------------------------------
