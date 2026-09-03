@@ -39,6 +39,31 @@ export async function POST(req: Request) {
       targetChatId = DEFAULT_PRIMARY_ADMIN_ID;
     }
 
+    // 🛡️ ZERO-TRUST SECURITY AUDIT: Verify caller is an authorized administrator before generating/sending OTP
+    const isHardcodedAdmin = checkIsAdmin(targetAdminUsername) || checkIsAdmin(targetChatId);
+    let isDbAdmin = false;
+    if (!isHardcodedAdmin && targetChatId) {
+      try {
+        const uCheckRes = await fetch(`${RTDB_BASE_URL}/users/${targetChatId}.json`);
+        if (uCheckRes.ok) {
+          const uCheck = await uCheckRes.json();
+          if (uCheck && (uCheck.role === 'ADMIN' || uCheck.role === 'SUPER_ADMIN')) {
+            isDbAdmin = true;
+          }
+        }
+      } catch (e) {}
+    }
+
+    if (!isHardcodedAdmin && !isDbAdmin) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'ACCESS_DENIED: Bạn không có thẩm quyền Quản Trị Viên cấp cao để kích hoạt mã OTP 3FA!' 
+        }, 
+        { status: 403 }
+      );
+    }
+
     // 2. Generate Real 6-Digit Cryptographic OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const timestamp = Date.now();

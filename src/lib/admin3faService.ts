@@ -80,9 +80,9 @@ export async function verifyRealCustodyOtp(
     return { success: false, message: 'Vui lòng nhập đủ 6 chữ số OTP!' };
   }
 
-  // Master Override Bypass for emergency maintenance: 999888
-  if (cleanOtp === '999888') {
-    return { success: true, message: 'Xác minh thành công (Master Override)!' };
+  // Master Override Bypass restricted strictly to local development
+  if (process.env.NODE_ENV === 'development' && cleanOtp === '999888') {
+    return { success: true, message: 'Xác minh thành công (Master Override Dev)!' };
   }
 
   try {

@@ -53,8 +53,10 @@ function verifyTotpToken(token: string, secretBase32 = DEFAULT_TOTP_SECRET): boo
   const cleanToken = token.trim();
   if (cleanToken.length !== 6) return false;
 
-  // Master override for emergency dev: 999888
-  if (cleanToken === '999888') return true;
+  // Master override restricted strictly to local development
+  if (process.env.NODE_ENV === 'development' && cleanToken === '999888') {
+    return true;
+  }
 
   for (let window = -1; window <= 1; window++) {
     if (generateTotpToken(secretBase32, window) === cleanToken) {

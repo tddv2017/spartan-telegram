@@ -204,21 +204,23 @@ export const AdminBinance3FaModal: React.FC<AdminBinance3FaModalProps> = ({
   };
 
   const verifyPin = (enteredPin: string) => {
-    // Fast path: Default PIN 888899
-    if (enteredPin === DEFAULT_MASTER_PIN) {
-      setPinError(null);
-      setCurrentStep('STEP_2_GMAIL');
-      return;
+    // 1. Check against Cloud Master PIN Hash (Highest Priority)
+    if (cloudMasterPinHash) {
+      if (verifyPinHash(enteredPin, cloudMasterPinHash)) {
+        setPinError(null);
+        setCurrentStep('STEP_2_GMAIL');
+        return;
+      }
+    } else {
+      // 2. Default PIN ONLY allowed if no cloud hash is established yet
+      if (enteredPin === DEFAULT_MASTER_PIN) {
+        setPinError(null);
+        setCurrentStep('STEP_2_GMAIL');
+        return;
+      }
     }
 
-    // Hash check against cloud hash
-    if (cloudMasterPinHash && verifyPinHash(enteredPin, cloudMasterPinHash)) {
-      setPinError(null);
-      setCurrentStep('STEP_2_GMAIL');
-      return;
-    }
-
-    // Local storage check
+    // 3. Local storage check
     const localHash = localStorage.getItem(PIN_STORAGE_KEY);
     if (localHash && verifyPinHash(enteredPin, localHash)) {
       setPinError(null);
@@ -228,8 +230,8 @@ export const AdminBinance3FaModal: React.FC<AdminBinance3FaModalProps> = ({
 
     setPinError(
       lang === 'vi'
-        ? `❌ MÃ PIN KHÔNG ĐÚNG! Mã mặc định hệ thống: ${DEFAULT_MASTER_PIN}`
-        : `❌ INCORRECT MASTER PIN! System default: ${DEFAULT_MASTER_PIN}`
+        ? '❌ MÃ PIN BẢO MẬT KHÔNG CHÍNH XÁC! Vui lòng thử lại.'
+        : '❌ INCORRECT SECURITY MASTER PIN! Please try again.'
     );
     setTimeout(() => setPin(''), 500);
   };
