@@ -32,7 +32,7 @@ export function getUserRankInfo(
   if (role === 'RESELLER' || resellerTier > 0) {
     const tierNum = Math.min(10, Math.max(1, resellerTier));
     return {
-      rankName: lang === 'vi' ? `ĐỐI TÁC CẤP ${tierNum}` : `RESELLER TIER ${tierNum}`,
+      rankName: lang === 'vi' ? `ĐỐI TÁC HẠNG ${tierNum}` : `PARTNER TIER ${tierNum}`,
       badgeStyle: 'bg-amber-500/15 text-amber-300 border border-amber-500/35 shadow-[0_0_10px_rgba(245,158,11,0.2)]',
       icon: '🎖️'
     };

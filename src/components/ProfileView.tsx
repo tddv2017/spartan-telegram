@@ -291,7 +291,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
         </div>
       </div>
 
-      {/* 2. BẢNG GIỚI THIỆU CÁC MỨC HƯỞNG HOA HỒNG ĐẠI LÝ F1 (10 CẤP RESELLER) */}
+      {/* 2. BẢNG GIỚI THIỆU CHÍNH SÁCH ĐỐI TÁC LIÊN KẾT F1 (10 HẠNG THÀNH VIÊN) */}
       <div className="spartan-card rounded-3xl p-5 border border-[#221c10] bg-[#080b12] space-y-4 shadow-xl">
         {/* Header & Badges */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#221c10] pb-3">
@@ -302,23 +302,23 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
             <div>
               <div className="flex items-center gap-2 flex-wrap">
                 <h3 className="text-sm font-black text-white uppercase tracking-wider">
-                  {lang === 'vi' ? 'QUYỀN LỢI & BIỂU PHÍ HOA HỒNG ĐẠI LÝ F1' : 'F1 RESELLER COMMISSION & INCENTIVE HUB'}
+                  {lang === 'vi' ? 'CHÍNH SÁCH ĐỐI TÁC LIÊN KẾT F1 & QUYỀN LỢI ĐỊNH CHẾ' : 'F1 AFFILIATE PARTNER POLICY & INCENTIVE HUB'}
                 </h3>
                 <span className="text-[9px] font-black text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
-                  {lang === 'vi' ? 'SẺ THỊT 10 CẤP' : 'GENEROUS 10-TIER'}
+                  {lang === 'vi' ? 'HỢP TÁC DOANH THU 10 HẠNG' : '10-TIER REVENUE SHARE'}
                 </span>
               </div>
               <p className="text-[11px] text-gray-400 mt-0.5">
                 {lang === 'vi'
-                  ? 'Dòng tiền kép: Hoa hồng nạp tức thì (15% - 50%) + Lương hưu thụ động từ Lãi Bot HWM (10% - 35%)'
-                  : 'Dual cash flow: Instant deposit rebate (15% - 50%) + Lifetime HWM bot profit royalty (10% - 35%)'}
+                  ? 'Cơ chế phân bổ quyền lợi định chế: Chiết khấu phí khởi tạo (15% - 50%) + Thưởng hiệu quả định lượng HWM (10% - 35%)'
+                  : 'Institutional revenue sharing: Portfolio initiation rebate (15% - 50%) + Quantitative HWM performance royalty (10% - 35%)'}
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-2 self-end sm:self-auto">
             <span className="text-[10px] font-black text-[#f5d77f] bg-[#d4af37]/15 px-3 py-1 rounded-full border border-[#d4af37]/35 shadow-[0_0_10px_rgba(212,175,55,0.2)]">
-              {isAdmin ? '👑 SUPREME LEADER' : `${t('ref_current_tier')}: CẤP ${effectiveTier}`}
+              {isAdmin ? '👑 SUPREME LEADER' : `${t('ref_current_tier')}: HẠNG ${effectiveTier}`}
             </span>
             <button
               type="button"
@@ -330,67 +330,67 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
           </div>
         </div>
 
-        {/* 3 Trụ Cột Quyền Lợi "Sẻ Thịt" Đột Phá */}
+        {/* 3 Trụ Cột Quyền Lợi Phân Bổ Doanh Thu Định Chế */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
           <div className="bg-[#05070c] p-3.5 rounded-2xl border border-emerald-500/20 space-y-1 shadow-sm">
             <div className="flex items-center gap-2 text-emerald-400 font-black text-xs">
               <Coins className="w-4 h-4" />
-              <span>1. HOA HỒNG NẠP TIỀN</span>
+              <span>1. CHIẾT KHẤU PHÍ KHỞI TẠO</span>
             </div>
             <div className="text-base font-black text-white font-mono">
-              15.0% - 50.0% <span className="text-[10px] text-emerald-400 font-sans font-bold">(50/50 Sàn)</span>
+              15.0% - 50.0% <span className="text-[10px] text-emerald-400 font-sans font-bold">(Tỷ lệ phân bổ sàn)</span>
             </div>
             <p className="text-[10px] text-gray-400">
-              Nhận ngay <strong className="text-emerald-300 font-mono">+$13.50 đến +$45.00 USDT</strong> khi mỗi khách F1 nạp $1,000U. Tiền tươi vào ví ngay lập tức!
+              Kết chuyển tức thời tương đương <strong className="text-emerald-300 font-mono">+$13.50 đến +$45.00 USDT</strong> khi thành viên F1 kết nối quy mô $1,000U.
             </p>
           </div>
 
           <div className="bg-[#05070c] p-3.5 rounded-2xl border border-cyan-500/20 space-y-1 shadow-sm">
             <div className="flex items-center gap-2 text-cyan-400 font-black text-xs">
               <TrendingUp className="w-4 h-4" />
-              <span>2. LƯƠNG HƯU THỤ ĐỘNG HWM</span>
+              <span>2. THƯỞNG HIỆU QUẢ ĐỊNH LƯỢNG HWM</span>
             </div>
             <div className="text-base font-black text-white font-mono">
-              10.0% - 35.0% <span className="text-[10px] text-cyan-400 font-sans font-bold">Lãi Vượt Đỉnh</span>
+              10.0% - 35.0% <span className="text-[10px] text-cyan-400 font-sans font-bold">Hiệu Quả Vượt Đỉnh</span>
             </div>
             <p className="text-[10px] text-gray-400">
-              Trích từ $20\%$ phí hiệu quả bot chốt lời hàng tuần/tháng. Bot sinh lãi đỉnh $\rightarrow$ Đại lý có dòng tiền thụ động trọn đời!
+              Trích từ phí hiệu quả khi danh mục đầu tư đạt mức tăng trưởng vượt đỉnh (High-Water Mark) theo kỳ đối soát.
             </p>
           </div>
 
           <div className="bg-[#05070c] p-3.5 rounded-2xl border border-amber-500/20 space-y-1 shadow-sm">
             <div className="flex items-center gap-2 text-amber-400 font-black text-xs">
               <Sparkles className="w-4 h-4" />
-              <span>3. CHỢ P2P & THẾ CHẤP MARGIN</span>
+              <span>3. THANH KHOẢN P2P & KÝ QUỸ TẠM THỜI</span>
             </div>
             <div className="text-base font-black text-white font-mono">
-              35.0% <span className="text-[10px] text-amber-400 font-sans font-bold">Phí Giao Dịch Sàn</span>
+              35.0% <span className="text-[10px] text-amber-400 font-sans font-bold">Phí Dịch Vụ Sàn</span>
             </div>
             <p className="text-[10px] text-gray-400">
-              Nhận $35\%$ phí khớp lệnh nạp/rút OTC và $10\%$ tiền lãi vay margin của khách F1 khi thế chấp vốn chạy bot.
+              Nhận 35% phí giao dịch khớp lệnh P2P và 10% phí tiện ích ký quỹ tạm thời của thành viên F1 trong hệ thống.
             </p>
           </div>
         </div>
 
-        {/* Thước Đo Mục Tiêu Thu Nhập Cho Đại Lý (Interactive Goal Simulator) */}
+        {/* Thước Đo Mục Tiêu Phát Triển (Interactive Goal Simulator) */}
         <div className="p-3.5 rounded-2xl bg-gradient-to-r from-[#0d121f] to-[#080b12] border border-[#d4af37]/30 space-y-2.5 shadow-inner">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Target className="w-4 h-4 text-[#f5d77f]" />
               <span className="text-xs font-black text-white uppercase tracking-wider">
-                {lang === 'vi' ? '🎯 MỤC TIÊU PHÁT TRIỂN & MÔ PHỎNG THU NHẬP' : '🎯 RESELLER INCOME PROJECTION'}
+                {lang === 'vi' ? '🎯 MỤC TIÊU PHÁT TRIỂN & DỰ PHÓNG THU NHẬP' : '🎯 PARTNER GOAL & INCOME PROJECTION'}
               </span>
             </div>
-            <span className="text-[10px] text-gray-400 font-medium">Chọn nấc thang mục tiêu:</span>
+            <span className="text-[10px] text-gray-400 font-medium">Chọn quy mô thành viên:</span>
           </div>
 
           {/* Quick Selectors */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {[
-              { f1s: 5, label: '5 F1s (Cấp 2)', total: '150 - 300' },
-              { f1s: 10, label: '10 F1s (Cấp 3)', total: '300 - 600' },
-              { f1s: 25, label: '25 F1s (Cấp 5)', total: '1,000 - 1,500' },
-              { f1s: 50, label: '50 F1s (Cấp 10 Master)', total: '5,500 - 12,000+' }
+              { f1s: 5, label: '5 Thành viên (Hạng 2)', total: '150 - 300' },
+              { f1s: 10, label: '10 Thành viên (Hạng 3)', total: '300 - 600' },
+              { f1s: 25, label: '25 Thành viên (Hạng 5)', total: '1,000 - 1,500' },
+              { f1s: 50, label: '50 Thành viên (Hạng 10 Master)', total: '5,500 - 12,000+' }
             ].map((goal) => {
               const isSelected = selectedGoalF1s === goal.f1s;
               return (
@@ -416,23 +416,23 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
           {/* Dynamic Projection Result */}
           {(() => {
             const goalData = [
-              { f1s: 5, tierName: 'CẤP 2', depRebate: 90, hwmMonthly: 80, totalMonthly: '150 - 300' },
-              { f1s: 10, tierName: 'CẤP 3 (SPARTAN)', depRebate: 225, hwmMonthly: 200, totalMonthly: '300 - 600' },
-              { f1s: 25, tierName: 'CẤP 5 (LEADER)', depRebate: 787, hwmMonthly: 670, totalMonthly: '1,000 - 1,500' },
-              { f1s: 50, tierName: 'CẤP 10 (MASTER VIP)', depRebate: 2250, hwmMonthly: 2330, totalMonthly: '5,500 - 12,000+' }
-            ].find(g => g.f1s === selectedGoalF1s) || { f1s: 10, tierName: 'CẤP 3', depRebate: 225, hwmMonthly: 200, totalMonthly: '300 - 600' };
+              { f1s: 5, tierName: 'HẠNG 2', depRebate: 90, hwmMonthly: 80, totalMonthly: '150 - 300' },
+              { f1s: 10, tierName: 'HẠNG 3 (SPARTAN)', depRebate: 225, hwmMonthly: 200, totalMonthly: '300 - 600' },
+              { f1s: 25, tierName: 'HẠNG 5 (LEADER)', depRebate: 787, hwmMonthly: 670, totalMonthly: '1,000 - 1,500' },
+              { f1s: 50, tierName: 'HẠNG 10 (MASTER VIP)', depRebate: 2250, hwmMonthly: 2330, totalMonthly: '5,500 - 12,000+' }
+            ].find(g => g.f1s === selectedGoalF1s) || { f1s: 10, tierName: 'HẠNG 3', depRebate: 225, hwmMonthly: 200, totalMonthly: '300 - 600' };
 
             return (
               <div className="bg-[#05070c] p-3 rounded-xl border border-[#221c10] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs font-mono">
                 <div>
-                  <span className="text-gray-400 block text-[10px]">ƯỚC TÍNH VỚI MỤC TIÊU {selectedGoalF1s} F1s ({goalData.tierName}):</span>
+                  <span className="text-gray-400 block text-[10px]">ƯỚC TÍNH VỚI QUY MÔ {selectedGoalF1s} THÀNH VIÊN ({goalData.tierName}):</span>
                   <div className="flex items-center gap-3 text-gray-300 text-[11px] mt-0.5">
-                    <span>💵 Nạp tươi: <strong className="text-emerald-400">+${goalData.depRebate} USDT</strong></span>
-                    <span>📈 Lãi HWM: <strong className="text-cyan-400">+${goalData.hwmMonthly} USDT/tháng</strong></span>
+                    <span>💵 Phí khởi tạo: <strong className="text-emerald-400">+${goalData.depRebate} USDT</strong></span>
+                    <span>📈 Thưởng HWM: <strong className="text-cyan-400">+${goalData.hwmMonthly} USDT/tháng</strong></span>
                   </div>
                 </div>
                 <div className="text-right self-end sm:self-auto">
-                  <span className="text-[10px] text-amber-400 block uppercase font-bold">Thu nhập dự kiến:</span>
+                  <span className="text-[10px] text-amber-400 block uppercase font-bold">Dự phóng thu nhập:</span>
                   <span className="text-sm font-black text-[#f5d77f]">
                     ${goalData.totalMonthly} USDT/tháng
                   </span>
@@ -442,12 +442,12 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
           })()}
         </div>
 
-        {/* Danh Sách 10 Cấp Bậc Ma Trận (Hiển Thị Đầy Đủ) */}
+        {/* Danh Sách 10 Hạng Thành Viên Ma Trận (Hiển Thị Đầy Đủ) */}
         {showTierMatrix && (
           <div className="space-y-2 pt-2 border-t border-[#221c10] animate-in fade-in duration-200">
             <div className="flex items-center justify-between text-[10px] font-bold text-gray-500 uppercase px-1">
-              <span>CẤP BẬC & ĐIỀU KIỆN ĐẠT CẤP</span>
-              <span>QUYỀN LỢI PHÍ NẠP & LÃI HWM</span>
+              <span>HẠNG THÀNH VIÊN & TIÊU CHUẨN ĐẠT HẠNG</span>
+              <span>PHÂN BỔ KHỞI TẠO & HIỆU QUẢ HWM</span>
             </div>
 
             <div className="space-y-2 max-h-96 overflow-y-auto pr-1.5 scrollbar-thin scrollbar-thumb-[#d4af37]/40 scrollbar-track-[#05070c]">
@@ -485,14 +485,14 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                       <div className="flex items-center justify-between sm:justify-end gap-3 text-right pt-2 sm:pt-0 border-t sm:border-t-0 border-[#1f293d]/40">
                         <div className="text-left sm:text-right">
                           <span className="text-xs font-mono font-black text-emerald-400 block">
-                            {item.depositRebatePct}% Phí Nạp ({item.depositPer1k})
+                            {item.depositRebatePct}% Phí Khởi Tạo ({item.depositPer1k})
                           </span>
                           <span className="text-[10px] font-mono text-cyan-400 font-bold block">
-                            +{item.hwmRebatePct}% Lãi Bot HWM
+                            +{item.hwmRebatePct}% Hiệu Quả HWM
                           </span>
                         </div>
                         <div className="pl-2 border-l border-[#1f293d]/60 text-right">
-                          <span className="text-[9px] text-gray-500 block uppercase">Thu nhập:</span>
+                          <span className="text-[9px] text-gray-500 block uppercase">Thu nhập ước tính:</span>
                           <span className="text-[11px] font-mono font-black text-[#f5d77f] whitespace-nowrap block">
                             {item.estimatedMonthlyIncome}
                           </span>
@@ -502,6 +502,23 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                   </div>
                 );
               })}
+            </div>
+
+            {/* Bản Ghi Chú Tuân Thủ Pháp Lý & Khuyến Cáo Rủi Ro */}
+            <div className="p-3 rounded-2xl bg-[#05070c] border border-[#221c10] text-[9px] text-gray-500 leading-relaxed space-y-1 mt-2">
+              <div className="flex items-center gap-1.5 font-bold text-gray-400">
+                <ShieldCheck className="w-3.5 h-3.5 text-[#d4af37]" />
+                <span>BẢN GHI CHÚ PHÁP LÝ & KHUYẾN CÁO TUÂN THỦ (REGULATORY COMPLIANCE NOTE):</span>
+              </div>
+              <p>
+                • Spartan vận hành theo mô hình Đối tác Liên kết Trực tiếp F1 độc lập (Single-Tier Direct Referral), không áp dụng cơ chế phân nhánh đa cấp kim tự tháp.
+              </p>
+              <p>
+                • Các khoản chiết khấu khởi tạo và thưởng hiệu quả được trích từ nguồn thu dịch vụ thực tế của nền tảng và kết chuyển tự động vào số dư khả dụng khi đủ điều kiện đối soát.
+              </p>
+              <p>
+                • Toàn bộ số liệu mô phỏng thu nhập mang tính chất tham khảo dựa trên mô hình thuật toán định lượng, không cấu thành cam kết lợi nhuận tài chính cố định hoặc bảo đảm mức thu nhập tương lai.
+              </p>
             </div>
           </div>
         )}
