@@ -37,7 +37,15 @@ type AdminDepartment = 'overview' | 'accounting' | 'personnel' | 'techops' | 'ag
 
 const SESSION_AUTH_KEY = 'spartan_admin_session_auth_token';
 
-export const AdminPanel: React.FC = () => {
+interface AdminPanelProps {
+  telegramId?: string;
+  username?: string;
+}
+
+export const AdminPanel: React.FC<AdminPanelProps> = ({
+  telegramId = '494232782',
+  username = 'tddv2017',
+}) => {
   const { t, lang } = useLanguage();
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [activeDept, setActiveDept] = useState<AdminDepartment>('overview');
@@ -155,7 +163,13 @@ export const AdminPanel: React.FC = () => {
   ];
 
   if (!isAuthenticated) {
-    return <AdminBinance3FaModal onSuccess={() => setIsAuthenticated(true)} />;
+    return (
+      <AdminBinance3FaModal 
+        adminTelegramId={telegramId}
+        adminUsername={username}
+        onSuccess={() => setIsAuthenticated(true)} 
+      />
+    );
   }
 
   return (

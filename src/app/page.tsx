@@ -461,7 +461,10 @@ export default function Home() {
 
       {activeTab === 'admin' && isAdmin && (
         <div className="p-4">
-          <AdminPanel />
+          <AdminPanel 
+            telegramId={currentTelegramId}
+            username={currentTelegramUser}
+          />
         </div>
       )}
 

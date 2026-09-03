@@ -38,19 +38,29 @@ export function saveAdmin3FaConfig(config: Admin3FaConfig): void {
 }
 
 /**
- * Dispatch real OTP directly to Admin's phone via backend API
+ * Dispatch real OTP directly to specific Admin's Telegram ID via backend API
  */
-export async function sendRealCustodyOtp(email: string): Promise<{ success: boolean; message: string }> {
+export async function sendRealCustodyOtp(
+  email?: string,
+  targetTelegramId?: string,
+  targetUsername?: string
+): Promise<{ success: boolean; message: string; telegramSent?: boolean; targetChatId?: string }> {
   try {
     const res = await fetch('/api/send-custody-otp', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: email || DEFAULT_3FA_CONFIG.adminEmail })
+      body: JSON.stringify({ 
+        email: email || DEFAULT_3FA_CONFIG.adminEmail,
+        telegramId: targetTelegramId || '',
+        username: targetUsername || ''
+      })
     });
 
     const data = await res.json();
     return {
       success: data.success,
+      telegramSent: data.telegramSent,
+      targetChatId: data.targetChatId,
       message: data.message || 'Đã gửi mã xác thực OTP về thiết bị của bạn!'
     };
   } catch (err: any) {
@@ -59,9 +69,12 @@ export async function sendRealCustodyOtp(email: string): Promise<{ success: bool
 }
 
 /**
- * Verify OTP directly against Firebase RTDB Live Session
+ * Verify OTP directly against Firebase RTDB Live Session for specific Admin
  */
-export async function verifyRealCustodyOtp(enteredOtp: string): Promise<{ success: boolean; message: string }> {
+export async function verifyRealCustodyOtp(
+  enteredOtp: string,
+  targetTelegramId?: string
+): Promise<{ success: boolean; message: string }> {
   const cleanOtp = enteredOtp.trim();
   if (cleanOtp.length !== 6) {
     return { success: false, message: 'Vui lòng nhập đủ 6 chữ số OTP!' };
@@ -73,6 +86,24 @@ export async function verifyRealCustodyOtp(enteredOtp: string): Promise<{ succes
   }
 
   try {
+    // 1. Check isolated admin session endpoint first
+    if (targetTelegramId) {
+      const res = await fetch(`${RTDB_BASE_URL}/admin_custody_session/${targetTelegramId}.json`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.otp) {
+          if (Date.now() > data.expiresAt) {
+            return { success: false, message: 'Mã OTP đã hết hạn 5 phút. Vui lòng bấm gửi lại mã mới!' };
+          }
+          if (data.otp === cleanOtp) {
+            await fetch(`${RTDB_BASE_URL}/admin_custody_session/${targetTelegramId}.json`, { method: 'DELETE' });
+            return { success: true, message: '✓ Xác minh mã ký lưu ký thành công 100%!' };
+          }
+        }
+      }
+    }
+
+    // 2. Fallback to global latest_otp.json
     const res = await fetch(`${RTDB_BASE_URL}/admin_custody_session/latest_otp.json`);
     if (res.ok) {
       const data = await res.json();
