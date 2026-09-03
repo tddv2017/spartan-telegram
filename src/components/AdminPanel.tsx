@@ -19,6 +19,7 @@ import { AccountingAuditTab } from './admin/AccountingAuditTab';
 import { PersonnelHrTab } from './admin/PersonnelHrTab';
 import { TechOpsTab } from './admin/TechOpsTab';
 import { AiAgentsCommandCenter } from './admin/AiAgentsCommandCenter';
+import { AdminBinance3FaModal } from './admin/AdminBinance3FaModal';
 import { 
   ShieldCheck, 
   Layers, 
@@ -27,14 +28,18 @@ import {
   Cpu, 
   RefreshCw,
   Crown,
-  Bot
+  Bot,
+  Lock
 } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 type AdminDepartment = 'overview' | 'accounting' | 'personnel' | 'techops' | 'agents';
 
+const SESSION_AUTH_KEY = 'spartan_admin_session_auth_token';
+
 export const AdminPanel: React.FC = () => {
   const { t, lang } = useLanguage();
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [activeDept, setActiveDept] = useState<AdminDepartment>('overview');
   const [pendingTxs, setPendingTxs] = useState<TransactionData[]>([]);
   const [allTransactions, setAllTransactions] = useState<TransactionData[]>([]);
@@ -47,6 +52,24 @@ export const AdminPanel: React.FC = () => {
   const [adminStatusMsg, setAdminStatusMsg] = useState<string | null>(null);
   const [broadcastMsg, setBroadcastMsg] = useState<string>('');
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Check 30-minute institutional session token
+  useEffect(() => {
+    const token = sessionStorage.getItem(SESSION_AUTH_KEY);
+    if (token) {
+      try {
+        const parsed = JSON.parse(token);
+        if (Date.now() - parsed.timestamp < 30 * 60 * 1000) {
+          setIsAuthenticated(true);
+        }
+      } catch {}
+    }
+  }, []);
+
+  const handleLockSession = () => {
+    sessionStorage.removeItem(SESSION_AUTH_KEY);
+    setIsAuthenticated(false);
+  };
 
   // Load All System Data
   const loadSystemData = async () => {
@@ -131,6 +154,10 @@ export const AdminPanel: React.FC = () => {
     { id: 'agents' as AdminDepartment, label: t('admin_dept_agents'), icon: Bot },
   ];
 
+  if (!isAuthenticated) {
+    return <AdminBinance3FaModal onSuccess={() => setIsAuthenticated(true)} />;
+  }
+
   return (
     <div className="w-full space-y-4 pb-20">
       {/* Admin Suite Master Banner */}
@@ -150,14 +177,23 @@ export const AdminPanel: React.FC = () => {
             </div>
           </div>
 
-          <button
-            onClick={loadSystemData}
-            disabled={isRefreshing}
-            className="p-2.5 rounded-2xl bg-[#05070c] border border-[#221c10] text-gray-300 hover:text-white transition-colors active:scale-95"
-            title={t('admin_refresh')}
-          >
-            <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin text-[#f5d77f]' : ''}`} />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleLockSession}
+              className="p-2.5 rounded-2xl bg-[#05070c] border border-[#221c10] text-gray-400 hover:text-red-400 transition-colors active:scale-95"
+              title={lang === 'vi' ? 'Khóa Cổng Quản Trị' : 'Lock Admin Portal'}
+            >
+              <Lock className="w-4 h-4" />
+            </button>
+            <button
+              onClick={loadSystemData}
+              disabled={isRefreshing}
+              className="p-2.5 rounded-2xl bg-[#05070c] border border-[#221c10] text-gray-300 hover:text-white transition-colors active:scale-95"
+              title={t('admin_refresh')}
+            >
+              <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin text-[#f5d77f]' : ''}`} />
+            </button>
+          </div>
         </div>
       </div>
 
