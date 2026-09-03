@@ -607,7 +607,156 @@ export const P2pLendingView: React.FC<P2pLendingViewProps> = ({
         </div>
       </div>
 
-      {/* 5. EARLY ACCESS VIP WAITLIST ENROLLMENT CTA */}
+      {/* 6. BẢN ĐỒ VÒNG VỐN LƯU ĐỘNG KHÉP KÍN (CAPITAL FLYWHEEL - HỆ SỐ NHÂN 1.71X) */}
+      <div className="spartan-card rounded-3xl p-5 border border-[#221c10] bg-[#080b12] space-y-4 shadow-lg">
+        <div className="flex items-center justify-between border-b border-[#221c10] pb-2.5">
+          <h3 className="text-xs font-black text-white uppercase tracking-wider flex items-center gap-2">
+            <TrendingUp className="w-4 h-4 text-[#f5d77f]" />
+            <span>{lang === 'vi' ? 'VÒNG VỐN LƯU ĐỘNG KHÉP KÍN (HỆ SỐ NHÂN 1.71X)' : 'CLOSED-LOOP CAPITAL FLYWHEEL (1.71X MULTIPLIER)'}</span>
+          </h3>
+          <span className="text-[9px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded font-bold">
+            DUAL-ENGINE
+          </span>
+        </div>
+
+        <p className="text-[11px] text-gray-300 font-sans leading-relaxed">
+          {lang === 'vi'
+            ? 'Khi Bot Trade AI và Tín Dụng P2P chạy đồng thời, dòng vốn của khách hàng không bao giờ bị rút ra ngoài mà luân chuyển sinh lời đa tầng: Vốn nạp trade bot sinh lãi, khi cần tiền mặt thế chấp 70% sang P2P, bot dùng 30% margin còn lại tự trade trả lãi vay thay bạn.'
+            : 'When Bot Trading and P2P Credit operate simultaneously, capital never exits the ecosystem: Bot generates yields, 70% is pledged for instant cash, and 30% bot margin continues trading to pay loan interest.'}
+        </p>
+
+        {/* 4-Step Flywheel Flow Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs font-mono">
+          <div className="p-3 rounded-2xl bg-[#05070c] border border-[#221c10] space-y-1">
+            <div className="flex items-center justify-between text-[#f5d77f]">
+              <span className="font-bold flex items-center gap-1.5">
+                <span className="w-4 h-4 rounded-full bg-[#d4af37]/20 flex items-center justify-center text-[10px]">1</span>
+                <span>VỐN NẠP BAN ĐẦU</span>
+              </span>
+              <span className="text-emerald-400 font-bold">$150,000 USDT</span>
+            </div>
+            <p className="text-[10px] text-gray-400 font-sans">
+              50 khách nạp bình quân $3,000 USDT vào Bot Trade Vàng XAU/USD, sinh lãi 8% - 12%/tháng và hoa hồng sàn Exness ($7/lot).
+            </p>
+          </div>
+
+          <div className="p-3 rounded-2xl bg-[#05070c] border border-[#221c10] space-y-1">
+            <div className="flex items-center justify-between text-blue-400">
+              <span className="font-bold flex items-center gap-1.5">
+                <span className="w-4 h-4 rounded-full bg-blue-500/20 flex items-center justify-center text-[10px]">2</span>
+                <span>GIẢI PHÓNG TIỀN MẶT</span>
+              </span>
+              <span className="text-blue-300 font-bold">+$36,750 USDT</span>
+            </div>
+            <p className="text-[10px] text-gray-400 font-sans">
+              35% khách cần tiền mặt thế chấp 70% vốn bot. Nhận tiền mặt tiêu dùng ngay mà không cần rút vốn bot, tránh mất phí rút vốn.
+            </p>
+          </div>
+
+          <div className="p-3 rounded-2xl bg-[#05070c] border border-[#221c10] space-y-1">
+            <div className="flex items-center justify-between text-purple-400">
+              <span className="font-bold flex items-center gap-1.5">
+                <span className="w-4 h-4 rounded-full bg-purple-500/20 flex items-center justify-center text-[10px]">3</span>
+                <span>BOT TỰ ĐỘNG TRẢ NỢ</span>
+              </span>
+              <span className="text-purple-300 font-bold">30% Margin Safe</span>
+            </div>
+            <p className="text-[10px] text-gray-400 font-sans">
+              Vốn 30% còn lại ($15,750 USDT) vẫn trade bình thường trên sàn. Tiền lãi bot sinh ra tự động khấu trừ trả lãi vay hàng tháng.
+            </p>
+          </div>
+
+          <div className="p-3 rounded-2xl bg-[#05070c] border border-[#221c10] space-y-1">
+            <div className="flex items-center justify-between text-emerald-400">
+              <span className="font-bold flex items-center gap-1.5">
+                <span className="w-4 h-4 rounded-full bg-emerald-500/20 flex items-center justify-center text-[10px]">4</span>
+                <span>VÒNG VỐN LƯU ĐỘNG TỔNG</span>
+              </span>
+              <span className="text-emerald-300 font-bold">~$256,750 USDT</span>
+            </div>
+            <p className="text-[10px] text-gray-400 font-sans">
+              Tổng thanh khoản quay vòng trong hệ thống đạt $256,750 USDT (~6.5 Tỷ VNĐ) với hệ số nhân 1.71x mà tỷ lệ nợ xấu = 0%.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* 7. KẾ HOẠCH TRIỂN KHAI CHI TIẾT QUÝ 2/2027 (4 PHASES) */}
+      <div className="spartan-card rounded-3xl p-5 border border-[#221c10] bg-[#080b12] space-y-4 shadow-lg">
+        <div className="flex items-center justify-between border-b border-[#221c10] pb-2.5">
+          <h3 className="text-xs font-black text-white uppercase tracking-wider flex items-center gap-2">
+            <Clock className="w-4 h-4 text-[#f5d77f]" />
+            <span>{lang === 'vi' ? 'LỘ TRÌNH KÍCH HOẠT SẢN PHẨM (Q2/2027 MASTERPLAN)' : 'Q2/2027 MASTERPLAN'}</span>
+          </h3>
+          <span className="text-[9px] font-mono text-[#f5d77f] bg-[#d4af37]/15 px-2 py-0.5 rounded font-bold border border-[#d4af37]/30">
+            ROADMAP
+          </span>
+        </div>
+
+        <div className="space-y-2.5">
+          <div className="p-3 rounded-2xl bg-[#05070c] border border-[#221c10] flex items-start gap-3">
+            <div className="w-7 h-7 rounded-xl bg-[#d4af37]/20 border border-[#d4af37] text-xs font-mono font-black text-[#f5d77f] flex items-center justify-center flex-shrink-0 mt-0.5">
+              P1
+            </div>
+            <div className="space-y-0.5">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-white">PHASE 1: SMART COLLATERAL ESCROW</span>
+                <span className="text-[9px] font-mono text-gray-400">Q1/2027</span>
+              </div>
+              <p className="text-[11px] text-gray-300 font-sans">
+                Hoàn thiện cơ chế tự động khóa 70% vốn bot ký quỹ an toàn và liên kết socket bảo vệ 30% margin trên máy chủ Exness.
+              </p>
+            </div>
+          </div>
+
+          <div className="p-3 rounded-2xl bg-[#05070c] border border-emerald-500/30 flex items-start gap-3">
+            <div className="w-7 h-7 rounded-xl bg-emerald-500/20 border border-emerald-500 text-xs font-mono font-black text-emerald-300 flex items-center justify-center flex-shrink-0 mt-0.5">
+              P2
+            </div>
+            <div className="space-y-0.5">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-emerald-400">PHASE 2: BỂ VỐN ADMIN $100K (GIẢI NGÂN 30S)</span>
+                <span className="text-[9px] font-mono text-emerald-400 font-bold">THÁNG 4/2027</span>
+              </div>
+              <p className="text-[11px] text-gray-300 font-sans">
+                Mở bể vốn Quỹ Admin giải ngân tiền mặt tức thì trong 30 giây cho 50 nhà đầu tư VIP đầu tiên thuộc Waitlist.
+              </p>
+            </div>
+          </div>
+
+          <div className="p-3 rounded-2xl bg-[#05070c] border border-[#221c10] flex items-start gap-3">
+            <div className="w-7 h-7 rounded-xl bg-blue-500/20 border border-blue-500 text-xs font-mono font-black text-blue-300 flex items-center justify-center flex-shrink-0 mt-0.5">
+              P3
+            </div>
+            <div className="space-y-0.5">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-white">PHASE 3: SỔ LỆNH P2P CỘNG ĐỒNG KHỚP LỆNH</span>
+                <span className="text-[9px] font-mono text-gray-400">THÁNG 5/2027</span>
+              </div>
+              <p className="text-[11px] text-gray-300 font-sans">
+                Mở sàn cho vay ngang hàng tự do: Khách có tiền nhàn rỗi cho vay nhận 1.8% - 2.2%/tháng, Admin thu phí chênh lệch sàn 0.5% - 0.7%/tháng.
+              </p>
+            </div>
+          </div>
+
+          <div className="p-3 rounded-2xl bg-[#05070c] border border-[#221c10] flex items-start gap-3">
+            <div className="w-7 h-7 rounded-xl bg-purple-500/20 border border-purple-500 text-xs font-mono font-black text-purple-300 flex items-center justify-center flex-shrink-0 mt-0.5">
+              P4
+            </div>
+            <div className="space-y-0.5">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-white">PHASE 4: ĐỘNG CƠ THANH LÝ & KÝ SỐ SHA-256</span>
+                <span className="text-[9px] font-mono text-gray-400">THÁNG 6/2027</span>
+              </div>
+              <p className="text-[11px] text-gray-300 font-sans">
+                Kích hoạt hợp đồng điện tử chữ ký số và thuật toán Auto-Liquidation bảo vệ 100% tài sản, duy trì nợ xấu bằng 0%.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 8. EARLY ACCESS VIP WAITLIST ENROLLMENT CTA */}
       <div className="spartan-card rounded-3xl p-5 border-2 border-[#d4af37]/50 bg-gradient-to-b from-[#0f1422] to-[#080b12] space-y-4 shadow-[0_0_30px_rgba(212,175,55,0.15)] text-center">
         <div className="w-12 h-12 mx-auto rounded-2xl bg-[#d4af37]/20 border border-[#d4af37] flex items-center justify-center text-xl shadow-[0_0_15px_rgba(212,175,55,0.3)]">
           ⚡
