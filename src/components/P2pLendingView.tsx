@@ -8,14 +8,18 @@ import {
   Sparkles, 
   TrendingUp, 
   Clock, 
-  Calendar, 
   DollarSign, 
   CheckCircle2, 
   Loader2, 
-  ArrowRight,
-  AlertCircle,
+  AlertTriangle,
   Percent,
-  BadgeAlert
+  Bot,
+  Wallet,
+  ArrowRightLeft,
+  Lock,
+  Activity,
+  ChevronRight,
+  Info
 } from 'lucide-react';
 import { 
   SAMPLE_P2P_OFFERS, 
@@ -31,6 +35,9 @@ interface P2pLendingViewProps {
   username?: string;
 }
 
+type CapitalSourceType = 'BOT_EQUITY' | 'EXTERNAL_DEPOSIT';
+type P2pModeType = 'BORROW' | 'LEND';
+
 export const P2pLendingView: React.FC<P2pLendingViewProps> = ({
   currentBalance,
   telegramId = '',
@@ -38,12 +45,45 @@ export const P2pLendingView: React.FC<P2pLendingViewProps> = ({
 }) => {
   const { lang } = useLanguage();
   
-  // Interactive Calculator State
-  const [calcAmount, setCalcAmount] = useState<number>(5000);
-  const [calcTermDays, setCalcTermDays] = useState<number>(90);
-  const monthlyRatePct = calcTermDays === 30 ? 2.5 : calcTermDays === 90 ? 2.2 : 1.8;
-  const estimatedMonthlyYield = (calcAmount * monthlyRatePct) / 100;
-  const totalReturn = calcAmount + (estimatedMonthlyYield * (calcTermDays / 30));
+  // 1. Source & Mode Selectors
+  const [capitalSource, setCapitalSource] = useState<CapitalSourceType>('BOT_EQUITY');
+  const [p2pMode, setP2pMode] = useState<P2pModeType>('BORROW');
+
+  // Baseline Bot Capital (fallback to 10,000 demo if balance is 0 for clear illustration)
+  const displayBotBalance = currentBalance > 0 ? currentBalance : 10000;
+  const isDemoBalance = currentBalance <= 0;
+
+  // 2. Bot Equity Collateral State (Max 70% LTV)
+  const [pledgePercent, setPledgePercent] = useState<number>(50); // 10% to 70%
+  const [selectedTermDays, setSelectedTermDays] = useState<number>(90); // 30, 90, 180
+
+  // 3. External Capital State
+  const [externalAmount, setExternalAmount] = useState<number>(5000);
+
+  // Dynamic Interest Rate Calculation based on Collateral Ratio (% Thế Chấp Vốn Bot)
+  // Bậc 1: <= 40% -> 1.5%/tháng (Rủi ro thấp nhất)
+  // Bậc 2: 41% - 60% -> 2.0%/tháng (Mức tiêu chuẩn)
+  // Bậc 3: 61% - 70% (Trần 70%) -> 2.6%/tháng (Rủi ro cao nhất, áp dụng phí đệm thanh lý)
+  const calculateRateByPledge = (pct: number) => {
+    if (pct <= 40) return { rate: 1.5, tier: 'TIER 1 (ULTRA-SAFE)', color: 'text-emerald-400', desc: 'An toàn tối ưu, Bot tự do giao dịch Margin 60%+' };
+    if (pct <= 60) return { rate: 2.0, tier: 'TIER 2 (BALANCED)', color: 'text-amber-400', desc: 'Cân bằng thị trường, Margin an toàn còn 40% - 59%' };
+    return { rate: 2.6, tier: 'TIER 3 (MAX LEVERAGE 70%)', color: 'text-[#ff5500]', desc: 'Chạm trần tối đa 70%, khóa đệm an toàn 30% cho Bot' };
+  };
+
+  const dynamicRateInfo = calculateRateByPledge(pledgePercent);
+
+  // Computed Loan Amounts (Dùng vốn Bot)
+  const maxAllowableBorrow = displayBotBalance * 0.70; // Hard cap 70%
+  const currentLoanAmount = (displayBotBalance * pledgePercent) / 100;
+  const remainingBotMargin = displayBotBalance - currentLoanAmount;
+  const botSafetyMarginPct = 100 - pledgePercent;
+  const monthlyInterestUsdt = (currentLoanAmount * dynamicRateInfo.rate) / 100;
+  const totalInterestOverTerm = monthlyInterestUsdt * (selectedTermDays / 30);
+
+  // Computed for External Capital (Nạp vốn mới)
+  const externalMonthlyRate = selectedTermDays === 30 ? 2.5 : selectedTermDays === 90 ? 2.2 : 1.8;
+  const externalMonthlyYield = (externalAmount * externalMonthlyRate) / 100;
+  const externalTotalReturn = externalAmount + (externalMonthlyYield * (selectedTermDays / 30));
 
   // Waitlist State
   const [isEnrolled, setIsEnrolled] = useState<boolean>(false);
@@ -80,9 +120,8 @@ export const P2pLendingView: React.FC<P2pLendingViewProps> = ({
   return (
     <div className="space-y-4 animate-in fade-in duration-300">
       
-      {/* 1. INSTITUTIONAL HEADER & UNDER DEVELOPMENT BADGE */}
+      {/* 1. INSTITUTIONAL HEADER & UNDER DEVELOPMENT ROADMAP */}
       <div className="spartan-card rounded-3xl p-5 border border-[#221c10] bg-[#080b12] space-y-3 shadow-lg relative overflow-hidden">
-        {/* Background Ambient Glow */}
         <div className="absolute top-0 right-0 w-48 h-48 bg-[#d4af37]/10 rounded-full blur-3xl pointer-events-none" />
 
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 relative z-10">
@@ -92,15 +131,14 @@ export const P2pLendingView: React.FC<P2pLendingViewProps> = ({
             </div>
             <div>
               <h2 className="text-sm md:text-base font-black text-white uppercase tracking-wider flex items-center gap-2">
-                <span>{lang === 'vi' ? 'THỊ TRƯỜNG CHO VAY NGANG HÀNG' : 'P2P LENDING & CREDIT FACILITY'}</span>
+                <span>{lang === 'vi' ? 'THỊ TRƯỜNG CHO VAY NGANG HÀNG (P2P)' : 'P2P LENDING & CREDIT FACILITY'}</span>
               </h2>
               <span className="text-[10px] text-gray-400 font-mono block">
-                PEER-TO-PEER INSTITUTIONAL LIQUIDITY POOL
+                SPARTAN PEER-TO-PEER LIQUIDITY & COLLATERAL MARKET
               </span>
             </div>
           </div>
 
-          {/* Under Development Status Pill */}
           <div className="self-start sm:self-auto flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#d4af37]/15 border border-[#d4af37]/40 shadow-[0_0_12px_rgba(212,175,55,0.2)]">
             <span className="w-2 h-2 rounded-full bg-[#d4af37] animate-ping" />
             <span className="text-[10px] font-mono font-black text-[#f5d77f] uppercase tracking-wider">
@@ -111,118 +149,309 @@ export const P2pLendingView: React.FC<P2pLendingViewProps> = ({
 
         <p className="text-xs text-gray-300 font-sans leading-relaxed relative z-10 pt-1">
           {lang === 'vi'
-            ? 'Tính năng Cho Vay Ngang Hàng (P2P Lending) cho phép các nhà đầu tư Spartan kết nối dòng vốn trực tiếp với nhau: Người có vốn nhàn rỗi nhận lãi suất cố định, người cần đòn bẩy vay vốn mở rộng bot giao dịch Vàng XAU/USD. Toàn bộ khoản vay được bảo chứng 100% bằng Hợp đồng Ký quỹ Quỹ Lạnh Spartan Cold Vault.'
-            : 'The Spartan P2P Lending Market enables investors to lend and borrow liquidity directly. Lenders earn predictable fixed monthly yield, while borrowers unlock margin to scale algorithmic trading bot positions. Backed 100% by Spartan Cold Vault Escrow.'}
+            ? 'Mô hình Tín dụng P2P định chế cho phép nhà đầu tư lựa chọn 2 phương thức vốn: Thế chấp trực tiếp vốn Bot đang giao dịch (tối đa 70% để bảo đảm an toàn margin bot) hoặc Nạp vốn mới từ ví ngoài để cho vay sinh lời cố định.'
+            : 'Institutional P2P lending allows investors to either collateralize active bot trading equity (up to 70% LTV to preserve bot margin) or deposit fresh external liquidity to earn fixed yields.'}
         </p>
       </div>
 
-      {/* 2. THREE CORE PILLARS OF P2P LENDING */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-        <div className="bg-[#05070c] p-3.5 rounded-2xl border border-[#221c10] space-y-1.5">
-          <div className="flex items-center gap-2 text-[#f5d77f]">
-            <TrendingUp className="w-4 h-4" />
-            <span className="text-xs font-black uppercase tracking-wider">{lang === 'vi' ? 'LÃI SUẤT HẤP DẪN' : 'ATTRACTIVE YIELD'}</span>
-          </div>
-          <p className="text-[11px] text-gray-400 font-mono">
-            {lang === 'vi' ? 'Lợi nhuận cố định từ 1.8% - 2.8%/tháng (tương đương 21.6% - 33.6%/năm), thanh toán định kỳ theo chu kỳ lựa chọn.' : 'Fixed returns from 1.8% - 2.8%/month (21.6% - 33.6% APR), paid out periodically.'}
-          </p>
+      {/* 2. CHỌN NGUỒN VỐN THAM GIA: VỐN BOT TRADE vs VỐN NẠP MỚI */}
+      <div className="spartan-card rounded-3xl p-5 border border-[#221c10] bg-[#080b12] space-y-4 shadow-lg">
+        <div className="flex items-center justify-between border-b border-[#221c10] pb-2.5">
+          <h3 className="text-xs font-black text-white uppercase tracking-wider flex items-center gap-2">
+            <ArrowRightLeft className="w-4 h-4 text-[#f5d77f]" />
+            <span>{lang === 'vi' ? 'BƯỚC 1: CHỌN NGUỒN VỐN THỰC HIỆN' : 'STEP 1: SELECT CAPITAL SOURCE'}</span>
+          </h3>
+          <span className="text-[9px] font-mono text-[#d4af37] font-bold">2 LỰA CHỌN</span>
         </div>
 
-        <div className="bg-[#05070c] p-3.5 rounded-2xl border border-[#221c10] space-y-1.5">
-          <div className="flex items-center gap-2 text-emerald-400">
-            <ShieldCheck className="w-4 h-4" />
-            <span className="text-xs font-black uppercase tracking-wider">{lang === 'vi' ? 'BẢO CHỨNG QUỸ LẠNH' : 'COLD VAULT ESCROW'}</span>
-          </div>
-          <p className="text-[11px] text-gray-400 font-mono">
-            {lang === 'vi' ? 'Người vay phải ký quỹ bằng vốn bot thực tế. Quỹ dự phòng 10% Cold Vault đảm bảo thu hồi nợ 100% khi đến hạn.' : 'Borrowers pledge live bot equity. The 10% Cold Vault Treasury guarantees 100% principal repayment.'}
-          </p>
-        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {/* Nguồn A: Thế chấp Vốn Bot đang Trade */}
+          <button
+            type="button"
+            onClick={() => setCapitalSource('BOT_EQUITY')}
+            className={`p-4 rounded-2xl border text-left transition-all relative overflow-hidden ${
+              capitalSource === 'BOT_EQUITY'
+                ? 'bg-gradient-to-b from-[#0f1422] to-[#080b12] border-[#d4af37] shadow-[0_0_20px_rgba(212,175,55,0.25)]'
+                : 'bg-[#05070c] border-[#221c10] hover:border-gray-700 opacity-75'
+            }`}
+          >
+            {capitalSource === 'BOT_EQUITY' && (
+              <div className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-[#d4af37]/20 border border-[#d4af37] text-[8px] font-mono font-bold text-[#f5d77f]">
+                ĐANG CHỌN ✓
+              </div>
+            )}
+            <div className="flex items-center gap-2.5 mb-2 text-[#f5d77f]">
+              <Bot className="w-5 h-5" />
+              <span className="text-xs font-black uppercase tracking-wider">
+                {lang === 'vi' ? 'THẾ CHẤP VỐN BOT ĐANG TRADE' : 'COLLATERALIZE ACTIVE BOT'}
+              </span>
+            </div>
+            <p className="text-[11px] text-gray-300 font-sans leading-normal mb-2">
+              {lang === 'vi' 
+                ? 'Không cần nạp thêm tiền! Sử dụng chính vốn bot đang chạy để vay tiền mặt hoặc đòn bẩy. Thế chấp tối đa 70% tài sản bot.'
+                : 'No fresh deposit needed! Pledge live bot equity up to 70% LTV while preserving 30% margin.'}
+            </p>
+            <div className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 p-2 rounded-xl border border-emerald-500/20">
+              ⚡ Hạn mức vay: <strong>Max 70% Vốn Bot</strong> • Lãi suất theo % thế chấp
+            </div>
+          </button>
 
-        <div className="bg-[#05070c] p-3.5 rounded-2xl border border-[#221c10] space-y-1.5">
-          <div className="flex items-center gap-2 text-blue-400">
-            <Clock className="w-4 h-4" />
-            <span className="text-xs font-black uppercase tracking-wider">{lang === 'vi' ? 'KỲ HẠN LINH HOẠT' : 'FLEXIBLE TERMS'}</span>
-          </div>
-          <p className="text-[11px] text-gray-400 font-mono">
-            {lang === 'vi' ? 'Đa dạng các gói kỳ hạn 30 ngày, 90 ngày hoặc 180 ngày. Hỗ trợ tự động tất toán gốc và lãi về ví USDT.' : 'Support for 30-day, 90-day, or 180-day contracts. Automatic principal + profit settlement.'}
-          </p>
+          {/* Nguồn B: Nạp Vốn Mới Từ Ví Ngoài */}
+          <button
+            type="button"
+            onClick={() => setCapitalSource('EXTERNAL_DEPOSIT')}
+            className={`p-4 rounded-2xl border text-left transition-all relative overflow-hidden ${
+              capitalSource === 'EXTERNAL_DEPOSIT'
+                ? 'bg-gradient-to-b from-[#0f1422] to-[#080b12] border-[#d4af37] shadow-[0_0_20px_rgba(212,175,55,0.25)]'
+                : 'bg-[#05070c] border-[#221c10] hover:border-gray-700 opacity-75'
+            }`}
+          >
+            {capitalSource === 'EXTERNAL_DEPOSIT' && (
+              <div className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-[#d4af37]/20 border border-[#d4af37] text-[8px] font-mono font-bold text-[#f5d77f]">
+                ĐANG CHỌN ✓
+              </div>
+            )}
+            <div className="flex items-center gap-2.5 mb-2 text-emerald-400">
+              <Wallet className="w-5 h-5" />
+              <span className="text-xs font-black uppercase tracking-wider">
+                {lang === 'vi' ? 'NẠP VỐN MỚI (USDT TRC20)' : 'FRESH USDT DEPOSIT'}
+              </span>
+            </div>
+            <p className="text-[11px] text-gray-300 font-sans leading-normal mb-2">
+              {lang === 'vi'
+                ? 'Nạp dòng tiền mới độc lập từ ví ngoài vào để cho vay lấy lãi hoặc ký quỹ. Không liên quan và không ảnh hưởng đến số dư Bot.'
+                : 'Inject fresh liquidity from external wallet to lend out for fixed yields. Zero impact on bot trading.'}
+            </p>
+            <div className="text-[10px] font-mono text-[#f5d77f] bg-[#d4af37]/10 p-2 rounded-xl border border-[#d4af37]/20">
+              🛡️ Hạn mức: <strong>100% Vốn Nạp</strong> • Lãi suất cố định 1.8% - 2.5%/tháng
+            </div>
+          </button>
         </div>
       </div>
 
-      {/* 3. INTERACTIVE P2P INTEREST CALCULATOR */}
-      <div className="spartan-card rounded-3xl p-5 border border-[#221c10] bg-[#080b12] space-y-4 shadow-lg">
-        <div className="flex items-center justify-between border-b border-[#221c10] pb-3">
-          <h3 className="text-xs font-black text-white uppercase tracking-wider flex items-center gap-2">
-            <Percent className="w-4 h-4 text-[#f5d77f]" />
-            <span>{lang === 'vi' ? 'MÔ PHỎNG LỢI NHUẬN CHO VAY P2P' : 'P2P YIELD SIMULATOR'}</span>
-          </h3>
-          <span className="text-[9px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20 font-bold">
-            INTERACTIVE PREVIEW
-          </span>
-        </div>
-
-        <div className="space-y-3">
-          {/* Amount Selector */}
-          <div>
-            <div className="flex justify-between items-center text-xs font-bold mb-1.5">
-              <span className="text-gray-400">{lang === 'vi' ? 'Số vốn dự kiến cho vay ($ USDT):' : 'Lending Capital ($ USDT):'}</span>
-              <span className="text-[#f5d77f] font-mono text-sm font-black">${calcAmount.toLocaleString('en-US')} USDT</span>
+      {/* 3. SIMULATION ENGINE BASED ON SELECTED CAPITAL SOURCE */}
+      {capitalSource === 'BOT_EQUITY' ? (
+        /* CASE A: THẾ CHẤP VỐN BOT TRADE (MAX 70% LTV) */
+        <div className="spartan-card rounded-3xl p-5 border border-[#221c10] bg-[#080b12] space-y-4 shadow-lg">
+          <div className="flex items-center justify-between border-b border-[#221c10] pb-3">
+            <div>
+              <h3 className="text-xs font-black text-white uppercase tracking-wider flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                <span>{lang === 'vi' ? 'MÔ PHỎNG THẾ CHẤP VỐN BOT (TỐI ĐA 70% TÀI SẢN)' : 'BOT COLLATERAL SIMULATOR (MAX 70% LTV)'}</span>
+              </h3>
+              <span className="text-[10px] text-gray-400 font-mono block pt-0.5">
+                {lang === 'vi' ? 'Vốn Bot hiện có: ' : 'Live Bot Trading Equity: '}
+                <strong className="text-white">${displayBotBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })} USDT</strong>
+                {isDemoBalance && <span className="text-[#d4af37] text-[9px] ml-1">(Minh họa mẫu)</span>}
+              </span>
             </div>
+            <span className="text-[9px] font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 font-black">
+              LTV: {pledgePercent}%
+            </span>
+          </div>
+
+          {/* Quy Tắc Thế Chấp 70% - 30% */}
+          <div className="p-3.5 rounded-2xl bg-[#05070c] border border-[#221c10] space-y-2">
+            <div className="flex items-center justify-between text-xs font-bold">
+              <span className="text-gray-400">{lang === 'vi' ? 'Tỷ Lệ Thế Chấp Vốn Bot Của Khách:' : 'Bot Equity Collateral Ratio:'}</span>
+              <span className="text-base font-black font-mono text-[#f5d77f]">{pledgePercent}% Vốn Bot</span>
+            </div>
+
+            {/* Interactive Range Slider (Limit strictly to 70%) */}
             <input
               type="range"
-              min={1000}
-              max={50000}
-              step={1000}
-              value={calcAmount}
-              onChange={(e) => setCalcAmount(Number(e.target.value))}
-              className="w-full accent-[#d4af37] bg-[#05070c] h-2 rounded-lg cursor-pointer"
+              min={10}
+              max={70}
+              step={5}
+              value={pledgePercent}
+              onChange={(e) => setPledgePercent(Number(e.target.value))}
+              className="w-full accent-[#d4af37] bg-[#141924] h-2.5 rounded-lg cursor-pointer"
             />
-            <div className="flex justify-between text-[9px] text-gray-500 font-mono mt-1">
-              <span>$1,000 USDT</span>
-              <span>$25,000 USDT</span>
-              <span>$50,000 USDT</span>
+            
+            <div className="flex justify-between text-[9px] text-gray-500 font-mono">
+              <span>10% (Tối thiểu)</span>
+              <span>40% (Tiêu chuẩn an toàn)</span>
+              <span className="text-[#ff5500] font-bold">70% (TRẦN TỐI ĐA)</span>
+            </div>
+
+            {/* Visual LTV Health Bar */}
+            <div className="w-full bg-[#141924] h-2 rounded-full overflow-hidden flex mt-2">
+              <div 
+                style={{ width: `${pledgePercent}%` }} 
+                className={`h-full transition-all duration-300 ${
+                  pledgePercent <= 40 ? 'bg-emerald-400' : pledgePercent <= 60 ? 'bg-amber-400' : 'bg-[#ff5500]'
+                }`}
+              />
+              <div 
+                style={{ width: `${100 - pledgePercent}%` }} 
+                className="h-full bg-blue-500/30 border-l border-blue-400/50" 
+                title="Vùng đệm an toàn cho Bot" 
+              />
+            </div>
+            <div className="flex justify-between text-[9px] font-mono pt-0.5">
+              <span className={dynamicRateInfo.color}>
+                ■ Thế chấp: {pledgePercent}% (${currentLoanAmount.toLocaleString('en-US', { minimumFractionDigits: 0 })} USDT)
+              </span>
+              <span className="text-blue-400">
+                ■ Đệm an toàn Bot: {botSafetyMarginPct}% (${remainingBotMargin.toLocaleString('en-US', { minimumFractionDigits: 0 })} USDT)
+              </span>
             </div>
           </div>
 
-          {/* Term Selector */}
-          <div>
-            <span className="text-xs text-gray-400 font-bold block mb-1.5">{lang === 'vi' ? 'Kỳ hạn cho vay:' : 'Lending Term:'}</span>
-            <div className="grid grid-cols-3 gap-2">
-              {[
-                { days: 30, rate: '2.5%/tháng' },
-                { days: 90, rate: '2.2%/tháng' },
-                { days: 180, rate: '1.8%/tháng' }
-              ].map(item => (
-                <button
-                  key={item.days}
-                  type="button"
-                  onClick={() => setCalcTermDays(item.days)}
-                  className={`py-2 px-2.5 rounded-2xl border text-center transition-all ${
-                    calcTermDays === item.days
-                      ? 'bg-[#0f1422] border-[#d4af37] text-white shadow-[0_0_12px_rgba(212,175,55,0.2)]'
-                      : 'bg-[#05070c] border-[#221c10] text-gray-400 hover:text-white'
-                  }`}
-                >
-                  <span className="text-xs font-black block font-mono">{item.days} {lang === 'vi' ? 'Ngày' : 'Days'}</span>
-                  <span className="text-[10px] text-emerald-400 font-mono font-bold">{item.rate}</span>
-                </button>
-              ))}
+          {/* Bảng Tính Lãi Suất Tương Ứng Theo % Thế Chấp */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+            <div className="p-3 rounded-2xl bg-[#05070c] border border-[#221c10] space-y-1">
+              <span className="text-[9px] text-gray-400 uppercase font-mono block">
+                {lang === 'vi' ? 'Lãi Suất Theo Bậc Rủi Ro:' : 'Risk-Adjusted Rate:'}
+              </span>
+              <span className={`text-base font-black font-mono ${dynamicRateInfo.color} block`}>
+                {dynamicRateInfo.rate}% / {lang === 'vi' ? 'tháng' : 'mo'}
+              </span>
+              <span className="text-[8px] font-mono text-gray-400 block">
+                {dynamicRateInfo.tier}
+              </span>
+            </div>
+
+            <div className="p-3 rounded-2xl bg-[#05070c] border border-[#221c10] space-y-1">
+              <span className="text-[9px] text-gray-400 uppercase font-mono block">
+                {lang === 'vi' ? 'Tiền Được Giải Ngân (USDT):' : 'Disbursed Loan Cash:'}
+              </span>
+              <span className="text-base font-black font-mono text-emerald-400 block">
+                ${currentLoanAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USDT
+              </span>
+              <span className="text-[8px] font-mono text-gray-400 block">
+                (Tối đa cho phép: ${maxAllowableBorrow.toLocaleString('en-US')} USDT)
+              </span>
+            </div>
+
+            <div className="p-3 rounded-2xl bg-[#05070c] border border-[#221c10] space-y-1">
+              <span className="text-[9px] text-gray-400 uppercase font-mono block">
+                {lang === 'vi' ? 'Ước Tính Phí Lãi Vay/Tháng:' : 'Est. Monthly Interest:'}
+              </span>
+              <span className="text-base font-black font-mono text-[#f5d77f] block">
+                ${monthlyInterestUsdt.toFixed(2)} USDT
+              </span>
+              <span className="text-[8px] font-mono text-gray-400 block">
+                Tổng kỳ {selectedTermDays} ngày: ${totalInterestOverTerm.toFixed(2)} USDT
+              </span>
             </div>
           </div>
 
-          {/* Calculator Output Card */}
-          <div className="grid grid-cols-2 gap-2 p-3 bg-[#05070c] rounded-2xl border border-[#221c10] font-mono">
+          {/* Giải Thích Minh Bạch Về 3 Mức Lãi Suất Thế Chấp */}
+          <div className="p-3 rounded-2xl bg-[#05070c] border border-[#221c10] space-y-2">
+            <span className="text-[10px] font-bold text-gray-300 uppercase tracking-wider flex items-center gap-1.5">
+              <Info className="w-3.5 h-3.5 text-[#f5d77f]" />
+              <span>{lang === 'vi' ? 'QUY CHUẨN TÍNH % CHO VAY THEO TỶ LỆ THẾ CHẤP VỐN BOT:' : 'COLLATERAL TIER LENDING RATES:'}</span>
+            </span>
+
+            <div className="space-y-1.5 text-[10px] font-mono">
+              <div className={`p-2 rounded-xl border flex items-center justify-between ${
+                pledgePercent <= 40 ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-300 font-bold' : 'border-[#141924] text-gray-400'
+              }`}>
+                <span>• Bậc 1 (Vay $\le 40\%$ Vốn Bot): Lãi suất 1.5%/tháng</span>
+                <span>🟢 Bot an toàn 60%+ Margin</span>
+              </div>
+
+              <div className={`p-2 rounded-xl border flex items-center justify-between ${
+                pledgePercent > 40 && pledgePercent <= 60 ? 'bg-amber-500/10 border-amber-500/40 text-amber-300 font-bold' : 'border-[#141924] text-gray-400'
+              }`}>
+                <span>• Bậc 2 (Vay $41\% - 60\%$ Vốn Bot): Lãi suất 2.0%/tháng</span>
+                <span>🟡 Tiêu chuẩn thị trường</span>
+              </div>
+
+              <div className={`p-2 rounded-xl border flex items-center justify-between ${
+                pledgePercent > 60 ? 'bg-[#ff5500]/10 border-[#ff5500]/40 text-[#ff5500] font-bold' : 'border-[#141924] text-gray-400'
+              }`}>
+                <span>• Bậc 3 (Vay $61\% - 70\%$ Vốn Bot - TRẦN MAX): Lãi suất 2.6%/tháng</span>
+                <span>🔴 Giữ lại 30% đệm chống cháy Bot</span>
+              </div>
+            </div>
+
+            <p className="text-[10px] text-gray-400 font-sans italic pt-1">
+              * Hệ thống Spartan Vault khóa cứng giới hạn 70% để bảo đảm 30% tài sản còn lại luôn đủ sức gồng các đợt sóng Vàng M5/H1 trên sàn Exness ECN mà không bao giờ bị dừng hoạt động bot.
+            </p>
+          </div>
+        </div>
+      ) : (
+        /* CASE B: NẠP VỐN MỚI TỪ VÍ NGOÀI (EXTERNAL DEPOSIT) */
+        <div className="spartan-card rounded-3xl p-5 border border-[#221c10] bg-[#080b12] space-y-4 shadow-lg">
+          <div className="flex items-center justify-between border-b border-[#221c10] pb-3">
             <div>
-              <span className="text-[9px] text-gray-400 block uppercase">{lang === 'vi' ? 'Lãi suất hàng tháng:' : 'Est. Monthly Profit:'}</span>
-              <span className="text-sm font-black text-emerald-400">+${estimatedMonthlyYield.toFixed(2)} USDT</span>
+              <h3 className="text-xs font-black text-white uppercase tracking-wider flex items-center gap-2">
+                <Wallet className="w-4 h-4 text-emerald-400" />
+                <span>{lang === 'vi' ? 'MÔ PHỎNG NẠP VỐN MỚI CHO VAY (SINH LỜI 100%)' : 'FRESH DEPOSIT P2P YIELD SIMULATOR'}</span>
+              </h3>
+              <span className="text-[10px] text-gray-400 font-mono block pt-0.5">
+                {lang === 'vi' ? 'Nạp USDT TRC20 độc lập • Không ràng buộc vốn bot' : 'Independent USDT TRC20 • Zero impact on bot'}
+              </span>
             </div>
-            <div className="text-right">
-              <span className="text-[9px] text-gray-400 block uppercase">{lang === 'vi' ? 'Tổng thu hồi sau kỳ hạn:' : 'Total Return at Maturity:'}</span>
-              <span className="text-sm font-black text-[#f5d77f]">${totalReturn.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USDT</span>
+            <span className="text-[9px] font-mono px-2 py-0.5 rounded bg-[#d4af37]/10 text-[#f5d77f] border border-[#d4af37]/30 font-black">
+              100% LIQUIDITY
+            </span>
+          </div>
+
+          <div className="space-y-3">
+            <div>
+              <div className="flex justify-between items-center text-xs font-bold mb-1.5">
+                <span className="text-gray-400">{lang === 'vi' ? 'Số tiền vốn mới dự kiến nạp ($ USDT):' : 'Fresh Capital Amount ($ USDT):'}</span>
+                <span className="text-[#f5d77f] font-mono text-sm font-black">${externalAmount.toLocaleString('en-US')} USDT</span>
+              </div>
+              <input
+                type="range"
+                min={1000}
+                max={50000}
+                step={1000}
+                value={externalAmount}
+                onChange={(e) => setExternalAmount(Number(e.target.value))}
+                className="w-full accent-[#d4af37] bg-[#05070c] h-2 rounded-lg cursor-pointer"
+              />
+              <div className="flex justify-between text-[9px] text-gray-500 font-mono mt-1">
+                <span>$1,000 USDT</span>
+                <span>$25,000 USDT</span>
+                <span>$50,000 USDT</span>
+              </div>
+            </div>
+
+            {/* Term Selector */}
+            <div>
+              <span className="text-xs text-gray-400 font-bold block mb-1.5">{lang === 'vi' ? 'Kỳ hạn cho vay:' : 'Lending Term:'}</span>
+              <div className="grid grid-cols-3 gap-2">
+                {[
+                  { days: 30, rate: '2.5%/tháng' },
+                  { days: 90, rate: '2.2%/tháng' },
+                  { days: 180, rate: '1.8%/tháng' }
+                ].map(item => (
+                  <button
+                    key={item.days}
+                    type="button"
+                    onClick={() => setSelectedTermDays(item.days)}
+                    className={`py-2 px-2.5 rounded-2xl border text-center transition-all ${
+                      selectedTermDays === item.days
+                        ? 'bg-[#0f1422] border-[#d4af37] text-white shadow-[0_0_12px_rgba(212,175,55,0.2)]'
+                        : 'bg-[#05070c] border-[#221c10] text-gray-400 hover:text-white'
+                    }`}
+                  >
+                    <span className="text-xs font-black block font-mono">{item.days} {lang === 'vi' ? 'Ngày' : 'Days'}</span>
+                    <span className="text-[10px] text-emerald-400 font-mono font-bold">{item.rate}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* External Return Output */}
+            <div className="grid grid-cols-2 gap-2 p-3 bg-[#05070c] rounded-2xl border border-[#221c10] font-mono">
+              <div>
+                <span className="text-[9px] text-gray-400 block uppercase">{lang === 'vi' ? 'Lợi nhuận nhận về / tháng:' : 'Est. Monthly Profit:'}</span>
+                <span className="text-sm font-black text-emerald-400">+${externalMonthlyYield.toFixed(2)} USDT</span>
+              </div>
+              <div className="text-right">
+                <span className="text-[9px] text-gray-400 block uppercase">{lang === 'vi' ? 'Tổng thu hồi vốn & lãi:' : 'Total Return at Maturity:'}</span>
+                <span className="text-sm font-black text-[#f5d77f]">${externalTotalReturn.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USDT</span>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* 4. LIVE MARKET ORDERBOOK SHOWCASE (SAMPLE BIDS) */}
       <div className="spartan-card rounded-3xl p-5 border border-[#221c10] bg-[#080b12] space-y-3 shadow-lg">
@@ -248,7 +477,7 @@ export const P2pLendingView: React.FC<P2pLendingViewProps> = ({
                   </span>
                 </div>
                 <span className="text-[9px] text-gray-400 block">
-                  {offer.termDays} {lang === 'vi' ? 'ngày' : 'days'} • {lang === 'vi' ? 'Bảo đảm 100% Quỹ Lạnh' : '100% Escrow Protected'}
+                  {offer.termDays} {lang === 'vi' ? 'ngày' : 'days'} • {offer.collateralType}
                 </span>
               </div>
 
@@ -277,8 +506,8 @@ export const P2pLendingView: React.FC<P2pLendingViewProps> = ({
           </h3>
           <p className="text-xs text-gray-300 font-sans">
             {lang === 'vi'
-              ? 'Hãy đăng ký ngay để trở thành 1 trong 50 nhà đầu tư đầu tiên được cấp hạn mức tín dụng P2P khi hệ thống kích hoạt chính thức!'
-              : 'Be among the first 50 institutional partners to access the P2P Credit Facility upon official launch!'}
+              ? 'Hãy đăng ký ngay để trở thành 1 trong 50 nhà đầu tư đầu tiên được cấp hạn mức tín dụng P2P khi hệ thống kích hoạt vào Q2/2027!'
+              : 'Be among the first 50 institutional partners to access the P2P Credit Facility upon launch in Q2/2027!'}
           </p>
         </div>
 
