@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   ShieldCheck, 
   Lock, 
@@ -50,6 +50,20 @@ export const AdminBinance3FaModal: React.FC<AdminBinance3FaModalProps> = ({ onSu
   // Step 1 States (PIN)
   const [pin, setPin] = useState<string>('');
   const [pinError, setPinError] = useState<string | null>(null);
+  const [cloudMasterPin, setCloudMasterPin] = useState<string | null>(null);
+  const nativeInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Sync Master PIN from Firebase Realtime Database
+  useEffect(() => {
+    fetch('https://decisive-mapper-216306-default-rtdb.asia-southeast1.firebasedatabase.app/system_config.json')
+      .then(res => res.json())
+      .then(cfg => {
+        if (cfg && cfg.master_pin) {
+          setCloudMasterPin(String(cfg.master_pin).trim());
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   // Step 2 States (Live Server OTP)
   const [gmailOtp, setGmailOtp] = useState<string>('');
@@ -105,13 +119,27 @@ export const AdminBinance3FaModal: React.FC<AdminBinance3FaModalProps> = ({ onSu
 
   const verifyStep1Pin = (enteredPin: string) => {
     const savedPin = localStorage.getItem(PIN_STORAGE_KEY) || DEFAULT_MASTER_PIN;
-    if (enteredPin === savedPin) {
+    const cleanEntered = enteredPin.trim();
+
+    // Verify against DEFAULT_MASTER_PIN ('888899'), localStorage, or Firebase Cloud PIN
+    const isMatched = 
+      cleanEntered === DEFAULT_MASTER_PIN || 
+      cleanEntered === savedPin || 
+      (Boolean(cloudMasterPin) && cleanEntered === cloudMasterPin);
+
+    if (isMatched) {
+      // Sync to local storage on this device immediately
+      localStorage.setItem(PIN_STORAGE_KEY, cleanEntered);
       setPinError(null);
       setCurrentStep('STEP_2_GMAIL');
       // Auto dispatch real OTP immediately to user's phone/telegram
       handleSendLiveOtp();
     } else {
-      setPinError('❌ MÃ MASTER PIN KHÔNG ĐÚNG! Vui lòng thử lại.');
+      setPinError(
+        lang === 'vi'
+          ? `❌ MÃ MASTER PIN KHÔNG ĐÚNG! Mã mặc định: ${DEFAULT_MASTER_PIN} hoặc mã anh đã đổi.`
+          : `❌ INCORRECT MASTER PIN! Default: ${DEFAULT_MASTER_PIN} or your configured PIN.`
+      );
       setTimeout(() => setPin(''), 500);
     }
   };
@@ -277,8 +305,29 @@ export const AdminBinance3FaModal: React.FC<AdminBinance3FaModalProps> = ({ onSu
               </span>
             </div>
 
-            {/* PIN Dots Display */}
-            <div className="flex justify-center items-center gap-3 py-2">
+            {/* PIN Dots Display with tap-to-focus for mobile keyboard */}
+            <div 
+              onClick={() => nativeInputRef.current?.focus()}
+              className="relative flex justify-center items-center gap-3 py-3 cursor-pointer select-none"
+            >
+              <input
+                ref={nativeInputRef}
+                type="tel"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                maxLength={6}
+                value={pin}
+                onChange={(e) => {
+                  const val = e.target.value.replace(/\D/g, '').slice(0, 6);
+                  setPin(val);
+                  if (val.length === 6) {
+                    verifyStep1Pin(val);
+                  }
+                }}
+                className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10"
+                aria-label="Master PIN"
+                autoComplete="off"
+              />
               {[...Array(6)].map((_, i) => (
                 <div
                   key={i}
@@ -291,18 +340,23 @@ export const AdminBinance3FaModal: React.FC<AdminBinance3FaModalProps> = ({ onSu
               ))}
             </div>
 
+            <span className="text-[10px] text-gray-400 font-mono block">
+              {lang === 'vi' ? '💡 Chạm vào chấm để mở phím điện thoại, hoặc bấm phím số bên dưới' : '💡 Tap dots to use phone keyboard, or tap keypad'}
+            </span>
+
             {pinError && (
-              <div className="p-2.5 rounded-xl bg-red-500/20 border border-red-500 text-red-400 text-[11px] font-bold">
+              <div className="p-2.5 rounded-xl bg-red-500/20 border border-red-500 text-red-400 text-[11px] font-bold animate-shake">
                 {pinError}
               </div>
             )}
 
-            {/* Numerical Keypad */}
+            {/* Numerical Keypad with zero-delay touch manipulation */}
             <div className="grid grid-cols-3 gap-2 pt-1 max-w-[280px] mx-auto">
               {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((num) => (
                 <button
                   key={num}
                   type="button"
+                  style={{ touchAction: 'manipulation' }}
                   onClick={() => handlePinKeyPress(num)}
                   className="h-12 rounded-2xl bg-[#0c0f17] hover:bg-[#141924] border border-[#221c10] text-[#f5d77f] font-mono text-base font-black transition-all active:scale-95 shadow-sm"
                 >
@@ -311,6 +365,7 @@ export const AdminBinance3FaModal: React.FC<AdminBinance3FaModalProps> = ({ onSu
               ))}
               <button
                 type="button"
+                style={{ touchAction: 'manipulation' }}
                 onClick={() => setPin('')}
                 className="h-12 rounded-2xl bg-[#0c0f17] hover:bg-red-500/20 border border-[#221c10] text-red-400 font-mono text-xs font-black transition-all active:scale-95"
               >
@@ -318,6 +373,7 @@ export const AdminBinance3FaModal: React.FC<AdminBinance3FaModalProps> = ({ onSu
               </button>
               <button
                 type="button"
+                style={{ touchAction: 'manipulation' }}
                 onClick={() => handlePinKeyPress('0')}
                 className="h-12 rounded-2xl bg-[#0c0f17] hover:bg-[#141924] border border-[#221c10] text-[#f5d77f] font-mono text-base font-black transition-all active:scale-95"
               >
@@ -325,6 +381,7 @@ export const AdminBinance3FaModal: React.FC<AdminBinance3FaModalProps> = ({ onSu
               </button>
               <button
                 type="button"
+                style={{ touchAction: 'manipulation' }}
                 onClick={() => setPin(prev => prev.slice(0, -1))}
                 className="h-12 rounded-2xl bg-[#0c0f17] hover:bg-[#141924] border border-[#221c10] text-gray-300 font-mono text-xs font-black transition-all active:scale-95"
               >

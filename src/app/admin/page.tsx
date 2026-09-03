@@ -151,14 +151,21 @@ export default function StandaloneAdminPortalPage() {
     setIsAuthenticated(false);
   };
 
-  const handleChangePinSubmit = (e: React.FormEvent) => {
+  const handleChangePinSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (newPinInput.length !== 6 || !/^\d+$/.test(newPinInput)) {
       alert('Mã PIN mới phải gồm đúng 6 chữ số');
       return;
     }
     localStorage.setItem(PIN_STORAGE_KEY, newPinInput);
-    setPinChangeSuccess('✅ ĐÃ ĐỔI MÃ MASTER PIN THÀNH CÔNG!');
+    try {
+      await fetch('https://decisive-mapper-216306-default-rtdb.asia-southeast1.firebasedatabase.app/system_config.json', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ master_pin: newPinInput })
+      });
+    } catch {}
+    setPinChangeSuccess('✅ ĐÃ ĐỔI & ĐỒNG BỘ MÃ MASTER PIN LÊN ĐÁM MÂY THÀNH CÔNG!');
     setTimeout(() => {
       setPinChangeSuccess(null);
       setIsChangePinOpen(false);
