@@ -56,7 +56,6 @@ export const WalletView: React.FC<WalletViewProps> = ({
   const { t, lang } = useLanguage();
   const [mode, setMode] = useState<'deposit' | 'withdraw' | 'history' | 'p2p_lending'>(initialMode);
   const [withdrawSource, setWithdrawSource] = useState<'trading' | 'referral'>('trading');
-  const [selectedHoldingDays, setSelectedHoldingDays] = useState<number>(45); // 15 (<30d), 45 (30-90d), 120 (>90d)
   const [amount, setAmount] = useState<string>('100');
   const [copied, setCopied] = useState(false);
   const [copiedMemo, setCopiedMemo] = useState(false);
@@ -187,6 +186,20 @@ export const WalletView: React.FC<WalletViewProps> = ({
   const depositCount = allTransactions.filter(t => t.type === 'DEPOSIT').length;
   const withdrawCount = allTransactions.filter(t => t.type === 'WITHDRAW').length;
 
+  // Auto-calculate real user holding days from earliest approved deposit
+  const approvedDeposits = allTransactions.filter(t => t.type === 'DEPOSIT' && t.status === 'APPROVED');
+  const earliestDeposit = approvedDeposits.length > 0
+    ? approvedDeposits.reduce((earliest, t) => {
+        const tTime = t.createdAt ? new Date(t.createdAt).getTime() : Date.now();
+        const eTime = earliest.createdAt ? new Date(earliest.createdAt).getTime() : Date.now();
+        return tTime < eTime ? t : earliest;
+      })
+    : null;
+
+  const actualHoldingDays = earliestDeposit && earliestDeposit.createdAt
+    ? Math.max(0, Math.floor((Date.now() - new Date(earliestDeposit.createdAt).getTime()) / (1000 * 60 * 60 * 24)))
+    : 15;
+
   const numAmount = parseFloat(amount) || 0;
   const depositBreakdown = calculateDepositFee(numAmount);
 
@@ -205,7 +218,7 @@ export const WalletView: React.FC<WalletViewProps> = ({
         netAmount: Math.max(0, numAmount - 5.00),
         effectiveRetainedFee: 0
       }
-    : calculateWithdrawFee(numAmount, selectedHoldingDays);
+    : calculateWithdrawFee(numAmount, actualHoldingDays);
 
   // Master Receiving Deposit Address
   const walletAddress = receivingWallet;
@@ -916,58 +929,65 @@ export const WalletView: React.FC<WalletViewProps> = ({
             />
           </div>
 
-          {/* TIERED WITHDRAWAL FEE SELECTOR */}
+          {/* TIERED WITHDRAWAL FEE VERIFICATION CARD */}
           {!isRefSource && (
-            <div className="space-y-2">
+            <div className="space-y-2.5">
               <div className="flex items-center justify-between">
                 <label className="text-xs text-gray-400 font-bold flex items-center gap-1.5">
                   <Clock className="w-3.5 h-3.5 text-[#d4af37]" />
-                  <span>{lang === 'vi' ? 'Thời Gian Nắm Giữ Vốn (Bậc Thang Phí):' : 'Holding Period (Tiered Exit Fee):'}</span>
+                  <span>{lang === 'vi' ? 'Thời Gian Nắm Giữ Vốn Thực Tế:' : 'Verified Holding Period:'}</span>
                 </label>
-                <span className="text-[10px] font-mono text-emerald-400 font-bold">
-                  {withdrawBreakdown.tierName}
+                <span className="text-[11px] font-mono text-[#f5d77f] font-bold">
+                  {actualHoldingDays} {lang === 'vi' ? 'ngày' : 'days'}
                 </span>
               </div>
 
-              <div className="grid grid-cols-3 gap-1.5 p-1 bg-[#05070c] rounded-2xl border border-[#221c10]">
-                <button
-                  type="button"
-                  onClick={() => setSelectedHoldingDays(15)}
-                  className={`py-2 px-1 rounded-xl text-center transition-all ${
-                    selectedHoldingDays < 30
-                      ? 'bg-red-500/20 border border-red-500/50 text-white shadow-sm'
-                      : 'text-gray-400 hover:text-white'
-                  }`}
-                >
-                  <span className="text-[10px] font-bold block">{lang === 'vi' ? '< 30 Ngày' : '< 30 Days'}</span>
-                  <span className="text-[9px] font-mono text-red-400 font-black">Phí 15%</span>
-                </button>
+              {/* Verified Tier Progress Strip */}
+              <div className="p-3 bg-[#05070c] rounded-2xl border border-[#221c10] space-y-2">
+                <div className="flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-2">
+                    <span className={`w-2 h-2 rounded-full ${
+                      actualHoldingDays < 30 ? 'bg-red-400 animate-pulse shadow-[0_0_8px_#ef4444]' :
+                      actualHoldingDays <= 90 ? 'bg-amber-400' : 'bg-emerald-400'
+                    }`} />
+                    <span className="font-bold text-white uppercase text-[11px]">
+                      {withdrawBreakdown.tierName}
+                    </span>
+                  </div>
+                  <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full ${
+                    actualHoldingDays < 30 
+                      ? 'bg-red-500/20 text-red-400 border border-red-500/40' 
+                      : actualHoldingDays <= 90 
+                      ? 'bg-amber-500/20 text-amber-400 border border-amber-500/40' 
+                      : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
+                  }`}>
+                    {lang === 'vi' ? 'PHÍ' : 'FEE'}: {(withdrawBreakdown.percentageRate * 100).toFixed(0)}% + $5
+                  </span>
+                </div>
 
-                <button
-                  type="button"
-                  onClick={() => setSelectedHoldingDays(45)}
-                  className={`py-2 px-1 rounded-xl text-center transition-all ${
-                    selectedHoldingDays >= 30 && selectedHoldingDays <= 90
-                      ? 'bg-[#d4af37]/20 border border-[#d4af37]/50 text-white shadow-sm'
-                      : 'text-gray-400 hover:text-white'
-                  }`}
-                >
-                  <span className="text-[10px] font-bold block">{lang === 'vi' ? '30 - 90 Ngày' : '30 - 90 Days'}</span>
-                  <span className="text-[9px] font-mono text-[#f5d77f] font-black">Phí 9%</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setSelectedHoldingDays(120)}
-                  className={`py-2 px-1 rounded-xl text-center transition-all ${
-                    selectedHoldingDays > 90
-                      ? 'bg-emerald-500/20 border border-emerald-500/50 text-white shadow-sm'
-                      : 'text-gray-400 hover:text-white'
-                  }`}
-                >
-                  <span className="text-[10px] font-bold block">{lang === 'vi' ? '> 90 Ngày (VIP)' : '> 90 Days (VIP)'}</span>
-                  <span className="text-[9px] font-mono text-emerald-400 font-black">Phí 4%</span>
-                </button>
+                {/* Next Tier Upgrade Milestone Hint */}
+                {actualHoldingDays < 30 && (
+                  <div className="text-[10px] font-mono text-gray-400 flex items-center justify-between border-t border-[#221c10] pt-1.5">
+                    <span>{lang === 'vi' ? 'Lên Bậc Tiêu Chuẩn (9%):' : 'Upgrade to Standard (9%):'}</span>
+                    <span className="text-amber-400 font-bold">
+                      {lang === 'vi' ? `Còn ${30 - actualHoldingDays} ngày (tiết kiệm 6%)` : `${30 - actualHoldingDays} days left (save 6%)`}
+                    </span>
+                  </div>
+                )}
+                {actualHoldingDays >= 30 && actualHoldingDays <= 90 && (
+                  <div className="text-[10px] font-mono text-gray-400 flex items-center justify-between border-t border-[#221c10] pt-1.5">
+                    <span>{lang === 'vi' ? 'Lên Bậc VIP Trung Thành (4%):' : 'Upgrade to VIP Loyal (4%):'}</span>
+                    <span className="text-emerald-400 font-bold">
+                      {lang === 'vi' ? `Còn ${91 - actualHoldingDays} ngày (tiết kiệm thêm 5%)` : `${91 - actualHoldingDays} days left (save 5%)`}
+                    </span>
+                  </div>
+                )}
+                {actualHoldingDays > 90 && (
+                  <div className="text-[10px] font-mono text-emerald-400 flex items-center gap-1 border-t border-[#221c10] pt-1.5">
+                    <CheckCircle2 className="w-3 h-3 text-emerald-400 flex-shrink-0" />
+                    <span>{lang === 'vi' ? '👑 Bạn đang hưởng mức phí ưu đãi định chế VIP thấp nhất hệ sinh thái!' : '👑 You have unlocked the institutional lowest VIP tier!'}</span>
+                  </div>
+                )}
               </div>
 
               {/* P2P Retention Upsell */}

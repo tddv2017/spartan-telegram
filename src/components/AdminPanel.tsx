@@ -20,7 +20,6 @@ import { PersonnelHrTab } from './admin/PersonnelHrTab';
 import { TechOpsTab } from './admin/TechOpsTab';
 import { AiAgentsCommandCenter } from './admin/AiAgentsCommandCenter';
 import { AdminBinance3FaModal } from './admin/AdminBinance3FaModal';
-import { CeoDirectivesTab } from './admin/CeoDirectivesTab';
 import { 
   ShieldCheck, 
   Layers, 
@@ -34,7 +33,7 @@ import {
 } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 
-type AdminDepartment = 'overview' | 'ceo_directives' | 'accounting' | 'personnel' | 'techops' | 'agents';
+type AdminDepartment = 'overview' | 'accounting' | 'personnel' | 'techops' | 'agents';
 
 const SESSION_AUTH_KEY = 'spartan_admin_session_auth_token';
 
@@ -157,7 +156,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
 
   const departments = [
     { id: 'overview' as AdminDepartment, label: t('admin_dept_overview'), icon: Layers },
-    { id: 'ceo_directives' as AdminDepartment, label: lang === 'vi' ? 'CHỈ THỊ CEO' : 'DIRECTIVES', icon: Crown },
     { id: 'accounting' as AdminDepartment, label: t('admin_dept_accounting'), icon: Receipt },
     { id: 'personnel' as AdminDepartment, label: t('admin_dept_personnel'), icon: Users },
     { id: 'techops' as AdminDepartment, label: t('admin_dept_techops'), icon: Cpu },
@@ -221,8 +219,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
         </div>
       )}
 
-      {/* 6 Administrative Departments Sub-Nav Bar */}
-      <div className="grid grid-cols-3 sm:grid-cols-6 gap-1 p-1 bg-[#05070c] rounded-2xl border border-[#221c10]">
+      {/* 5 Administrative Departments Sub-Nav Bar */}
+      <div className="grid grid-cols-5 p-1 bg-[#05070c] rounded-2xl border border-[#221c10]">
         {departments.map((dept) => {
           const Icon = dept.icon;
           const isActive = activeDept === dept.id;
@@ -255,13 +253,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
           broadcastMsg={broadcastMsg}
           setBroadcastMsg={setBroadcastMsg}
           onBroadcast={handleBroadcast}
-        />
-      )}
-
-      {activeDept === 'ceo_directives' && (
-        <CeoDirectivesTab
-          users={allUsers}
-          transactions={allTransactions}
         />
       )}
 

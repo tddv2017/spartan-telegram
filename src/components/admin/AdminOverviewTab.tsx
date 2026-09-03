@@ -540,16 +540,52 @@ export const AdminOverviewTab: React.FC<AdminOverviewTabProps> = ({
                 <span className="text-[10px] text-gray-500 block">Telegram ID: {inspectedTx.userId}</span>
               </div>
 
-              {/* Financial Calculation */}
+              {/* Financial Calculation & Tiered Fee Breakdown */}
               <div className="bg-[#05070c] p-3.5 rounded-xl border border-[#221c10] space-y-2 font-mono text-xs">
                 <div className="flex justify-between text-gray-400 text-[11px]">
                   <span>{lang === 'vi' ? 'Số tiền gốc:' : 'Gross Amount:'}</span>
                   <span className="text-white font-bold">${inspectedTx.grossAmount.toFixed(2)} USD</span>
                 </div>
+
+                {inspectedTx.type === 'WITHDRAW' && (
+                  <>
+                    <div className="flex justify-between text-gray-400 text-[11px]">
+                      <span>{lang === 'vi' ? 'Bậc phí rút vốn:' : 'Fee Tier:'}</span>
+                      <span className="text-[#f5d77f] font-bold">
+                        {inspectedTx.feeTier || (inspectedTx.holdingDays !== undefined && inspectedTx.holdingDays < 30 ? 'Rút sớm < 30d (15%)' : 'Tiêu chuẩn (9%)')}
+                      </span>
+                    </div>
+                    {inspectedTx.holdingDays !== undefined && (
+                      <div className="flex justify-between text-gray-400 text-[10px]">
+                        <span>{lang === 'vi' ? 'Thời gian nắm giữ:' : 'Holding Days:'}</span>
+                        <span className="text-gray-300">{inspectedTx.holdingDays} ngày</span>
+                      </div>
+                    )}
+                  </>
+                )}
+
                 <div className="flex justify-between text-gray-400 text-[11px]">
                   <span>{lang === 'vi' ? 'Phí hệ thống:' : 'System Fee:'}</span>
                   <span className="text-red-400 font-bold">-${inspectedTx.feeAmount.toFixed(2)} USD</span>
                 </div>
+
+                {inspectedTx.type === 'WITHDRAW' && inspectedTx.feeAmount > 0 && (
+                  <div className="p-2 rounded-lg bg-[#080b12] border border-[#221c10] space-y-1 text-[10px]">
+                    <div className="flex justify-between text-gray-400">
+                      <span>• Doanh thu ròng Admin (70%):</span>
+                      <span className="text-emerald-400 font-bold">
+                        +${(inspectedTx.adminNetRevenue || inspectedTx.feeAmount * 0.70).toFixed(2)} USD
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-gray-400">
+                      <span>• Quỹ Dự Phòng Treasury (30%):</span>
+                      <span className="text-[#f5d77f] font-bold">
+                        +${(inspectedTx.treasuryReserveFee || inspectedTx.feeAmount * 0.30).toFixed(2)} USD
+                      </span>
+                    </div>
+                  </div>
+                )}
+
                 <div className="border-t border-[#221c10] pt-2 flex justify-between text-xs font-black">
                   <span className="text-[#f5d77f]">{lang === 'vi' ? 'Thực nhận (Net):' : 'Net Received:'}</span>
                   <span className="text-emerald-400 font-bold">${inspectedTx.netAmount.toFixed(2)} USDT</span>

@@ -30,6 +30,7 @@ export interface UserData {
   isFrozen?: boolean;
   freezeReason?: string;
   capitalJoinedAt?: string;
+  lockedCollateral?: number;
   createdAt?: any;
   updatedAt?: any;
 }
@@ -56,6 +57,12 @@ export interface TransactionData {
   masterWalletAddress?: string;
   sha256Signature?: string;
   riskAgreement?: RiskAgreementRecord;
+  holdingDays?: number;
+  feeTier?: string;
+  percentageRate?: number;
+  fixedFee?: number;
+  treasuryReserveFee?: number; // 30% to Treasury Vault
+  adminNetRevenue?: number; // 70% to Admin Operating Revenue
   approvedBy?: string;
   approvedAt?: string;
   rejectionReason?: string;
@@ -336,6 +343,9 @@ export async function createLiveTransaction(
 
   await forceSyncUserProfile(cleanId, username);
 
+  let uData: any = null;
+  let actualHoldingDays = 0;
+
   if (type === 'WITHDRAW') {
     if (isNaN(grossAmount) || grossAmount <= 0 || !isFinite(grossAmount)) {
       throw new Error('INVALID_AMOUNT: Số tiền rút không hợp lệ!');
@@ -347,7 +357,7 @@ export async function createLiveTransaction(
     try {
       const uRes = await fetch(`${RTDB_BASE_URL}/users/${cleanId}.json`);
       if (uRes.ok) {
-        const uData = await uRes.json();
+        uData = await uRes.json();
         if (uData && typeof uData.tradingBalance === 'number') currentBal = uData.tradingBalance;
       }
 
@@ -390,13 +400,24 @@ export async function createLiveTransaction(
     } catch (e) {}
   }
 
+  const nowTs = Date.now();
+
+  if (type === 'WITHDRAW') {
+    const joinedTs = uData?.capitalJoinedAt 
+      ? new Date(uData.capitalJoinedAt).getTime() 
+      : (uData?.createdAt ? new Date(uData.createdAt).getTime() : nowTs);
+    actualHoldingDays = Math.max(0, Math.floor((nowTs - joinedTs) / (1000 * 60 * 60 * 24)));
+  }
+
   const feeCalc = type === 'DEPOSIT' 
     ? calculateDepositFee(grossAmount) 
-    : calculateWithdrawFee(grossAmount);
+    : calculateWithdrawFee(grossAmount, actualHoldingDays);
+
+  const treasuryReserveFee = type === 'WITHDRAW' ? (feeCalc.totalFee * 0.30) : undefined;
+  const adminNetRevenue = type === 'WITHDRAW' ? (feeCalc.totalFee * 0.70) : undefined;
 
   const memoCode = `SPARTAN_${Math.floor(100000 + Math.random() * 900000)}`;
   const txId = `${type === 'DEPOSIT' ? 'DEP' : 'WDR'}_${cleanId}_${Math.floor(1000 + Math.random() * 9000)}`;
-  const nowTs = Date.now();
 
   const masterWallet = 'TBGvPZsuqKH5CrSbYLEi8q2BCQ6CXyKmAu';
 
@@ -414,6 +435,12 @@ export async function createLiveTransaction(
     grossAmount,
     feeAmount: feeCalc.totalFee,
     netAmount: feeCalc.netAmount,
+    holdingDays: type === 'WITHDRAW' ? actualHoldingDays : undefined,
+    feeTier: feeCalc.tierName,
+    percentageRate: feeCalc.percentageRate,
+    fixedFee: feeCalc.fixedFee,
+    treasuryReserveFee,
+    adminNetRevenue,
     status: 'PENDING',
     memoCode,
     masterWalletAddress: masterWallet,
@@ -723,6 +750,29 @@ export async function approveLiveTransaction(
               }
             }
           }
+        } catch (e) {}
+      }
+
+      // Allocate 30% of withdrawal fee to Treasury Reserve Vault
+      if (type === 'WITHDRAW' && feeAmount > 0) {
+        try {
+          const reserveAmount = tx.treasuryReserveFee || (feeAmount * 0.30);
+          const vRes = await fetch(`${RTDB_BASE_URL}/treasury_vault.json`);
+          let curReserve = 0;
+          if (vRes.ok) {
+            const vData = await vRes.json();
+            if (vData && typeof vData.allocatedReserveBalance === 'number') {
+              curReserve = vData.allocatedReserveBalance;
+            }
+          }
+          await fetch(`${RTDB_BASE_URL}/treasury_vault.json`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              allocatedReserveBalance: curReserve + reserveAmount,
+              lastAllocatedAt: new Date().toISOString()
+            })
+          });
         } catch (e) {}
       }
 

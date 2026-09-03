@@ -167,8 +167,15 @@ export const AccountingAuditTab: React.FC<AccountingAuditTabProps> = ({
   const totalWithdrawFees = approvedWithdrawals.reduce((acc, t) => acc + (t.feeAmount || 0), 0);
   const totalNetWithdraw = approvedWithdrawals.reduce((acc, t) => acc + (t.netAmount || 0), 0);
 
-  // 10% Treasury Retention from withdrawals
-  const totalTreasuryRetained = totalGrossWithdraw * 0.10;
+  // 30% Treasury Reserve Retention from withdrawal fees (Theo Chỉ thị CEO)
+  const totalTreasuryRetained = approvedWithdrawals.reduce(
+    (acc, t) => acc + (t.treasuryReserveFee || ((t.feeAmount || 0) * 0.30)), 
+    0
+  );
+  const totalAdminNetRevenue = approvedWithdrawals.reduce(
+    (acc, t) => acc + (t.adminNetRevenue || ((t.feeAmount || 0) * 0.70)), 
+    0
+  );
   const totalNetworkResellerRebates = users.reduce((acc, u) => acc + (u.referralBalance || 0), 0);
 
   // Total Live TVL of all Investors (User Deposits)
@@ -1000,7 +1007,7 @@ export const AccountingAuditTab: React.FC<AccountingAuditTabProps> = ({
             {/* Balance Display */}
             <div className="bg-[#131927] p-3 rounded-xl border border-[#1f293d] flex items-center justify-between">
               <div>
-                <span className="text-[9px] text-gray-400 font-bold block">TÍCH LŨY 10% TỪ RÚT VỐN:</span>
+                <span className="text-[9px] text-gray-400 font-bold block">TÍCH LŨY 30% PHÍ RÚT VÀO QUỸ DỰ PHÒNG:</span>
                 <span className="text-lg font-black text-purple-300 font-mono">
                   ${totalTreasuryRetained.toLocaleString('en-US', { minimumFractionDigits: 2 })} USDT
                 </span>
