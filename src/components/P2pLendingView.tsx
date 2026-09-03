@@ -104,7 +104,7 @@ export const P2pLendingView: React.FC<P2pLendingViewProps> = ({
           <div className="self-start sm:self-auto flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#d4af37]/15 border border-[#d4af37]/40 shadow-[0_0_12px_rgba(212,175,55,0.2)]">
             <span className="w-2 h-2 rounded-full bg-[#d4af37] animate-ping" />
             <span className="text-[10px] font-mono font-black text-[#f5d77f] uppercase tracking-wider">
-              {lang === 'vi' ? '🚧 ĐANG PHÁT TRIỂN (Q4/2026)' : '🚧 UNDER DEVELOPMENT (Q4/2026)'}
+              {lang === 'vi' ? '🚧 ĐANG PHÁT TRIỂN (Q2/2027)' : '🚧 UNDER DEVELOPMENT (Q2/2027)'}
             </span>
           </div>
         </div>
