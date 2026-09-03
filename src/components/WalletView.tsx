@@ -56,6 +56,7 @@ export const WalletView: React.FC<WalletViewProps> = ({
   const { t, lang } = useLanguage();
   const [mode, setMode] = useState<'deposit' | 'withdraw' | 'history' | 'p2p_lending'>(initialMode);
   const [withdrawSource, setWithdrawSource] = useState<'trading' | 'referral'>('trading');
+  const [selectedHoldingDays, setSelectedHoldingDays] = useState<number>(45); // 15 (<30d), 45 (30-90d), 120 (>90d)
   const [amount, setAmount] = useState<string>('100');
   const [copied, setCopied] = useState(false);
   const [copiedMemo, setCopiedMemo] = useState(false);
@@ -197,12 +198,14 @@ export const WalletView: React.FC<WalletViewProps> = ({
     ? {
         grossAmount: numAmount,
         percentageFee: 0,
+        percentageRate: 0,
+        tierName: 'Hoa Hồng Đại Lý (0% Miễn Phí)',
         fixedFee: 5.00,
         totalFee: 5.00,
         netAmount: Math.max(0, numAmount - 5.00),
         effectiveRetainedFee: 0
       }
-    : calculateWithdrawFee(numAmount);
+    : calculateWithdrawFee(numAmount, selectedHoldingDays);
 
   // Master Receiving Deposit Address
   const walletAddress = receivingWallet;
@@ -863,7 +866,9 @@ export const WalletView: React.FC<WalletViewProps> = ({
                 ? 'text-emerald-400 bg-emerald-500/15 border-emerald-500/30' 
                 : 'text-[#f5d77f] bg-[#d4af37]/15 border-[#d4af37]/35'
             }`}>
-              {isRefSource ? (lang === 'vi' ? '0% Phí Sàn (Miễn phí)' : '0% Fee (Free)') : (lang === 'vi' ? 'Phí: 19% + $5.00 USD' : 'Fee: 19% + $5.00 USD')}
+              {isRefSource 
+                ? (lang === 'vi' ? '0% Phí Sàn (Miễn phí)' : '0% Fee (Free)') 
+                : `${lang === 'vi' ? 'Phí Bậc Thang:' : 'Tiered Fee:'} ${(withdrawBreakdown.percentageRate * 100).toFixed(0)}% + $5`}
             </span>
           </div>
 
@@ -911,6 +916,82 @@ export const WalletView: React.FC<WalletViewProps> = ({
             />
           </div>
 
+          {/* TIERED WITHDRAWAL FEE SELECTOR */}
+          {!isRefSource && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-xs text-gray-400 font-bold flex items-center gap-1.5">
+                  <Clock className="w-3.5 h-3.5 text-[#d4af37]" />
+                  <span>{lang === 'vi' ? 'Thời Gian Nắm Giữ Vốn (Bậc Thang Phí):' : 'Holding Period (Tiered Exit Fee):'}</span>
+                </label>
+                <span className="text-[10px] font-mono text-emerald-400 font-bold">
+                  {withdrawBreakdown.tierName}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-3 gap-1.5 p-1 bg-[#05070c] rounded-2xl border border-[#221c10]">
+                <button
+                  type="button"
+                  onClick={() => setSelectedHoldingDays(15)}
+                  className={`py-2 px-1 rounded-xl text-center transition-all ${
+                    selectedHoldingDays < 30
+                      ? 'bg-red-500/20 border border-red-500/50 text-white shadow-sm'
+                      : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  <span className="text-[10px] font-bold block">{lang === 'vi' ? '< 30 Ngày' : '< 30 Days'}</span>
+                  <span className="text-[9px] font-mono text-red-400 font-black">Phí 15%</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setSelectedHoldingDays(45)}
+                  className={`py-2 px-1 rounded-xl text-center transition-all ${
+                    selectedHoldingDays >= 30 && selectedHoldingDays <= 90
+                      ? 'bg-[#d4af37]/20 border border-[#d4af37]/50 text-white shadow-sm'
+                      : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  <span className="text-[10px] font-bold block">{lang === 'vi' ? '30 - 90 Ngày' : '30 - 90 Days'}</span>
+                  <span className="text-[9px] font-mono text-[#f5d77f] font-black">Phí 9%</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setSelectedHoldingDays(120)}
+                  className={`py-2 px-1 rounded-xl text-center transition-all ${
+                    selectedHoldingDays > 90
+                      ? 'bg-emerald-500/20 border border-emerald-500/50 text-white shadow-sm'
+                      : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  <span className="text-[10px] font-bold block">{lang === 'vi' ? '> 90 Ngày (VIP)' : '> 90 Days (VIP)'}</span>
+                  <span className="text-[9px] font-mono text-emerald-400 font-black">Phí 4%</span>
+                </button>
+              </div>
+
+              {/* P2P Retention Upsell */}
+              <div className="p-3 rounded-2xl bg-gradient-to-r from-[#d4af37]/15 to-[#080b12] border border-[#d4af37]/40 flex items-center justify-between text-xs">
+                <div className="space-y-0.5 pr-2">
+                  <span className="text-white font-bold block flex items-center gap-1.5 text-[11px]">
+                    <Sparkles className="w-3.5 h-3.5 text-[#f5d77f] flex-shrink-0" />
+                    <span>{lang === 'vi' ? 'Cần tiền mặt gấp? Tránh mất phí rút vốn!' : 'Need emergency cash? Avoid exit fee!'}</span>
+                  </span>
+                  <span className="text-[10px] text-gray-400 font-sans block">
+                    {lang === 'vi' ? 'Thế chấp 70% vốn bot tại [VAY P2P], bot tự động dùng 30% margin trade trả lãi.' : 'Pledge 70% bot equity in [P2P LEND] to get instant cash while bot pays interest.'}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setMode('p2p_lending')}
+                  className="px-2.5 py-1.5 rounded-xl gold-btn-solid text-black text-[10px] font-mono font-black flex-shrink-0 active:scale-95 shadow-md"
+                >
+                  {lang === 'vi' ? 'VAY P2P →' : 'P2P LEND →'}
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Fee Engine Realtime Breakdown Card */}
           <div className="bg-[#05070c] rounded-2xl p-4 border border-[#221c10] text-xs space-y-2">
             <div className="flex justify-between text-gray-400">
@@ -918,9 +999,9 @@ export const WalletView: React.FC<WalletViewProps> = ({
               <span className="font-bold text-gray-200 font-mono">${withdrawBreakdown.grossAmount.toFixed(2)} USDT</span>
             </div>
             <div className="flex justify-between text-gray-400">
-              <span>{isRefSource ? (lang === 'vi' ? 'Phí Sàn (Treasury Policy):' : 'Treasury Fee:') : (lang === 'vi' ? 'Phí Quản Trị Quỹ (19%):' : 'Percentage Fee (19%):')}</span>
+              <span>{isRefSource ? (lang === 'vi' ? 'Phí Sàn (Treasury Policy):' : 'Treasury Fee:') : `${lang === 'vi' ? 'Phí Rút Bậc Thang' : 'Tiered Exit Fee'} (${(withdrawBreakdown.percentageRate * 100).toFixed(0)}%):`}</span>
               <span className={isRefSource ? "font-bold text-emerald-400 font-mono" : "font-bold text-[#ff2d55] font-mono"}>
-                {isRefSource ? (lang === 'vi' ? '0% (MIỄN PHÍ - KHÔNG MẤT 19%)' : '0% (FREE - NO 19% FEE)') : `-$${withdrawBreakdown.percentageFee.toFixed(2)} USDT`}
+                {isRefSource ? (lang === 'vi' ? '0% (MIỄN PHÍ)' : '0% (FREE)') : `-$${withdrawBreakdown.percentageFee.toFixed(2)} USDT`}
               </span>
             </div>
             <div className="flex justify-between text-gray-400">
