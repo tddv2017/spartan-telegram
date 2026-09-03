@@ -161,15 +161,32 @@ export default function StandaloneAdminPortalPage() {
     try {
       const hashedPin = await hashMasterPin(newPinInput);
       localStorage.setItem(PIN_STORAGE_KEY, hashedPin);
-      await fetch('https://decisive-mapper-216306-default-rtdb.asia-southeast1.firebasedatabase.app/system_config.json', {
+
+      // 1. Sync to Firebase Realtime Database
+      const rtdbPromise = fetch('https://decisive-mapper-216306-default-rtdb.asia-southeast1.firebasedatabase.app/system_config.json', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           master_pin_hash: hashedPin,
-          master_pin: null // Ensure no plaintext PIN remains
+          master_pin: null
         })
       });
-      setPinChangeSuccess('✅ ĐÃ BĂM MẬT MÃ SHA-256 & ĐỒNG BỘ LÊN ĐÁM MÂY AN TOÀN!');
+
+      // 2. Sync to Cloud Firestore (collection: system_config, doc: admin_security)
+      const firestorePromise = fetch('https://firestore.googleapis.com/v1/projects/decisive-mapper-216306/databases/(default)/documents/system_config/admin_security', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fields: {
+            master_pin_hash: { stringValue: hashedPin },
+            updatedAt: { stringValue: new Date().toISOString() },
+            description: { stringValue: 'Salted SHA-256 Hash of Master Admin PIN' }
+          }
+        })
+      });
+
+      await Promise.allSettled([rtdbPromise, firestorePromise]);
+      setPinChangeSuccess('✅ ĐÃ BĂM MẬT MÃ SHA-256 & ĐỒNG BỘ LÊN CẢ FIRESTORE & RTDB!');
     } catch {
       setPinChangeSuccess('⚠️ ĐÃ LƯU CỤC BỘ (Không thể kết nối đám mây)');
     }
