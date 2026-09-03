@@ -124,6 +124,10 @@ export default function Home() {
         if (typeof userData.freezeReason === 'string') setFreezeReason(userData.freezeReason);
         if (typeof userData.botActive === 'boolean') setIsBotActive(userData.botActive);
         if (userData.capitalJoinedAt) setUserCapitalJoinedAt(userData.capitalJoinedAt);
+        // DYNAMIC ADMIN PRIVILEGE: Update isAdmin if user is granted ADMIN in database
+        if (userData.role === 'ADMIN' || (userData as any).role === 'SUPER_ADMIN' || checkIsAdmin(handle, userData.role) || checkIsAdmin(id, userData.role)) {
+          setIsAdmin(true);
+        }
       }
     });
 

@@ -3,10 +3,11 @@
  * Primary Admin Telegram Account: @tddv2017 (ID: 494232782)
  */
 
-export const ADMIN_HANDLES = ['tddv2017', 'spartan_9824029'];
-export const ADMIN_TELEGRAM_IDS = [494232782, 9824029, 1788035393];
+export const ADMIN_HANDLES = ['tddv2017', 'spartan_9824029', 'itcrazy2021'];
+export const ADMIN_TELEGRAM_IDS = [494232782, 9824029, 1788035393, 6689537770];
 
-export function checkIsAdmin(usernameOrId?: string | number): boolean {
+export function checkIsAdmin(usernameOrId?: string | number, role?: string): boolean {
+  if (role === 'ADMIN' || role === 'SUPER_ADMIN') return true;
   if (!usernameOrId) return false;
   
   if (typeof usernameOrId === 'number') {

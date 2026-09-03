@@ -14,6 +14,7 @@ import { ref, push, set, onValue, update, get } from "firebase/database";
 import { db, rtdb } from "./firebase";
 import { calculateDepositFee, calculateWithdrawFee } from "./feeCalculator";
 import { generateDepositSignature } from "./sha256Auth";
+import { checkIsAdmin } from "./adminAuth";
 
 export interface UserData {
   telegramId: string;
@@ -117,13 +118,15 @@ export async function forceSyncUserProfile(
 ): Promise<{ success: boolean; rtdbPath: string; firestorePath: string }> {
   const cleanId = String(telegramId || '494232782');
   const cleanHandle = (username || 'user_' + cleanId.slice(-4)).replace('@', '').toLowerCase();
-  const isAdmin = cleanHandle === 'tddv2017' || cleanHandle === 'spartan_9824029' || cleanId === '494232782';
+  const isStaticAdmin = checkIsAdmin(cleanHandle) || checkIsAdmin(cleanId);
 
   const nowIso = new Date().toISOString();
 
   let existingTradingBal = 0.00;
   let existingRefBal = 0.00;
   let existingTier = 1;
+  let existingRole: 'CLIENT' | 'RESELLER' | 'ADMIN' | 'ACCOUNTANT' | 'TECH_OPS' = 'CLIENT';
+  let hasExistingRole = false;
 
   try {
     const res = await fetch(`${RTDB_BASE_URL}/users/${cleanId}.json`);
@@ -133,15 +136,28 @@ export async function forceSyncUserProfile(
         if (typeof data.tradingBalance === 'number') existingTradingBal = data.tradingBalance;
         if (typeof data.referralBalance === 'number') existingRefBal = data.referralBalance;
         if (typeof data.resellerTier === 'number') existingTier = data.resellerTier;
+        if (data.role) {
+          existingRole = data.role;
+          hasExistingRole = true;
+        }
       }
     }
   } catch (e) {}
+
+  // CRITICAL PRESERVATION: If user already has ADMIN, RESELLER, ACCOUNTANT or TECH_OPS role assigned in Database,
+  // NEVER overwrite/downgrade them to CLIENT upon login!
+  let resolvedRole: 'CLIENT' | 'RESELLER' | 'ADMIN' | 'ACCOUNTANT' | 'TECH_OPS' = 'CLIENT';
+  if (isStaticAdmin || (hasExistingRole && (existingRole === 'ADMIN' as any || (existingRole as any) === 'SUPER_ADMIN'))) {
+    resolvedRole = 'ADMIN';
+  } else if (hasExistingRole) {
+    resolvedRole = existingRole;
+  }
 
   const userPayload: UserData = {
     telegramId: cleanId,
     username: username || 'user_' + cleanId.slice(-4),
     firstName: firstName || 'Warrior',
-    role: isAdmin ? 'ADMIN' : 'CLIENT',
+    role: resolvedRole,
     tradingBalance: existingTradingBal,
     referralBalance: existingRefBal,
     referralCode: `SPARTAN_${cleanId}`,
@@ -215,13 +231,13 @@ export async function getOrCreateUser(
   } catch (e) {}
 
   const cleanHandle = (username || 'user_' + cleanId.slice(-4)).replace('@', '').toLowerCase();
-  const isAdmin = cleanHandle === 'tddv2017' || cleanHandle === 'spartan_9824029' || cleanId === '494232782';
+  const isStaticAdmin = checkIsAdmin(cleanHandle) || checkIsAdmin(cleanId);
 
   return {
     telegramId: cleanId,
     username: username || 'user_' + cleanId.slice(-4),
     firstName: firstName || 'Warrior',
-    role: isAdmin ? 'ADMIN' : 'CLIENT',
+    role: isStaticAdmin ? 'ADMIN' : 'CLIENT',
     tradingBalance: 0.00,
     referralBalance: 0.00,
     referralCode: `SPARTAN_${cleanId}`,
