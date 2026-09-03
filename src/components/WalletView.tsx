@@ -28,7 +28,13 @@ import {
   Sparkles,
   Users
 } from 'lucide-react';
-import { calculateDepositFee, calculateWithdrawFee } from '@/lib/feeCalculator';
+import { 
+  calculateDepositFee, 
+  calculateWithdrawFee, 
+  fetchSystemFeeConfig, 
+  SystemFeeConfig, 
+  DEFAULT_FEE_CONFIG 
+} from '@/lib/feeCalculator';
 import { createLiveTransaction, withdrawReferralBalance, subscribeToUserTransactions, TransactionData, RiskAgreementRecord } from '@/lib/firebaseService';
 import { fetchTreasuryVault, DEFAULT_TREASURY_VAULT } from '@/lib/walletConfig';
 import { ReceiptAiAppealModal } from '@/components/ReceiptAiAppealModal';
@@ -75,7 +81,14 @@ export const WalletView: React.FC<WalletViewProps> = ({
   const [verifyingHash, setVerifyingHash] = useState(false);
   const [hashVerifyError, setHashVerifyError] = useState<string | null>(null);
   const [isRiskModalOpen, setIsRiskModalOpen] = useState(false);
+  const [feeConfig, setFeeConfig] = useState<SystemFeeConfig>(DEFAULT_FEE_CONFIG);
   const ITEMS_PER_PAGE = 5;
+
+  useEffect(() => {
+    fetchSystemFeeConfig().then(cfg => {
+      if (cfg) setFeeConfig(cfg);
+    });
+  }, []);
 
   const handleVerifyTxHash = async () => {
     if (!activeDepositTx || !txHashInput.trim()) return;
@@ -201,7 +214,7 @@ export const WalletView: React.FC<WalletViewProps> = ({
     : 15;
 
   const numAmount = parseFloat(amount) || 0;
-  const depositBreakdown = calculateDepositFee(numAmount);
+  const depositBreakdown = calculateDepositFee(numAmount, feeConfig);
 
   const isRefSource = withdrawSource === 'referral';
   const currentRefBalance = Number(referralBalance) || 0;
@@ -213,12 +226,12 @@ export const WalletView: React.FC<WalletViewProps> = ({
         percentageFee: 0,
         percentageRate: 0,
         tierName: 'Hoa Hồng Đại Lý (0% Miễn Phí)',
-        fixedFee: 5.00,
-        totalFee: 5.00,
-        netAmount: Math.max(0, numAmount - 5.00),
+        fixedFee: feeConfig.withdrawGasFee || 5.00,
+        totalFee: feeConfig.withdrawGasFee || 5.00,
+        netAmount: Math.max(0, numAmount - (feeConfig.withdrawGasFee || 5.00)),
         effectiveRetainedFee: 0
       }
-    : calculateWithdrawFee(numAmount, actualHoldingDays);
+    : calculateWithdrawFee(numAmount, actualHoldingDays, feeConfig);
 
   // Master Receiving Deposit Address
   const walletAddress = receivingWallet;

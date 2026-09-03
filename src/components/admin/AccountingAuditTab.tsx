@@ -41,15 +41,27 @@ import {
   Percent,
   Trophy,
   Briefcase,
-  Radio,
   Download,
   FileCheck,
   Eye,
   X,
-  Calculator
+  Calculator,
+  Sliders,
+  Sparkles,
+  Radio
 } from 'lucide-react';
+import { 
+  SystemFeeConfig, 
+  DEFAULT_FEE_CONFIG, 
+  fetchSystemFeeConfig, 
+  updateSystemFeeConfig, 
+  calculateDepositFee, 
+  calculateWithdrawFee, 
+  calculatePerformanceFeeHWM, 
+  HighWaterMarkResult 
+} from '@/lib/feeCalculator';
 
-export type AccountingSubTab = 'REVENUE_CAPITAL' | 'CUSTOMER_AUDIT' | 'TREASURY_VAULT' | 'TX_LOGS';
+export type AccountingSubTab = 'REVENUE_CAPITAL' | 'CUSTOMER_AUDIT' | 'TREASURY_VAULT' | 'TX_LOGS' | 'FEE_CONFIGURATION';
 
 interface AccountingAuditTabProps {
   transactions: TransactionData[];
@@ -70,6 +82,51 @@ export const AccountingAuditTab: React.FC<AccountingAuditTabProps> = ({
   const [vaultSaveStatus, setVaultSaveStatus] = useState<string | null>(null);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [isRefreshingBalances, setIsRefreshingBalances] = useState(false);
+
+  // System Fee Policy Configuration State (Chief Accountant Management)
+  const [feeConfig, setFeeConfig] = useState<SystemFeeConfig>(DEFAULT_FEE_CONFIG);
+  const [isSavingFeeConfig, setIsSavingFeeConfig] = useState(false);
+  const [feeConfigSaveMsg, setFeeConfigSaveMsg] = useState<string | null>(null);
+
+  // Simulation states for Fee Configuration Testing
+  const [simAmount, setSimAmount] = useState<number>(10000);
+  const [simDays, setSimDays] = useState<number>(45);
+  const [simHwmPeak, setSimHwmPeak] = useState<number>(10000);
+  const [simCurrentEquity, setSimCurrentEquity] = useState<number>(12500);
+
+  const loadFeeConfig = async () => {
+    try {
+      const cfg = await fetchSystemFeeConfig();
+      setFeeConfig(cfg);
+    } catch (e) {
+      console.error('Error loading fee config:', e);
+    }
+  };
+
+  const handleSaveFeeConfig = async () => {
+    setIsSavingFeeConfig(true);
+    setFeeConfigSaveMsg(null);
+    try {
+      const res = await updateSystemFeeConfig(feeConfig, 'tddv2017 (Chief Accountant)');
+      if (res.success) {
+        setFeeConfig(res.config);
+        setFeeConfigSaveMsg('✓ ĐÃ LƯU & KÍCH HOẠT BIỂU PHÍ KẾ TOÁN MỚI TRÊN TOÀN BỘ HỆ SINH THÁI!');
+      } else {
+        setFeeConfigSaveMsg('❌ ' + res.message);
+      }
+    } catch (e: any) {
+      setFeeConfigSaveMsg('❌ Lỗi kết nối: ' + e.message);
+    } finally {
+      setIsSavingFeeConfig(false);
+      setTimeout(() => setFeeConfigSaveMsg(null), 5000);
+    }
+  };
+
+  const handleResetFeeConfig = () => {
+    if (confirm('Khôi phục toàn bộ biểu phí về chuẩn định chế mặc định của Spartan?')) {
+      setFeeConfig(DEFAULT_FEE_CONFIG);
+    }
+  };
 
   // Live EA Master Pool & Trades State
   const [masterPool, setMasterPool] = useState<any>(null);
@@ -105,6 +162,7 @@ export const AccountingAuditTab: React.FC<AccountingAuditTabProps> = ({
 
   useEffect(() => {
     loadVaultAndBalances();
+    loadFeeConfig();
 
     let isSubscribed = true;
     const fetchLiveMasterData = async () => {
@@ -432,8 +490,8 @@ export const AccountingAuditTab: React.FC<AccountingAuditTabProps> = ({
         </div>
       )}
 
-      {/* 🧭 THANH CHUYỂN PHÂN HỆ NGHIỆP VỤ KẾ TOÁN (ACCOUNTING SUB-TABS) */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 p-1.5 bg-[#0b0e17] rounded-2xl border border-[#1f293d]">
+      {/* 🧭 THANH CHUYỂN 5 PHÂN HỆ NGHIỆP VỤ KẾ TOÁN (ACCOUNTING SUB-TABS) */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-1.5 p-1.5 bg-[#0b0e17] rounded-2xl border border-[#1f293d]">
         <button
           onClick={() => setActiveSubTab('REVENUE_CAPITAL')}
           className={`py-2 px-2.5 rounded-xl text-[11px] font-black transition-all flex items-center justify-center gap-1.5 ${
@@ -480,6 +538,18 @@ export const AccountingAuditTab: React.FC<AccountingAuditTabProps> = ({
         >
           <Receipt className="w-3.5 h-3.5" />
           <span>NHẬT KÝ NẠP/RÚT</span>
+        </button>
+
+        <button
+          onClick={() => setActiveSubTab('FEE_CONFIGURATION')}
+          className={`py-2 px-2 rounded-xl text-[11px] font-black transition-all flex items-center justify-center gap-1.5 col-span-2 sm:col-span-1 ${
+            activeSubTab === 'FEE_CONFIGURATION'
+              ? 'bg-gradient-to-r from-[#d4af37] via-[#f5d77f] to-[#d4af37] text-black shadow-lg shadow-amber-500/20 border border-[#d4af37]'
+              : 'text-gray-400 hover:text-white hover:bg-[#131927]'
+          }`}
+        >
+          <Settings2 className="w-3.5 h-3.5" />
+          <span>BIỂU PHÍ & HWM</span>
         </button>
       </div>
 
@@ -594,20 +664,30 @@ export const AccountingAuditTab: React.FC<AccountingAuditTabProps> = ({
               <span>(+) Tổng Doanh Thu Phí Gộp Đã Thu:</span>
               <strong className="text-white font-black">+${totalFeeCollected.toFixed(2)} USDT</strong>
             </div>
-            <div className="pl-3 text-[10px] text-gray-400 space-y-0.5">
+            <div className="pl-3 text-[10px] text-gray-400 space-y-1">
               <div className="flex justify-between">
-                <span>  • Phí Nạp Tiền (9% Sàn + $3 Gas):</span>
-                <span className="text-amber-300/90">+${totalDepositFees.toFixed(2)} USDT</span>
+                <span>  • Phí Nạp Tiền ({feeConfig.depositRatePct}% Sàn + ${feeConfig.depositGasFee} Gas):</span>
+                <span className="text-amber-300/90 font-mono font-bold">+${totalDepositFees.toFixed(2)} USDT</span>
               </div>
-              <div className="flex justify-between">
-                <span>  • Phí Rút Tiền (9% Sàn + 10% Quỹ Dự Phòng + $5 Gas):</span>
-                <span className="text-amber-300/90">+${totalWithdrawFees.toFixed(2)} USDT</span>
+              <div className="space-y-0.5">
+                <div className="flex justify-between">
+                  <span>  • Phí Rút Tiền 3 Giai Đoạn ({feeConfig.withdrawTier1RatePct}% / {feeConfig.withdrawTier2RatePct}% / {feeConfig.withdrawTier3RatePct}% + ${feeConfig.withdrawGasFee} Gas):</span>
+                  <span className="text-amber-300/90 font-mono font-bold">+${totalWithdrawFees.toFixed(2)} USDT</span>
+                </div>
+                <div className="pl-3 flex justify-between text-[9px] text-gray-500 font-mono">
+                  <span>    ↳ Doanh thu ròng Admin ({feeConfig.adminNetRevenueRatioPct}%):</span>
+                  <span className="text-emerald-400 font-bold">+${totalAdminNetRevenue.toFixed(2)} USDT</span>
+                </div>
+                <div className="pl-3 flex justify-between text-[9px] text-gray-500 font-mono">
+                  <span>    ↳ Trích Quỹ Dự Phòng Kho Bạc ({feeConfig.treasuryReserveRatioPct}%):</span>
+                  <span className="text-purple-300 font-bold">+${totalTreasuryRetained.toFixed(2)} USDT</span>
+                </div>
               </div>
             </div>
 
             {/* Chi phí trừ ra */}
             <div className="flex justify-between text-red-400 pt-1 border-t border-[#1f293d]/50">
-              <span>(-) Chi Phí Mạng On-Chain Gas Thực Tế ($3 Nạp / $5 Rút):</span>
+              <span>(-) Chi Phí Mạng On-Chain Gas Thực Tế (${feeConfig.depositGasFee} Nạp / ${feeConfig.withdrawGasFee} Rút):</span>
               <strong className="text-red-400 font-bold">-${totalOnChainGasCost.toFixed(2)} USDT</strong>
             </div>
             <div className="flex justify-between text-amber-400">
@@ -985,7 +1065,7 @@ export const AccountingAuditTab: React.FC<AccountingAuditTabProps> = ({
             </div>
           </div>
 
-          {/* 2. VÍ QUỸ DỰ PHÒNG (10% TRÍCH GIỮ TỪ LỆNH RÚT) */}
+          {/* 2. VÍ QUỸ DỰ PHÒNG (30% TRÍCH GIỮ TỪ PHÍ RÚT) */}
           <div className="bg-[#0b0e17] p-4 rounded-2xl border border-purple-500/50 space-y-2.5 relative overflow-hidden shadow-md">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -994,9 +1074,9 @@ export const AccountingAuditTab: React.FC<AccountingAuditTabProps> = ({
                 </div>
                 <div>
                   <span className="text-xs font-black text-purple-300 uppercase tracking-wide block">
-                    2. VÍ QUỸ DỰ PHÒNG (10%)
+                    2. VÍ QUỸ DỰ PHÒNG ({feeConfig.treasuryReserveRatioPct}%)
                   </span>
-                  <span className="text-[9px] text-gray-400 font-mono">Trích giữ 10% từ mỗi lệnh rút tiền</span>
+                  <span className="text-[9px] text-gray-400 font-mono">Trích {feeConfig.treasuryReserveRatioPct}% từ tổng phí rút tiền</span>
                 </div>
               </div>
               <span className="text-[9px] font-mono font-bold text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded border border-purple-500/20">
@@ -1041,23 +1121,23 @@ export const AccountingAuditTab: React.FC<AccountingAuditTabProps> = ({
         {/* SƠ ĐỒ LUỒNG RÚT TIỀN TỰ ĐỘNG (CLEAR WITHDRAWAL WORKFLOW) */}
         <div className="bg-[#0b0e17] p-3.5 rounded-2xl border border-[#1f293d] space-y-2 text-xs font-mono">
           <span className="text-[10px] font-black text-gray-300 uppercase tracking-wider block border-b border-[#1f293d] pb-1.5 flex items-center gap-1.5">
-            <ArrowRight className="w-3.5 h-3.5 text-amber-400" /> QUY TRÌNH XỬ LÝ DÒNG TIỀN KHI KHÁCH RÚT TIỀN (VÍ DỤ $200 USDT):
+            <ArrowRight className="w-3.5 h-3.5 text-amber-400" /> QUY TRÌNH HẠCH TOÁN DÒNG TIỀN RÚT VỐN (VÍ DỤ $1,000 USDT - BẬC TIÊU CHUẨN 9% + $5 GAS):
           </span>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-2 pt-1 text-[11px]">
-            <div className="bg-[#131927] p-2.5 rounded-xl border border-purple-500/30">
-              <span className="text-gray-400 text-[9px] block">1. TRÍCH SANG VÍ DỰ PHÒNG (10%):</span>
-              <strong className="text-purple-300">+$20.00 USDT</strong>
-              <span className="text-[9px] text-gray-500 block">(Nằm trong 19% phí rút)</span>
-            </div>
             <div className="bg-[#131927] p-2.5 rounded-xl border border-[#00df89]/30">
-              <span className="text-gray-400 text-[9px] block">2. THỰC CHUYỂN CHO KHÁCH (NET):</span>
-              <strong className="text-[#00df89]">+$157.00 USDT</strong>
-              <span className="text-[9px] text-gray-500 block">(Đã trừ 19% phí + $5 gas)</span>
+              <span className="text-gray-400 text-[9px] block">1. THỰC CHUYỂN CHO KHÁCH (NET):</span>
+              <strong className="text-[#00df89]">+$905.00 USDT</strong>
+              <span className="text-[9px] text-gray-500 block">(Đã trừ 9% phí + $5 gas)</span>
             </div>
             <div className="bg-[#131927] p-2.5 rounded-xl border border-amber-500/30">
-              <span className="text-gray-400 text-[9px] block">3. LỢI NHUẬN TẠI MASTER (9%):</span>
-              <strong className="text-amber-300">+$18.00 USDT</strong>
-              <span className="text-[9px] text-gray-500 block">(Phí vận hành giữ lại)</span>
+              <span className="text-gray-400 text-[9px] block">2. DOANH THU RÒNG ADMIN (70% PHÍ):</span>
+              <strong className="text-amber-300">+$66.50 USDT</strong>
+              <span className="text-[9px] text-gray-500 block">(70% của $95 tổng phí)</span>
+            </div>
+            <div className="bg-[#131927] p-2.5 rounded-xl border border-purple-500/30">
+              <span className="text-gray-400 text-[9px] block">3. TRÍCH SANG VÍ DỰ PHÒNG (30% PHÍ):</span>
+              <strong className="text-purple-300">+$28.50 USDT</strong>
+              <span className="text-[9px] text-gray-500 block">(30% của $95 tổng phí)</span>
             </div>
           </div>
         </div>
@@ -1089,7 +1169,7 @@ export const AccountingAuditTab: React.FC<AccountingAuditTabProps> = ({
               {/* Input 2: Treasury Reserve */}
               <div>
                 <label className="text-[10px] font-bold text-purple-400 block mb-1">
-                  2. Địa chỉ Ví Quỹ Dự Phòng (TRC20 - Nhận 10% trích từ mỗi lệnh rút):
+                  2. Địa chỉ Ví Quỹ Dự Phòng (TRC20 - Nhận {feeConfig.treasuryReserveRatioPct}% trích từ mỗi lệnh rút):
                 </label>
                 <input
                   type="text"
@@ -1138,7 +1218,7 @@ export const AccountingAuditTab: React.FC<AccountingAuditTabProps> = ({
 
         <div className="grid grid-cols-2 gap-2 text-xs font-mono">
           <div className="bg-[#0b0e17] p-3 rounded-xl border border-[#1f293d]">
-            <span className="text-[10px] text-gray-400 block mb-0.5">TRÍCH GIỮ QUỸ DỰ PHÒNG (10%):</span>
+            <span className="text-[10px] text-gray-400 block mb-0.5">TRÍCH GIỮ QUỸ DỰ PHÒNG ({feeConfig.treasuryReserveRatioPct}%):</span>
             <span className="text-sm font-black text-purple-300">
               ${totalTreasuryRetained.toLocaleString('en-US', { minimumFractionDigits: 2 })} USDT
             </span>
@@ -1257,6 +1337,467 @@ export const AccountingAuditTab: React.FC<AccountingAuditTabProps> = ({
         </div>
       </div>
       </div>
+      )}
+
+      {/* 5. PHÂN HỆ: CẤU HÌNH NGHIỆP VỤ BIỂU PHÍ KẾ TOÁN & HIGH-WATER MARK */}
+      {activeSubTab === 'FEE_CONFIGURATION' && (
+        <div className="space-y-4 animate-in fade-in duration-200">
+          {/* Banner Thông Báo Trạng Thái Lưu */}
+          {feeConfigSaveMsg && (
+            <div className={`p-3.5 rounded-2xl border text-xs font-bold flex items-center gap-2 animate-bounce shadow-lg ${
+              feeConfigSaveMsg.includes('✓') 
+                ? 'bg-emerald-500/20 border-emerald-500 text-emerald-300' 
+                : 'bg-red-500/20 border-red-500 text-red-300'
+            }`}>
+              <ShieldCheck className="w-4 h-4 flex-shrink-0" />
+              <span>{feeConfigSaveMsg}</span>
+            </div>
+          )}
+
+          {/* Master Policy Header Banner */}
+          <div className="spartan-card rounded-3xl p-5 border border-[#d4af37]/40 bg-gradient-to-r from-[#141005] via-[#080b12] to-[#05070c] space-y-2 shadow-xl">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-[#d4af37]/20 border border-[#d4af37] text-[#f5d77f] flex items-center justify-center font-black text-lg shadow-[0_0_15px_rgba(212,175,55,0.3)]">
+                  ⚙️
+                </div>
+                <div>
+                  <h3 className="text-sm font-black text-[#f5d77f] uppercase tracking-wider flex items-center gap-2">
+                    <span>CHÍNH SÁCH BIỂU PHÍ ĐỊNH CHẾ & HIGH-WATER MARK (HWM)</span>
+                  </h3>
+                  <span className="text-[10px] text-gray-400 font-sans block">
+                    Nghiệp vụ Kế toán Trưởng: Tùy biến Phí Cố Định, Phí Nạp, Phí Rút 3 Giai Đoạn & Phí Hiệu Quả HWM
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 font-mono text-[10px]">
+                <span className="text-gray-400">Cập nhật:</span>
+                <span className="text-amber-400 font-bold">
+                  {feeConfig.updatedAt ? new Date(feeConfig.updatedAt).toLocaleDateString('vi-VN') : 'Mặc định'}
+                </span>
+                <span className="text-gray-500">(@{feeConfig.updatedBy || 'admin'})</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Grid 4 Nhóm Biểu Phí Nghiệp Vụ */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            
+            {/* NHÓM 1: PHÍ CỐ ĐỊNH ON-CHAIN GAS */}
+            <div className="spartan-card rounded-3xl p-4 border border-[#1f293d] bg-[#0b0e17] space-y-3 shadow-md">
+              <div className="flex items-center justify-between border-b border-[#1f293d] pb-2">
+                <div className="flex items-center gap-2">
+                  <Flame className="w-4 h-4 text-amber-400" />
+                  <h4 className="text-xs font-black text-white uppercase tracking-wider">
+                    1. PHÍ CỐ ĐỊNH MẠNG ON-CHAIN (GAS FEE)
+                  </h4>
+                </div>
+                <span className="text-[9px] font-mono text-gray-400 bg-[#131927] px-2 py-0.5 rounded">TRON TRC20</span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 font-mono text-xs">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-gray-400 block">Gas Nạp Tiền (USD):</label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-2.5 text-gray-500 font-bold">$</span>
+                    <input
+                      type="number"
+                      step="0.5"
+                      min="0"
+                      value={feeConfig.depositGasFee}
+                      onChange={(e) => setFeeConfig({ ...feeConfig, depositGasFee: Math.max(0, parseFloat(e.target.value) || 0) })}
+                      className="w-full pl-7 pr-3 py-2 rounded-xl bg-[#131927] border border-[#1f293d] text-white font-black text-xs focus:outline-none focus:border-[#d4af37]"
+                    />
+                  </div>
+                  <span className="text-[8px] text-gray-500 font-sans block">Bù đắp kích hoạt Memo & TronGrid</span>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-gray-400 block">Gas Rút Tiền (USD):</label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-2.5 text-gray-500 font-bold">$</span>
+                    <input
+                      type="number"
+                      step="0.5"
+                      min="0"
+                      value={feeConfig.withdrawGasFee}
+                      onChange={(e) => setFeeConfig({ ...feeConfig, withdrawGasFee: Math.max(0, parseFloat(e.target.value) || 0) })}
+                      className="w-full pl-7 pr-3 py-2 rounded-xl bg-[#131927] border border-[#1f293d] text-white font-black text-xs focus:outline-none focus:border-[#d4af37]"
+                    />
+                  </div>
+                  <span className="text-[8px] text-gray-500 font-sans block">Phí chuyển Energy / TRX mạng Tron</span>
+                </div>
+              </div>
+            </div>
+
+            {/* NHÓM 2: PHÍ NẠP VỐN (DEPOSIT ENTRY FEE) */}
+            <div className="spartan-card rounded-3xl p-4 border border-[#1f293d] bg-[#0b0e17] space-y-3 shadow-md">
+              <div className="flex items-center justify-between border-b border-[#1f293d] pb-2">
+                <div className="flex items-center gap-2">
+                  <ArrowDown className="w-4 h-4 text-[#00df89]" />
+                  <h4 className="text-xs font-black text-white uppercase tracking-wider">
+                    2. PHÍ NẠP TIỀN VÀO MASTER POOL
+                  </h4>
+                </div>
+                <span className="text-[9px] font-mono text-[#00df89] font-bold bg-[#00df89]/10 px-2 py-0.5 rounded">TỶ LỆ %</span>
+              </div>
+
+              <div className="space-y-2 font-mono text-xs">
+                <div className="flex items-center justify-between">
+                  <label className="text-[10px] font-bold text-gray-400">Tỷ lệ phí nạp sàn (%):</label>
+                  <div className="flex items-center gap-1.5 w-32">
+                    <input
+                      type="number"
+                      step="0.5"
+                      min="0"
+                      max="30"
+                      value={feeConfig.depositRatePct}
+                      onChange={(e) => setFeeConfig({ ...feeConfig, depositRatePct: Math.max(0, parseFloat(e.target.value) || 0) })}
+                      className="w-full px-3 py-2 rounded-xl bg-[#131927] border border-[#1f293d] text-[#00df89] font-black text-xs text-right focus:outline-none focus:border-[#00df89]"
+                    />
+                    <span className="text-gray-400 font-bold">%</span>
+                  </div>
+                </div>
+
+                <div className="p-2.5 rounded-xl bg-[#131927] border border-[#1f293d] text-[9px] text-gray-400 space-y-0.5 font-sans">
+                  <span className="block font-mono text-gray-300">Công thức: Phí = (Số tiền nạp x {feeConfig.depositRatePct}%) + ${feeConfig.depositGasFee} Gas</span>
+                  <span className="block text-gray-500">Bù đắp chi phí tích hợp tài khoản Master Pool và thiết lập bản quyền thuật toán Quant AI.</span>
+                </div>
+              </div>
+            </div>
+
+            {/* NHÓM 3: PHÍ RÚT VỐN 3 GIAI ĐOẠN (TIERED WITHDRAWAL EXIT FEES) */}
+            <div className="spartan-card rounded-3xl p-4 border border-[#d4af37]/30 bg-[#0b0e17] space-y-3 shadow-md md:col-span-2">
+              <div className="flex items-center justify-between border-b border-[#1f293d] pb-2">
+                <div className="flex items-center gap-2">
+                  <ArrowUp className="w-4 h-4 text-[#ff5500]" />
+                  <h4 className="text-xs font-black text-white uppercase tracking-wider">
+                    3. PHÍ RÚT TIỀN 3 GIAI ĐOẠN & TỶ LỆ TRÍCH QUỸ DỰ PHÒNG
+                  </h4>
+                </div>
+                <span className="text-[9px] font-mono text-amber-400 font-bold bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
+                  TIERED EXIT FEES
+                </span>
+              </div>
+
+              {/* 3 Giai Đoạn Input Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 font-mono text-xs">
+                {/* Giai đoạn 1 */}
+                <div className="p-3 rounded-2xl bg-[#131927] border border-red-500/40 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-black text-red-400 uppercase">GIAI ĐOẠN 1: RÚT SỚM</span>
+                    <span className="text-[9px] px-1.5 py-0.2 rounded bg-red-500/20 text-red-300 font-bold">
+                      &lt; {feeConfig.withdrawTier1DaysMax} NGÀY
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      type="number"
+                      step="0.5"
+                      min="0"
+                      max="50"
+                      value={feeConfig.withdrawTier1RatePct}
+                      onChange={(e) => setFeeConfig({ ...feeConfig, withdrawTier1RatePct: Math.max(0, parseFloat(e.target.value) || 0) })}
+                      className="w-full px-3 py-1.5 rounded-xl bg-[#0b0e17] border border-red-500/50 text-red-400 font-black text-xs text-right focus:outline-none"
+                    />
+                    <span className="text-red-400 font-bold">%</span>
+                  </div>
+                  <span className="text-[8px] text-gray-500 font-sans block">Chống dòng tiền nóng lướt sóng và rút vốn đột ngột</span>
+                </div>
+
+                {/* Giai đoạn 2 */}
+                <div className="p-3 rounded-2xl bg-[#131927] border border-amber-500/40 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-black text-[#f5d77f] uppercase">GIAI ĐOẠN 2: TIÊU CHUẨN</span>
+                    <span className="text-[9px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 font-bold">
+                      {feeConfig.withdrawTier1DaysMax} - {feeConfig.withdrawTier2DaysMax} NGÀY
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      type="number"
+                      step="0.5"
+                      min="0"
+                      max="50"
+                      value={feeConfig.withdrawTier2RatePct}
+                      onChange={(e) => setFeeConfig({ ...feeConfig, withdrawTier2RatePct: Math.max(0, parseFloat(e.target.value) || 0) })}
+                      className="w-full px-3 py-1.5 rounded-xl bg-[#0b0e17] border border-amber-500/50 text-[#f5d77f] font-black text-xs text-right focus:outline-none"
+                    />
+                    <span className="text-[#f5d77f] font-bold">%</span>
+                  </div>
+                  <span className="text-[8px] text-gray-500 font-sans block">Mức phí tiêu chuẩn cân bằng thanh khoản toàn hệ thống</span>
+                </div>
+
+                {/* Giai đoạn 3 */}
+                <div className="p-3 rounded-2xl bg-[#131927] border border-emerald-500/40 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-black text-emerald-400 uppercase">GIAI ĐOẠN 3: VIP TRUNG THÀNH</span>
+                    <span className="text-[9px] px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 font-bold">
+                      &gt; {feeConfig.withdrawTier2DaysMax} NGÀY
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      type="number"
+                      step="0.5"
+                      min="0"
+                      max="50"
+                      value={feeConfig.withdrawTier3RatePct}
+                      onChange={(e) => setFeeConfig({ ...feeConfig, withdrawTier3RatePct: Math.max(0, parseFloat(e.target.value) || 0) })}
+                      className="w-full px-3 py-1.5 rounded-xl bg-[#0b0e17] border border-emerald-500/50 text-emerald-400 font-black text-xs text-right focus:outline-none"
+                    />
+                    <span className="text-emerald-400 font-bold">%</span>
+                  </div>
+                  <span className="text-[8px] text-gray-500 font-sans block">Thưởng nhà đầu tư định chế gắn bó lâu năm</span>
+                </div>
+              </div>
+
+              {/* Tỷ Lệ Phân Bổ: Quỹ Dự Phòng vs Doanh Thu Ròng Admin */}
+              <div className="p-3.5 rounded-2xl bg-[#131927] border border-[#1f293d] space-y-2.5 font-mono text-xs">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-bold text-gray-300 uppercase">
+                    PHÂN BỔ TỔNG PHÍ RÚT THU ĐƯỢC (TỰ ĐỘNG BÓC TÁCH KHI DUYỆT):
+                  </span>
+                  <span className="text-[10px] text-purple-300 font-bold">
+                    {feeConfig.treasuryReserveRatioPct}% QUỸ DỰ PHÒNG • {feeConfig.adminNetRevenueRatioPct}% ADMIN RÒNG
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-purple-400 block">
+                      Tỷ lệ Trích Quỹ Dự Phòng Kho Bạc (%):
+                    </label>
+                    <div className="flex items-center gap-1.5">
+                      <input
+                        type="number"
+                        step="1"
+                        min="0"
+                        max="100"
+                        value={feeConfig.treasuryReserveRatioPct}
+                        onChange={(e) => {
+                          const val = Math.min(100, Math.max(0, parseFloat(e.target.value) || 0));
+                          setFeeConfig({
+                            ...feeConfig,
+                            treasuryReserveRatioPct: val,
+                            adminNetRevenueRatioPct: 100 - val
+                          });
+                        }}
+                        className="w-full px-3 py-1.5 rounded-xl bg-[#0b0e17] border border-purple-500/50 text-purple-300 font-black text-xs text-right focus:outline-none"
+                      />
+                      <span className="text-purple-300 font-bold">%</span>
+                    </div>
+                    <span className="text-[8px] text-gray-500 font-sans block">Tự động rót vào ví /treasury_vault</span>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-emerald-400 block">
+                      Doanh Thu Ròng Admin (% Còn Lại):
+                    </label>
+                    <div className="flex items-center gap-1.5">
+                      <input
+                        type="number"
+                        disabled
+                        value={feeConfig.adminNetRevenueRatioPct}
+                        className="w-full px-3 py-1.5 rounded-xl bg-[#080b12] border border-emerald-500/30 text-emerald-400 font-black text-xs text-right cursor-not-allowed opacity-90"
+                      />
+                      <span className="text-emerald-400 font-bold">%</span>
+                    </div>
+                    <span className="text-[8px] text-gray-500 font-sans block">Ghi nhận vào lợi nhuận ròng của Sàn</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* NHÓM 4: PHÍ HIỆU QUẢ HIGH-WATER MARK (PERFORMANCE FEE & HWM) */}
+            <div className="spartan-card rounded-3xl p-4 border border-cyan-500/30 bg-[#0b0e17] space-y-3 shadow-md md:col-span-2">
+              <div className="flex items-center justify-between border-b border-[#1f293d] pb-2">
+                <div className="flex items-center gap-2">
+                  <TrendingUp className="w-4 h-4 text-cyan-400" />
+                  <div>
+                    <h4 className="text-xs font-black text-white uppercase tracking-wider">
+                      4. PHÍ HIỆU QUẢ HIGH-WATER MARK (HWM PERFORMANCE FEE)
+                    </h4>
+                    <span className="text-[9px] text-gray-400 font-sans block">
+                      Chuẩn mực quỹ phòng hộ quốc tế: CHỈ thu phí khi tài khoản sinh lời vượt đỉnh cao nhất lịch sử
+                    </span>
+                  </div>
+                </div>
+
+                {/* Toggle HWM Active */}
+                <button
+                  type="button"
+                  onClick={() => setFeeConfig({ ...feeConfig, hwmEnabled: !feeConfig.hwmEnabled })}
+                  className={`px-3 py-1.5 rounded-xl text-[10px] font-mono font-bold flex items-center gap-1.5 transition-all ${
+                    feeConfig.hwmEnabled 
+                      ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/50 shadow-sm' 
+                      : 'bg-[#131927] text-gray-500 border border-[#1f293d]'
+                  }`}
+                >
+                  <span className={`w-2 h-2 rounded-full ${feeConfig.hwmEnabled ? 'bg-cyan-400 animate-pulse' : 'bg-gray-500'}`} />
+                  <span>{feeConfig.hwmEnabled ? 'ĐANG KÍCH HOẠT HWM' : 'ĐÃ TẮT HWM'}</span>
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 font-mono text-xs">
+                {/* Parameters */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[10px] font-bold text-gray-300">Tỷ lệ Phí Hiệu Quả (% trên lãi vượt đỉnh):</label>
+                    <div className="flex items-center gap-1.5 w-32">
+                      <input
+                        type="number"
+                        step="1"
+                        min="0"
+                        max="50"
+                        value={feeConfig.performanceFeeHwmPct}
+                        onChange={(e) => setFeeConfig({ ...feeConfig, performanceFeeHwmPct: Math.max(0, parseFloat(e.target.value) || 0) })}
+                        className="w-full px-3 py-1.5 rounded-xl bg-[#131927] border border-cyan-500/40 text-cyan-300 font-black text-xs text-right focus:outline-none"
+                      />
+                      <span className="text-cyan-400 font-bold">%</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <label className="text-[10px] font-bold text-gray-300">Chu kỳ Đối Soát & Thu Phí:</label>
+                    <select
+                      value={feeConfig.hwmCalculationPeriod}
+                      onChange={(e: any) => setFeeConfig({ ...feeConfig, hwmCalculationPeriod: e.target.value })}
+                      className="px-3 py-1.5 rounded-xl bg-[#131927] border border-cyan-500/40 text-white font-bold text-xs focus:outline-none"
+                    >
+                      <option value="AT_WITHDRAWAL">Khi Khách Rút Tiền (At Withdrawal)</option>
+                      <option value="WEEKLY">Hàng Tuần (Thứ 7 chốt sổ)</option>
+                      <option value="MONTHLY">Hàng Tháng (Ngày 01 mỗi tháng)</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Institutional Logic Explainer Box */}
+                <div className="p-3 rounded-2xl bg-[#131927] border border-[#1f293d] space-y-1.5 text-[10px] font-sans">
+                  <span className="font-bold text-cyan-300 font-mono block">🛡️ QUY TẮC BẢO VỆ NHÀ ĐẦU TƯ:</span>
+                  <p className="text-gray-300 leading-relaxed">
+                    • <strong>Vượt Đỉnh Mới:</strong> Nếu vốn khách tăng từ $10,000 lên $12,000 (+ $2,000 lãi), sàn thu {feeConfig.performanceFeeHwmPct}% của $2,000 = ${(2000 * feeConfig.performanceFeeHwmPct / 100).toFixed(0)} USD. Đỉnh HWM mới được xác lập là $12,000.
+                  </p>
+                  <p className="text-gray-300 leading-relaxed">
+                    • <strong>Bảo Vệ Khi Drawdown:</strong> Nếu tài khoản tụt về $11,000 rồi hồi lên $11,800, sàn <strong>KHÔNG ĐƯỢC THU PHÍ</strong> vì chưa vượt đỉnh cũ $12,000!
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* NHÓM 5: THƯỚC ĐO MÔ PHỎNG NGHIỆP VỤ KẾ TOÁN REALTIME (LIVE SIMULATOR) */}
+            <div className="spartan-card rounded-3xl p-4 border border-[#221c10] bg-[#05070c] space-y-3 shadow-xl md:col-span-2">
+              <div className="flex items-center justify-between border-b border-[#1f293d] pb-2">
+                <div className="flex items-center gap-2">
+                  <Calculator className="w-4 h-4 text-[#f5d77f]" />
+                  <h4 className="text-xs font-black text-white uppercase tracking-wider">
+                    5. THƯỚC ĐO THỬ NGHIỆM & MÔ PHỎNG TÍNH TOÁN REALTIME
+                  </h4>
+                </div>
+                <span className="text-[9px] font-mono text-gray-400">TEST CALCULATOR</span>
+              </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 font-mono text-xs">
+                <div className="space-y-1">
+                  <label className="text-[10px] text-gray-400 block">Số tiền thử nghiệm:</label>
+                  <input
+                    type="number"
+                    value={simAmount}
+                    onChange={(e) => setSimAmount(Math.max(1, parseFloat(e.target.value) || 0))}
+                    className="w-full px-3 py-1.5 rounded-xl bg-[#131927] border border-[#1f293d] text-white font-bold"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] text-gray-400 block">Số ngày giữ vốn:</label>
+                  <input
+                    type="number"
+                    value={simDays}
+                    onChange={(e) => setSimDays(Math.max(0, parseInt(e.target.value) || 0))}
+                    className="w-full px-3 py-1.5 rounded-xl bg-[#131927] border border-[#1f293d] text-white font-bold"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] text-gray-400 block">Đỉnh HWM Cũ:</label>
+                  <input
+                    type="number"
+                    value={simHwmPeak}
+                    onChange={(e) => setSimHwmPeak(Math.max(0, parseFloat(e.target.value) || 0))}
+                    className="w-full px-3 py-1.5 rounded-xl bg-[#131927] border border-[#1f293d] text-white font-bold"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] text-gray-400 block">Tài sản mới (Equity):</label>
+                  <input
+                    type="number"
+                    value={simCurrentEquity}
+                    onChange={(e) => setSimCurrentEquity(Math.max(0, parseFloat(e.target.value) || 0))}
+                    className="w-full px-3 py-1.5 rounded-xl bg-[#131927] border border-[#1f293d] text-white font-bold"
+                  />
+                </div>
+              </div>
+
+              {/* Simulation Result Strip */}
+              {(() => {
+                const depSim = calculateDepositFee(simAmount, feeConfig);
+                const wdrSim = calculateWithdrawFee(simAmount, simDays, feeConfig);
+                const hwmSim = calculatePerformanceFeeHWM(simCurrentEquity, simHwmPeak, feeConfig);
+
+                return (
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-2 font-mono text-xs">
+                    <div className="p-3 rounded-2xl bg-[#0b0e17] border border-[#1f293d] space-y-1">
+                      <span className="text-[10px] text-gray-400 block">KẾT QUẢ PHÍ NẠP:</span>
+                      <div className="text-sm font-black text-[#00df89]">${depSim.totalFee.toFixed(2)} USDT</div>
+                      <span className="text-[9px] text-gray-500 block">Thực vào Pool: ${depSim.netAmount.toFixed(2)} USDT</span>
+                    </div>
+
+                    <div className="p-3 rounded-2xl bg-[#0b0e17] border border-[#1f293d] space-y-1">
+                      <span className="text-[10px] text-gray-400 block">KẾT QUẢ PHÍ RÚT ({simDays}d):</span>
+                      <div className="text-sm font-black text-[#f5d77f]">${wdrSim.totalFee.toFixed(2)} USDT</div>
+                      <div className="flex justify-between text-[9px] text-gray-400">
+                        <span>• Net Admin (70%): <strong className="text-emerald-400">${(wdrSim.adminNetRevenue || 0).toFixed(2)}</strong></span>
+                        <span>• Quỹ (30%): <strong className="text-purple-300">${(wdrSim.treasuryReserveFee || 0).toFixed(2)}</strong></span>
+                      </div>
+                    </div>
+
+                    <div className="p-3 rounded-2xl bg-[#0b0e17] border border-[#1f293d] space-y-1">
+                      <span className="text-[10px] text-gray-400 block">PHÍ HIỆU QUẢ HWM:</span>
+                      <div className={`text-sm font-black ${hwmSim.isDrawdown ? 'text-gray-400' : 'text-cyan-400'}`}>
+                        ${hwmSim.performanceFeeAmount.toFixed(2)} USDT
+                      </div>
+                      <span className="text-[9px] text-cyan-300/80 block truncate" title={hwmSim.statusVi}>{hwmSim.statusVi}</span>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+
+          </div>
+
+          {/* HÀNG NÚT THAO TÁC CỦA KẾ TOÁN TRƯỞNG */}
+          <div className="flex items-center justify-end gap-3 pt-2">
+            <button
+              type="button"
+              onClick={handleResetFeeConfig}
+              className="px-4 py-2.5 rounded-xl bg-[#131927] hover:bg-[#1f293d] text-gray-300 hover:text-white text-xs font-bold transition-all"
+            >
+              ↺ Khôi Phục Mặc Định
+            </button>
+
+            <button
+              type="button"
+              onClick={handleSaveFeeConfig}
+              disabled={isSavingFeeConfig}
+              className="px-6 py-2.5 rounded-xl gold-btn-solid text-black text-xs font-black uppercase tracking-wider flex items-center gap-2 shadow-lg hover:opacity-90 active:scale-95 transition-all"
+            >
+              {isSavingFeeConfig ? <Loader2 className="w-4 h-4 animate-spin text-black" /> : <Save className="w-4 h-4 text-black" />}
+              <span>LƯU & KÍCH HOẠT BIỂU PHÍ KẾ TOÁN</span>
+            </button>
+          </div>
+        </div>
       )}
 
       {/* MODAL CHI TIẾT SỔ CÁI ĐỐI SOÁT KHÁCH HÀNG (CUSTOMER AUDIT LEDGER DETAIL MODAL) */}

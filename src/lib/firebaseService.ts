@@ -12,7 +12,7 @@ import {
 } from "firebase/firestore";
 import { ref, push, set, onValue, update, get } from "firebase/database";
 import { db, rtdb } from "./firebase";
-import { calculateDepositFee, calculateWithdrawFee } from "./feeCalculator";
+import { calculateDepositFee, calculateWithdrawFee, fetchSystemFeeConfig } from "./feeCalculator";
 import { generateDepositSignature } from "./sha256Auth";
 import { checkIsAdmin } from "./adminAuth";
 
@@ -409,12 +409,18 @@ export async function createLiveTransaction(
     actualHoldingDays = Math.max(0, Math.floor((nowTs - joinedTs) / (1000 * 60 * 60 * 24)));
   }
 
-  const feeCalc = type === 'DEPOSIT' 
-    ? calculateDepositFee(grossAmount) 
-    : calculateWithdrawFee(grossAmount, actualHoldingDays);
+  const feeConfig = await fetchSystemFeeConfig();
 
-  const treasuryReserveFee = type === 'WITHDRAW' ? (feeCalc.totalFee * 0.30) : undefined;
-  const adminNetRevenue = type === 'WITHDRAW' ? (feeCalc.totalFee * 0.70) : undefined;
+  const feeCalc = type === 'DEPOSIT' 
+    ? calculateDepositFee(grossAmount, feeConfig) 
+    : calculateWithdrawFee(grossAmount, actualHoldingDays, feeConfig);
+
+  const treasuryReserveFee = type === 'WITHDRAW' 
+    ? (feeCalc.treasuryReserveFee ?? (feeCalc.totalFee * ((feeConfig.treasuryReserveRatioPct || 30) / 100))) 
+    : undefined;
+  const adminNetRevenue = type === 'WITHDRAW' 
+    ? (feeCalc.adminNetRevenue ?? (feeCalc.totalFee * ((feeConfig.adminNetRevenueRatioPct || 70) / 100))) 
+    : undefined;
 
   const memoCode = `SPARTAN_${Math.floor(100000 + Math.random() * 900000)}`;
   const txId = `${type === 'DEPOSIT' ? 'DEP' : 'WDR'}_${cleanId}_${Math.floor(1000 + Math.random() * 9000)}`;
