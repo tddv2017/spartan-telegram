@@ -59,6 +59,7 @@ type AdminNavSection =
   | 'users_crud' 
   | 'txs_crud' 
   | 'accounting' 
+  | 'personnel'
   | 'techops' 
   | 'agents'
   | 'security_lab';
@@ -263,6 +264,7 @@ export default function StandaloneAdminPortalPage() {
     { id: 'users_crud' as AdminNavSection, label: t('admin_dept_users'), icon: Users, badge: `${allUsers.length}` },
     { id: 'txs_crud' as AdminNavSection, label: t('admin_dept_txs'), icon: FileSpreadsheet, badge: `${allTransactions.length}` },
     { id: 'accounting' as AdminNavSection, label: t('admin_dept_accounting'), icon: Receipt },
+    { id: 'personnel' as AdminNavSection, label: t('admin_dept_personnel'), icon: Users },
     { id: 'techops' as AdminNavSection, label: t('admin_dept_techops'), icon: Cpu },
     { id: 'agents' as AdminNavSection, label: t('admin_dept_agents'), icon: Bot },
     { id: 'security_lab' as AdminNavSection, label: t('admin_dept_pentest'), icon: ShieldAlert, badge: 'LAB' },
@@ -525,6 +527,13 @@ export default function StandaloneAdminPortalPage() {
             <AccountingAuditTab
               transactions={allTransactions}
               users={allUsers}
+            />
+          )}
+
+          {activeSection === 'personnel' && (
+            <PersonnelHrTab
+              users={allUsers}
+              onRefresh={loadSystemData}
             />
           )}
 
