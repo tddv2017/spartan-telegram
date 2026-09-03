@@ -24,6 +24,7 @@ import { AdminUserCrudManager } from '@/components/admin/AdminUserCrudManager';
 import { AdminTransactionCrudManager } from '@/components/admin/AdminTransactionCrudManager';
 import { AdminBinance3FaModal } from '@/components/admin/AdminBinance3FaModal';
 import { SecurityPenTestLab } from '@/components/admin/SecurityPenTestLab';
+import { CeoDirectivesTab } from '@/components/admin/CeoDirectivesTab';
 import { NotificationModal } from '@/components/NotificationModal';
 import { generateUserNotifications } from '@/lib/notificationService';
 import { getAdmin3FaConfig, saveAdmin3FaConfig, Admin3FaConfig } from '@/lib/admin3faService';
@@ -56,6 +57,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 
 type AdminNavSection = 
   | 'overview' 
+  | 'ceo_directives'
   | 'users_crud' 
   | 'txs_crud' 
   | 'accounting' 
@@ -260,6 +262,7 @@ export default function StandaloneAdminPortalPage() {
 
   const navItems = [
     { id: 'overview' as AdminNavSection, label: t('admin_dept_overview'), icon: Layers, badge: pendingTxs.length > 0 ? `${pendingTxs.length} ${lang === 'vi' ? 'Chờ' : 'Pending'}` : undefined },
+    { id: 'ceo_directives' as AdminNavSection, label: lang === 'vi' ? 'CHỈ THỊ CEO & 5 BỘ PHẬN' : 'CEO DIRECTIVES & SOPS', icon: Crown, badge: 'TIER' },
     { id: 'users_crud' as AdminNavSection, label: t('admin_dept_users'), icon: Users, badge: `${allUsers.length}` },
     { id: 'txs_crud' as AdminNavSection, label: t('admin_dept_txs'), icon: FileSpreadsheet, badge: `${allTransactions.length}` },
     { id: 'accounting' as AdminNavSection, label: t('admin_dept_accounting'), icon: Receipt },
@@ -504,6 +507,13 @@ export default function StandaloneAdminPortalPage() {
               broadcastMsg={broadcastMsg}
               setBroadcastMsg={setBroadcastMsg}
               onBroadcast={handleBroadcast}
+            />
+          )}
+
+          {activeSection === 'ceo_directives' && (
+            <CeoDirectivesTab
+              users={allUsers}
+              transactions={allTransactions}
             />
           )}
 
