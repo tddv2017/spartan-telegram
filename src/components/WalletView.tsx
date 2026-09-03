@@ -42,7 +42,7 @@ interface WalletViewProps {
   onUpdateBalance: (newBalance: number) => void;
   telegramId?: string;
   username?: string;
-  initialMode?: 'deposit' | 'withdraw' | 'p2p_lending';
+  initialMode?: 'deposit' | 'withdraw' | 'history' | 'p2p_lending';
 }
 
 export const WalletView: React.FC<WalletViewProps> = ({
@@ -54,7 +54,7 @@ export const WalletView: React.FC<WalletViewProps> = ({
   initialMode = 'deposit',
 }) => {
   const { t, lang } = useLanguage();
-  const [mode, setMode] = useState<'deposit' | 'withdraw' | 'p2p_lending'>(initialMode);
+  const [mode, setMode] = useState<'deposit' | 'withdraw' | 'history' | 'p2p_lending'>(initialMode);
   const [withdrawSource, setWithdrawSource] = useState<'trading' | 'referral'>('trading');
   const [amount, setAmount] = useState<string>('100');
   const [copied, setCopied] = useState(false);
@@ -490,35 +490,54 @@ export const WalletView: React.FC<WalletViewProps> = ({
         </div>
       )}
 
-      {/* Primary Mode Switcher: Deposit vs Withdraw vs P2P Lending */}
-      <div className="grid grid-cols-3 gap-1.5 p-1.5 bg-[#05070c] rounded-2xl border border-[#221c10]">
+      {/* Primary Sub-Nav Switcher: Nạp | Rút | Lịch Sử | Vay P2P */}
+      <div className="grid grid-cols-4 gap-1 p-1 bg-[#05070c] rounded-2xl border border-[#221c10]">
         <button
           onClick={() => { setMode('deposit'); setErrorMessage(null); }}
-          className={`py-2.5 rounded-xl text-xs font-black flex items-center justify-center gap-1.5 transition-all ${
+          className={`py-2 px-1 rounded-xl text-[11px] font-black flex flex-col items-center justify-center gap-1 transition-all ${
             mode === 'deposit'
               ? 'spartan-cta-btn text-white shadow-md'
               : 'text-gray-400 hover:text-white'
           }`}
         >
           <ArrowDownLeft className="w-3.5 h-3.5" />
-          <span>{t('tab_deposit')}</span>
+          <span>{lang === 'vi' ? 'NẠP' : 'DEPOSIT'}</span>
         </button>
 
         <button
           onClick={() => { setMode('withdraw'); setErrorMessage(null); }}
-          className={`py-2.5 rounded-xl text-xs font-black flex items-center justify-center gap-1.5 transition-all ${
+          className={`py-2 px-1 rounded-xl text-[11px] font-black flex flex-col items-center justify-center gap-1 transition-all ${
             mode === 'withdraw'
               ? 'spartan-cta-btn text-white shadow-md'
               : 'text-gray-400 hover:text-white'
           }`}
         >
           <ArrowUpRight className="w-3.5 h-3.5" />
-          <span>{t('tab_withdraw')}</span>
+          <span>{lang === 'vi' ? 'RÚT' : 'WITHDRAW'}</span>
+        </button>
+
+        <button
+          onClick={() => { setMode('history'); setErrorMessage(null); }}
+          className={`py-2 px-1 rounded-xl text-[11px] font-black flex flex-col items-center justify-center gap-1 transition-all relative ${
+            mode === 'history'
+              ? 'spartan-cta-btn text-white shadow-md'
+              : 'text-gray-400 hover:text-white'
+          }`}
+        >
+          <History className="w-3.5 h-3.5" />
+          <span className="flex items-center gap-1">
+            <span>{lang === 'vi' ? 'LỊCH SỬ' : 'HISTORY'}</span>
+            {allTransactions.length > 0 && (
+              <span className="text-[8px] font-mono px-1 py-0.2 rounded-full bg-white/20 text-white font-bold">
+                {allTransactions.length}
+              </span>
+            )}
+          </span>
         </button>
 
         <button
           onClick={() => { setMode('p2p_lending'); setErrorMessage(null); }}
-          className={`py-2.5 rounded-xl text-xs font-black flex items-center justify-center gap-1.5 transition-all relative ${
+          className={`py-2 px-1 rounded-xl text-[11px] font-black flex flex-col items-center justify-center gap-1 transition-all relative ${
             mode === 'p2p_lending'
               ? 'gold-btn-solid text-black shadow-md'
               : 'text-[#f5d77f] hover:text-white bg-[#d4af37]/10 border border-[#d4af37]/30'
@@ -526,14 +545,14 @@ export const WalletView: React.FC<WalletViewProps> = ({
         >
           <Users className="w-3.5 h-3.5" />
           <span>{lang === 'vi' ? 'VAY P2P' : 'P2P LEND'}</span>
-          <span className="absolute -top-1.5 -right-1 px-1 py-0.2 rounded bg-[#ff5500] text-white text-[7px] font-black uppercase tracking-tighter">
+          <span className="absolute -top-1 -right-0.5 px-1 py-0.2 rounded bg-[#ff5500] text-white text-[7px] font-black uppercase tracking-tighter">
             DEV
           </span>
         </button>
       </div>
 
       {/* FORM CONTENT */}
-      {mode === 'deposit' ? (
+      {mode === 'deposit' && (
         /* PURE QR CODE DEPOSIT FORM */
         <div className="spartan-card rounded-3xl p-5 border border-[#221c10] bg-[#080b12] space-y-4 shadow-lg">
           <div className="flex items-center justify-between">
@@ -786,9 +805,23 @@ export const WalletView: React.FC<WalletViewProps> = ({
               </div>
             </div>
           )}
+
+          {/* Quick Link to Transaction History */}
+          <div className="pt-2 text-center border-t border-[#221c10]/60">
+            <button
+              type="button"
+              onClick={() => setMode('history')}
+              className="text-[11px] text-gray-400 hover:text-[#f5d77f] font-mono inline-flex items-center justify-center gap-1.5 transition-colors"
+            >
+              <History className="w-3.5 h-3.5 text-[#f5d77f]" />
+              <span>{lang === 'vi' ? 'Xem lịch sử các đơn nạp tiền →' : 'View deposit transaction history →'}</span>
+            </button>
+          </div>
         </div>
-      ) : mode === 'withdraw' ? (
-        /* WITHDRAW MODE */
+      )}
+
+      {/* WITHDRAW MODE */}
+      {mode === 'withdraw' && (
         <div className="spartan-card rounded-3xl p-5 border border-[#221c10] bg-[#080b12] space-y-4 shadow-lg">
           {/* NGUỒN TIỀN RÚT (SOURCE SELECTOR) */}
           <div className="space-y-1.5">
@@ -932,9 +965,23 @@ export const WalletView: React.FC<WalletViewProps> = ({
                 : (lang === 'vi' ? `XÁC NHẬN RÚT VỐN (THỰC NHẬN $${withdrawBreakdown.netAmount.toFixed(2)} USDT)` : `CONFIRM WITHDRAWAL (NET $${withdrawBreakdown.netAmount.toFixed(2)} USDT)`)}
             </span>
           </button>
+
+          {/* Quick Link to Transaction History */}
+          <div className="pt-2 text-center border-t border-[#221c10]/60">
+            <button
+              type="button"
+              onClick={() => setMode('history')}
+              className="text-[11px] text-gray-400 hover:text-[#f5d77f] font-mono inline-flex items-center justify-center gap-1.5 transition-colors"
+            >
+              <History className="w-3.5 h-3.5 text-[#f5d77f]" />
+              <span>{lang === 'vi' ? 'Xem lịch sử các đơn rút tiền →' : 'View withdrawal transaction history →'}</span>
+            </button>
+          </div>
         </div>
-      ) : (
-        /* P2P LENDING VIEW */
+      )}
+
+      {/* P2P LENDING VIEW */}
+      {mode === 'p2p_lending' && (
         <P2pLendingView
           currentBalance={currentBalance}
           telegramId={telegramId}
@@ -942,8 +989,9 @@ export const WalletView: React.FC<WalletViewProps> = ({
         />
       )}
 
-      {/* TRANSACTION HISTORY (PAGINATED 5 ITEMS PER PAGE) */}
-      <div className="spartan-card rounded-3xl p-4 border border-[#221c10] bg-[#080b12] space-y-3 shadow-lg">
+      {/* DEDICATED TRANSACTION HISTORY SUB-TAB */}
+      {mode === 'history' && (
+        <div className="spartan-card rounded-3xl p-4 border border-[#221c10] bg-[#080b12] space-y-3 shadow-lg">
         <div className="flex items-center justify-between border-b border-[#221c10] pb-2.5">
           <h3 className="text-xs font-black text-white uppercase tracking-wider flex items-center gap-1.5">
             <History className="w-4 h-4 text-[#f5d77f]" /> {t('wallet_ledger_title')}
@@ -1161,6 +1209,7 @@ export const WalletView: React.FC<WalletViewProps> = ({
           </div>
         )}
       </div>
+      )}
 
       {/* AI RECEIPT FORENSICS & SCANNER APPEAL MODAL */}
       <ReceiptAiAppealModal
