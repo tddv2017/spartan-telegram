@@ -19,7 +19,8 @@ import {
   Lock,
   Activity,
   ChevronRight,
-  Info
+  Info,
+  Layers
 } from 'lucide-react';
 import { 
   SAMPLE_P2P_OFFERS, 
@@ -48,6 +49,7 @@ export const P2pLendingView: React.FC<P2pLendingViewProps> = ({
   // 1. Source & Mode Selectors
   const [capitalSource, setCapitalSource] = useState<CapitalSourceType>('BOT_EQUITY');
   const [p2pMode, setP2pMode] = useState<P2pModeType>('BORROW');
+  const [liquidityProvider, setLiquidityProvider] = useState<'ADMIN_TREASURY' | 'PEER_COMMUNITY'>('ADMIN_TREASURY');
 
   // Baseline Bot Capital (fallback to 10,000 demo if balance is 0 for clear illustration)
   const displayBotBalance = currentBalance > 0 ? currentBalance : 10000;
@@ -453,7 +455,118 @@ export const P2pLendingView: React.FC<P2pLendingViewProps> = ({
         </div>
       )}
 
-      {/* 4. LIVE MARKET ORDERBOOK SHOWCASE (SAMPLE BIDS) */}
+      {/* 4. MÔ HÌNH VỐN KÉP: VỐN QUỸ ADMIN vs VỐN KHÁCH HÀNG P2P */}
+      <div className="spartan-card rounded-3xl p-5 border border-[#221c10] bg-[#080b12] space-y-4 shadow-lg">
+        <div className="flex items-center justify-between border-b border-[#221c10] pb-2.5">
+          <h3 className="text-xs font-black text-white uppercase tracking-wider flex items-center gap-2">
+            <Layers className="w-4 h-4 text-[#f5d77f]" />
+            <span>{lang === 'vi' ? 'KIẾN TRÚC THANH KHOẢN VỐN KÉP (HYBRID DUAL-POOL)' : 'HYBRID DUAL-POOL LIQUIDITY'}</span>
+          </h3>
+          <span className="text-[9px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded font-bold">
+            VỐN ADMIN & KHÁCH
+          </span>
+        </div>
+
+        {/* 2 Tabs */}
+        <div className="grid grid-cols-2 gap-2 p-1 bg-[#05070c] rounded-2xl border border-[#221c10]">
+          <button
+            type="button"
+            onClick={() => setLiquidityProvider('ADMIN_TREASURY')}
+            className={`py-2.5 px-2 rounded-xl text-left transition-all ${
+              liquidityProvider === 'ADMIN_TREASURY'
+                ? 'bg-[#0f1422] border border-[#d4af37] text-white shadow-md'
+                : 'text-gray-400 hover:text-white'
+            }`}
+          >
+            <div className="flex items-center gap-1.5 mb-1">
+              <ShieldCheck className="w-3.5 h-3.5 text-[#f5d77f]" />
+              <span className="text-[11px] font-black">{lang === 'vi' ? '🏛️ VỐN QUỸ ADMIN' : '🏛️ ADMIN TREASURY'}</span>
+            </div>
+            <span className="text-[9px] font-mono text-emerald-400 block font-bold">
+              ⚡ Giải ngân 30s • Pool $100K
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setLiquidityProvider('PEER_COMMUNITY')}
+            className={`py-2.5 px-2 rounded-xl text-left transition-all ${
+              liquidityProvider === 'PEER_COMMUNITY'
+                ? 'bg-[#0f1422] border border-[#d4af37] text-white shadow-md'
+                : 'text-gray-400 hover:text-white'
+            }`}
+          >
+            <div className="flex items-center gap-1.5 mb-1">
+              <Users className="w-3.5 h-3.5 text-blue-400" />
+              <span className="text-[11px] font-black">{lang === 'vi' ? '👥 VỐN KHÁCH P2P' : '👥 PEER POOL'}</span>
+            </div>
+            <span className="text-[9px] font-mono text-blue-400 block font-bold">
+              🤝 Sổ lệnh khớp • Lãi 1.8% - 2.2%
+            </span>
+          </button>
+        </div>
+
+        {/* Provider Details Card */}
+        {liquidityProvider === 'ADMIN_TREASURY' ? (
+          <div className="p-3.5 rounded-2xl bg-gradient-to-r from-[#d4af37]/10 to-[#05070c] border border-[#d4af37]/30 space-y-2 text-xs">
+            <div className="flex items-center justify-between">
+              <span className="font-black text-[#f5d77f] flex items-center gap-1.5">
+                <span>VỐN TRỰC TIẾP TỪ QUỸ QUẢN TRỊ SPARTAN (MARKET MAKER POOL)</span>
+              </span>
+              <span className="text-[9px] font-mono px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-black">
+                SẴN SÀNG: $100,000 USDT
+              </span>
+            </div>
+            <p className="text-[11px] text-gray-300 font-sans leading-relaxed">
+              Khách hàng cần vốn giải ngân ngay lập tức trong 30 giây không cần chờ người khác khớp lệnh. Quỹ Admin trực tiếp cấp thanh khoản, thu lãi suất vay 1.5% - 2.6%/tháng và bảo đảm an toàn tuyệt đối bằng 70% vốn bot thế chấp.
+            </p>
+            <div className="grid grid-cols-3 gap-2 pt-1 text-[10px] font-mono text-gray-300">
+              <div className="p-2 rounded-xl bg-[#080b12] border border-[#221c10]">
+                <span className="text-gray-500 block">Tốc độ giải ngân:</span>
+                <strong className="text-emerald-400">⚡ 30 Giây</strong>
+              </div>
+              <div className="p-2 rounded-xl bg-[#080b12] border border-[#221c10]">
+                <span className="text-gray-500 block">Lãi suất vay:</span>
+                <strong className="text-[#f5d77f]">1.5% - 2.6%/th</strong>
+              </div>
+              <div className="p-2 rounded-xl bg-[#080b12] border border-[#221c10]">
+                <span className="text-gray-500 block">Tỷ lệ bảo đảm:</span>
+                <strong className="text-blue-400">100% USDT</strong>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="p-3.5 rounded-2xl bg-gradient-to-r from-blue-500/10 to-[#05070c] border border-blue-500/30 space-y-2 text-xs">
+            <div className="flex items-center justify-between">
+              <span className="font-black text-blue-300 flex items-center gap-1.5">
+                <span>THỊ TRƯỜNG CHO VAY NGANG HÀNG GIỮA CÁC KHÁCH HÀNG (COMMUNITY POOL)</span>
+              </span>
+              <span className="text-[9px] font-mono px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 font-black">
+                KHỚP LỆNH TỰ ĐỘNG
+              </span>
+            </div>
+            <p className="text-[11px] text-gray-300 font-sans leading-relaxed">
+              Khách hàng có vốn nhàn rỗi (Lender) cho khách hàng cần vốn (Borrower) vay trực tiếp. Người cho vay nhận lãi cố định 1.8% - 2.2%/tháng, người vay trả 2.2% - 2.5%/tháng. Admin đóng vai trò sàn trọng tài thu chênh lệch lãi suất 0.5% - 0.7%/tháng mà không cần bỏ vốn.
+            </p>
+            <div className="grid grid-cols-3 gap-2 pt-1 text-[10px] font-mono text-gray-300">
+              <div className="p-2 rounded-xl bg-[#080b12] border border-[#221c10]">
+                <span className="text-gray-500 block">Người cho vay nhận:</span>
+                <strong className="text-emerald-400">+1.8% - 2.2%/th</strong>
+              </div>
+              <div className="p-2 rounded-xl bg-[#080b12] border border-[#221c10]">
+                <span className="text-gray-500 block">Người vay trả:</span>
+                <strong className="text-[#f5d77f]">2.2% - 2.5%/th</strong>
+              </div>
+              <div className="p-2 rounded-xl bg-[#080b12] border border-[#221c10]">
+                <span className="text-gray-500 block">Phí sàn Admin thu:</span>
+                <strong className="text-purple-400">0.5% - 0.7%/th</strong>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* 5. LIVE MARKET ORDERBOOK SHOWCASE (SAMPLE BIDS) */}
       <div className="spartan-card rounded-3xl p-5 border border-[#221c10] bg-[#080b12] space-y-3 shadow-lg">
         <div className="flex items-center justify-between border-b border-[#221c10] pb-2.5">
           <h3 className="text-xs font-black text-white uppercase tracking-wider flex items-center gap-2">
