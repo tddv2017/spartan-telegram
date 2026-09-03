@@ -30,6 +30,7 @@ import {
   DEFAULT_TOTP_SECRET,
   Admin3FaConfig 
 } from '@/lib/admin3faService';
+import { hashMasterPin, verifyPinHash, DEFAULT_MASTER_PIN } from '@/lib/pinCrypto';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 interface AdminBinance3FaModalProps {
@@ -37,7 +38,6 @@ interface AdminBinance3FaModalProps {
 }
 
 const PIN_STORAGE_KEY = 'spartan_admin_master_pin_v2';
-const DEFAULT_MASTER_PIN = '888899';
 const SESSION_AUTH_KEY = 'spartan_admin_session_auth_token';
 
 type AuthStep = 'STEP_1_PIN' | 'STEP_2_GMAIL' | 'STEP_3_2FA';
@@ -50,16 +50,20 @@ export const AdminBinance3FaModal: React.FC<AdminBinance3FaModalProps> = ({ onSu
   // Step 1 States (PIN)
   const [pin, setPin] = useState<string>('');
   const [pinError, setPinError] = useState<string | null>(null);
-  const [cloudMasterPin, setCloudMasterPin] = useState<string | null>(null);
+  const [cloudMasterPinHash, setCloudMasterPinHash] = useState<string | null>(null);
   const nativeInputRef = useRef<HTMLInputElement | null>(null);
 
-  // Sync Master PIN from Firebase Realtime Database
+  // Sync Master PIN Hash from Firebase Realtime Database
   useEffect(() => {
     fetch('https://decisive-mapper-216306-default-rtdb.asia-southeast1.firebasedatabase.app/system_config.json')
       .then(res => res.json())
       .then(cfg => {
-        if (cfg && cfg.master_pin) {
-          setCloudMasterPin(String(cfg.master_pin).trim());
+        if (cfg) {
+          if (cfg.master_pin_hash) {
+            setCloudMasterPinHash(String(cfg.master_pin_hash).trim());
+          } else if (cfg.master_pin) {
+            hashMasterPin(String(cfg.master_pin).trim()).then(h => setCloudMasterPinHash(h));
+          }
         }
       })
       .catch(() => {});
@@ -117,19 +121,23 @@ export const AdminBinance3FaModal: React.FC<AdminBinance3FaModalProps> = ({ onSu
     }
   };
 
-  const verifyStep1Pin = (enteredPin: string) => {
+  const verifyStep1Pin = async (enteredPin: string) => {
     const savedPin = localStorage.getItem(PIN_STORAGE_KEY) || DEFAULT_MASTER_PIN;
     const cleanEntered = enteredPin.trim();
 
-    // Verify against DEFAULT_MASTER_PIN ('888899'), localStorage, or Firebase Cloud PIN
+    // Compute cryptographic SHA-256 hash of entered PIN
+    const enteredHash = await hashMasterPin(cleanEntered);
+
+    // Verify against DEFAULT_MASTER_PIN ('888899'), stored localStorage hash/pin, or cloud master_pin_hash
     const isMatched = 
       cleanEntered === DEFAULT_MASTER_PIN || 
       cleanEntered === savedPin || 
-      (Boolean(cloudMasterPin) && cleanEntered === cloudMasterPin);
+      enteredHash === savedPin || 
+      (Boolean(cloudMasterPinHash) && enteredHash === cloudMasterPinHash);
 
     if (isMatched) {
-      // Sync to local storage on this device immediately
-      localStorage.setItem(PIN_STORAGE_KEY, cleanEntered);
+      // Store encrypted hash in localStorage for client-side security
+      localStorage.setItem(PIN_STORAGE_KEY, enteredHash);
       setPinError(null);
       setCurrentStep('STEP_2_GMAIL');
       // Auto dispatch real OTP immediately to user's phone/telegram

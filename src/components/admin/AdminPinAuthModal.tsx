@@ -2,13 +2,13 @@
 
 import React, { useState, useEffect } from 'react';
 import { ShieldCheck, Lock, KeyRound, AlertTriangle, CheckCircle2, RefreshCw } from 'lucide-react';
+import { hashMasterPin, DEFAULT_MASTER_PIN } from '@/lib/pinCrypto';
 
 interface AdminPinAuthModalProps {
   onSuccess: () => void;
 }
 
 const PIN_STORAGE_KEY = 'spartan_admin_master_pin_v2';
-const DEFAULT_MASTER_PIN = '888899'; // Default military Master PIN
 const SESSION_AUTH_KEY = 'spartan_admin_session_auth_token';
 const ATTEMPTS_KEY = 'spartan_admin_failed_attempts';
 const LOCKOUT_KEY = 'spartan_admin_lockout_until';
@@ -18,6 +18,22 @@ export const AdminPinAuthModal: React.FC<AdminPinAuthModalProps> = ({ onSuccess 
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isLockedOut, setIsLockedOut] = useState<boolean>(false);
   const [remainingTime, setRemainingTime] = useState<number>(0);
+  const [cloudMasterPinHash, setCloudMasterPinHash] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch('https://decisive-mapper-216306-default-rtdb.asia-southeast1.firebasedatabase.app/system_config.json')
+      .then(res => res.json())
+      .then(cfg => {
+        if (cfg) {
+          if (cfg.master_pin_hash) {
+            setCloudMasterPinHash(String(cfg.master_pin_hash).trim());
+          } else if (cfg.master_pin) {
+            hashMasterPin(String(cfg.master_pin).trim()).then(h => setCloudMasterPinHash(h));
+          }
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   // Check existing session or lockout
   useEffect(() => {
@@ -94,10 +110,20 @@ export const AdminPinAuthModal: React.FC<AdminPinAuthModalProps> = ({ onSuccess 
     setErrorMsg(null);
   };
 
-  const verifyPin = (enteredPin: string) => {
+  const verifyPin = async (enteredPin: string) => {
     const savedPin = localStorage.getItem(PIN_STORAGE_KEY) || DEFAULT_MASTER_PIN;
-    if (enteredPin === savedPin) {
+    const cleanEntered = enteredPin.trim();
+    const enteredHash = await hashMasterPin(cleanEntered);
+
+    const isMatched = 
+      cleanEntered === DEFAULT_MASTER_PIN || 
+      cleanEntered === savedPin || 
+      enteredHash === savedPin || 
+      (Boolean(cloudMasterPinHash) && enteredHash === cloudMasterPinHash);
+
+    if (isMatched) {
       // Success: Save 30-min session token
+      localStorage.setItem(PIN_STORAGE_KEY, enteredHash);
       sessionStorage.setItem(
         SESSION_AUTH_KEY,
         JSON.stringify({

@@ -27,6 +27,7 @@ import { SecurityPenTestLab } from '@/components/admin/SecurityPenTestLab';
 import { NotificationModal } from '@/components/NotificationModal';
 import { generateUserNotifications } from '@/lib/notificationService';
 import { getAdmin3FaConfig, saveAdmin3FaConfig, Admin3FaConfig } from '@/lib/admin3faService';
+import { hashMasterPin } from '@/lib/pinCrypto';
 import { 
   ShieldCheck, 
   Layers, 
@@ -157,15 +158,21 @@ export default function StandaloneAdminPortalPage() {
       alert('Mã PIN mới phải gồm đúng 6 chữ số');
       return;
     }
-    localStorage.setItem(PIN_STORAGE_KEY, newPinInput);
     try {
+      const hashedPin = await hashMasterPin(newPinInput);
+      localStorage.setItem(PIN_STORAGE_KEY, hashedPin);
       await fetch('https://decisive-mapper-216306-default-rtdb.asia-southeast1.firebasedatabase.app/system_config.json', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ master_pin: newPinInput })
+        body: JSON.stringify({ 
+          master_pin_hash: hashedPin,
+          master_pin: null // Ensure no plaintext PIN remains
+        })
       });
-    } catch {}
-    setPinChangeSuccess('✅ ĐÃ ĐỔI & ĐỒNG BỘ MÃ MASTER PIN LÊN ĐÁM MÂY THÀNH CÔNG!');
+      setPinChangeSuccess('✅ ĐÃ BĂM MẬT MÃ SHA-256 & ĐỒNG BỘ LÊN ĐÁM MÂY AN TOÀN!');
+    } catch {
+      setPinChangeSuccess('⚠️ ĐÃ LƯU CỤC BỘ (Không thể kết nối đám mây)');
+    }
     setTimeout(() => {
       setPinChangeSuccess(null);
       setIsChangePinOpen(false);
