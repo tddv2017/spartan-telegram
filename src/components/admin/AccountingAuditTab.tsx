@@ -691,7 +691,7 @@ export const AccountingAuditTab: React.FC<AccountingAuditTabProps> = ({
               <strong className="text-red-400 font-bold">-${totalOnChainGasCost.toFixed(2)} USDT</strong>
             </div>
             <div className="flex justify-between text-amber-400">
-              <span>(-) Chi Trả Hoa Hồng Cho Đại Lý (Reseller):</span>
+              <span>(-) Chi Trả Hoa Hồng Cho Đại Lý F1 (10 Cấp Reseller):</span>
               <strong className="text-amber-400 font-bold">-${totalNetworkResellerRebates.toFixed(2)} USDT</strong>
             </div>
 
@@ -1225,7 +1225,7 @@ export const AccountingAuditTab: React.FC<AccountingAuditTabProps> = ({
           </div>
 
           <div className="bg-[#0b0e17] p-3 rounded-xl border border-[#1f293d]">
-            <span className="text-[10px] text-gray-400 block mb-0.5">TỔNG HOA HỒNG ĐÃ CHI TRẢ:</span>
+            <span className="text-[10px] text-gray-400 block mb-0.5">TỔNG HOA HỒNG F1 (10 CẤP) ĐÃ CHI TRẢ:</span>
             <span className="text-sm font-black text-[#00df89]">
               ${totalNetworkResellerRebates.toLocaleString('en-US', { minimumFractionDigits: 2 })} USDT
             </span>
