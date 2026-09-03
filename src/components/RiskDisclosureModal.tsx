@@ -221,8 +221,8 @@ export const RiskDisclosureModal: React.FC<RiskDisclosureModalProps> = ({
             </h4>
             <p className="text-[10px] text-gray-400">
               {lang === 'vi'
-                ? '• Phí Nạp Vốn: 9% phí nền tảng + $3.00 USD phí gas mạng Tron TRC20.\n• Phí Rút Vốn Bot: 19% phí bảo tồn thanh khoản + $5.00 USD phí gas on-chain.\n• Tái Đầu Tư Hoa Hồng F1: 0% Phí (Miễn phí 100%).'
-                : '• Deposit Fee: 9% platform fee + $3.00 USD TRC20 network gas.\n• Bot Withdrawal Fee: 19% liquidity fee + $5.00 USD on-chain gas.\n• Referral Reinvestment: 0% Fee (100% Free).'}
+                ? '• Phí Khởi Tạo Nguồn Vốn: 9% phí dịch vụ nền tảng + $3.00 USD phí gas mạng Tron TRC20.\n• Phí Dịch Vụ Rút Vốn: 4% - 15% theo thời gian nắm giữ + $5.00 USD phí gas on-chain.\n• Tái Phân Bổ Chiết Khấu Đối Tác F1: 0% Phí (Miễn phí 100%).'
+                : '• Initiation Fee: 9% platform service fee + $3.00 USD TRC20 network gas.\n• Withdrawal Service Fee: 4% - 15% based on holding tenure + $5.00 USD on-chain gas.\n• Partner Rebate Allocation: 0% Fee (100% Free).'}
             </p>
           </div>
 

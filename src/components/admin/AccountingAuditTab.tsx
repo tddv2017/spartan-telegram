@@ -1202,7 +1202,7 @@ export const AccountingAuditTab: React.FC<AccountingAuditTabProps> = ({
         )}
       </div>
 
-      {/* Sổ cái Thu - Chi & Hoa hồng F1 */}
+      {/* Sổ cái Thu - Chi & Chiết khấu Đối Tác F1 */}
       <div className="spartan-card rounded-3xl p-4 border border-[#1f293d] space-y-3 shadow-lg">
         <div className="flex items-center justify-between border-b border-[#1f293d] pb-2">
           <div className="flex items-center gap-2">

@@ -976,7 +976,7 @@ export async function reinvestReferralBalance(
     const currentTradingBal = Number(user.tradingBalance) || 0;
 
     if (amount <= 0 || amount > currentRefBal) {
-      return { success: false, message: `Số tiền tái đầu tư không hợp lệ. Số dư hoa hồng hiện có: $${currentRefBal.toFixed(2)} USDT.` };
+      return { success: false, message: `Số tiền tái phân bổ không hợp lệ. Số dư chiết khấu hiện có: $${currentRefBal.toFixed(2)} USDT.` };
     }
 
     const newRefBal = Math.max(0, currentRefBal - amount);
@@ -1019,7 +1019,7 @@ export async function reinvestReferralBalance(
 
     return {
       success: true,
-      message: `✓ Đã tái đầu tư $${amount.toFixed(2)} USDT từ hoa hồng vào Vốn Bot thành công (0% Phí)!`,
+      message: `✓ Đã phân bổ $${amount.toFixed(2)} USDT từ chiết khấu đối tác vào Vốn Thuật Toán thành công (0% Phí)!`,
       newTradingBal,
       newRefBal
     };
@@ -1043,7 +1043,7 @@ export async function withdrawReferralBalance(
 
     const currentRefBal = Number(user.referralBalance) || 0;
     if (amount <= 0 || amount > currentRefBal) {
-      return { success: false, message: `Số tiền rút không hợp lệ. Số dư hoa hồng hiện có: $${currentRefBal.toFixed(2)} USDT.` };
+      return { success: false, message: `Số tiền rút không hợp lệ. Số dư chiết khấu hiện có: $${currentRefBal.toFixed(2)} USDT.` };
     }
 
     const cleanAddress = recipientAddress.trim();
@@ -1102,12 +1102,12 @@ export async function withdrawReferralBalance(
 
     return {
       success: true,
-      message: `✓ Đã tạo lệnh rút hoa hồng $${amount.toFixed(2)} USDT thành công! Thực nhận về ví: +$${netAmount.toFixed(2)} USDT. Lệnh đang chờ giải ngân.`,
+      message: `✓ Đã tạo lệnh rút chiết khấu đối tác $${amount.toFixed(2)} USDT thành công! Thực nhận về ví: +$${netAmount.toFixed(2)} USDT. Lệnh đang chờ giải ngân.`,
       newRefBal,
       tx: txData
     };
   } catch (err: any) {
-    return { success: false, message: 'Lỗi rút hoa hồng: ' + err.message };
+    return { success: false, message: 'Lỗi rút chiết khấu đối tác: ' + err.message };
   }
 }
 

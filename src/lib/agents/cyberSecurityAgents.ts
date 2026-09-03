@@ -52,8 +52,8 @@ export async function runRedTeamScan(): Promise<SecurityReport> {
   const suspiciousAffiliates = users.filter(u => (u.referralBalance || 0) > 5000 && (u.tradingBalance || 0) < 100);
   if (suspiciousAffiliates.length > 0) {
     score -= 3;
-    findings.push(`⚠️ Phát hiện ${suspiciousAffiliates.length} tài khoản có hoa hồng đại lý cao bất thường so với vốn nạp.`);
-    recommendations.push('Yêu cầu BlueGuard AI quét cây phả hệ F1 để kiểm tra xem có hiện tượng tạo nick ảo tự ăn hoa hồng chéo (Sybil Farm) hay không.');
+    findings.push(`⚠️ Phát hiện ${suspiciousAffiliates.length} tài khoản có chiết khấu đối tác cao bất thường so với vốn nạp.`);
+    recommendations.push('Yêu cầu BlueGuard AI quét danh bạ F1 trực tiếp để kiểm tra xem có hiện tượng tạo tài khoản ảo tự trục lợi chiết khấu chéo (Sybil Farm) hay không.');
   }
 
   // Check 5: Treasury Reserve Allocation
@@ -168,7 +168,7 @@ export async function runForensicsInvestigation(targetIdOrMemo: string): Promise
     const totalWd = userWithdraws.reduce((acc, t) => acc + (t.grossAmount || 0), 0);
 
     findings.push(`👤 Hồ sơ thành viên: @${targetUser.username || 'user'} (ID: ${targetUser.telegramId})`);
-    findings.push(`💳 Vốn Bot hiện tại: $${(targetUser.tradingBalance || 0).toFixed(2)} USDT | Hoa hồng: $${(targetUser.referralBalance || 0).toFixed(2)} USDT`);
+    findings.push(`💳 Vốn Thuật Toán hiện tại: $${(targetUser.tradingBalance || 0).toFixed(2)} USDT | Chiết khấu khả dụng: $${(targetUser.referralBalance || 0).toFixed(2)} USDT`);
     findings.push(`📈 Lịch sử giao dịch: ${userDeposits.length} lần nạp thành công ($${totalDep.toFixed(2)}) | ${userWithdraws.length} lần rút thành công ($${totalWd.toFixed(2)})`);
     findings.push(`🔒 Trạng thái tài khoản: ${targetUser.isFrozen ? 'ĐANG BỊ KHÓA (FROZEN)' : 'HOẠT ĐỘNG BÌNH THƯỜNG (ACTIVE)'}`);
 

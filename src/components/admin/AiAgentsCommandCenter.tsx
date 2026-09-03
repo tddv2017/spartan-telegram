@@ -441,7 +441,7 @@ export const AiAgentsCommandCenter: React.FC = () => {
                 </div>
                 <div>
                   <h3 className="text-xs font-black text-white uppercase">2. SPARTAN LEGION AI (NHÂN SỰ & PHÁT TRIỂN F1)</h3>
-                  <span className="text-[10px] text-gray-400 font-mono">Quét mạng lưới đại lý và tự động nâng cấp cấp bậc F1</span>
+                  <span className="text-[10px] text-gray-400 font-mono">Quét mạng lưới đối tác liên kết và tự động cập nhật hạng thành viên F1</span>
                 </div>
               </div>
 

@@ -137,8 +137,8 @@ export function generateUserNotifications(
     const refId = `ref_rebate_${telegramId}_${Math.floor(referralBalance)}`;
     notifications.push({
       id: refId,
-      title: '🎁 HOA HỒNG ĐẠI LÝ F1 ĐÃ GHI NHẬN',
-      message: `Bạn đang có $${referralBalance.toFixed(2)} USDT hoa hồng đại lý khả dụng sẵn sàng rút hoặc tái đầu tư.`,
+      title: '🎁 CHIẾT KHẤU ĐỐI TÁC F1 ĐÃ GHI NHẬN',
+      message: `Bạn đang có $${referralBalance.toFixed(2)} USDT chiết khấu đối tác khả dụng sẵn sàng kết chuyển hoặc tái phân bổ.`,
       type: 'AFFILIATE',
       isRead: readIds.includes(refId),
       timestamp: new Date().toISOString()

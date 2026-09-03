@@ -62,7 +62,7 @@ export const P2pLendingView: React.FC<P2pLendingViewProps> = ({
   // 3. External Capital State
   const [externalAmount, setExternalAmount] = useState<number>(5000);
 
-  // Dynamic Interest Rate Calculation based on Collateral Ratio (% Thế Chấp Vốn Bot)
+  // Dynamic Interest Rate Calculation based on Escrow Ratio (% Ký Quỹ Vốn Thuật Toán)
   // Bậc 1: <= 40% -> 1.5%/tháng (Rủi ro thấp nhất)
   // Bậc 2: 41% - 60% -> 2.0%/tháng (Mức tiêu chuẩn)
   // Bậc 3: 61% - 70% (Trần 70%) -> 2.6%/tháng (Rủi ro cao nhất, áp dụng phí đệm thanh lý)
@@ -133,10 +133,10 @@ export const P2pLendingView: React.FC<P2pLendingViewProps> = ({
             </div>
             <div>
               <h2 className="text-sm md:text-base font-black text-white uppercase tracking-wider flex items-center gap-2">
-                <span>{lang === 'vi' ? 'THỊ TRƯỜNG CHO VAY NGANG HÀNG (P2P)' : 'P2P LENDING & CREDIT FACILITY'}</span>
+                <span>{lang === 'vi' ? 'TIỆN ÍCH KÝ QUỸ THANH KHOẢN TẠM THỜI (P2P)' : 'P2P MARGIN ESCROW & LIQUIDITY FACILITY'}</span>
               </h2>
               <span className="text-[10px] text-gray-400 font-mono block">
-                SPARTAN PEER-TO-PEER LIQUIDITY & COLLATERAL MARKET
+                SPARTAN PEER-TO-PEER LIQUIDITY & MARGIN ESCROW FACILITY
               </span>
             </div>
           </div>
@@ -151,8 +151,8 @@ export const P2pLendingView: React.FC<P2pLendingViewProps> = ({
 
         <p className="text-xs text-gray-300 font-sans leading-relaxed relative z-10 pt-1">
           {lang === 'vi'
-            ? 'Mô hình Tín dụng P2P định chế cho phép nhà đầu tư lựa chọn 2 phương thức vốn: Thế chấp trực tiếp vốn Bot đang giao dịch (tối đa 70% để bảo đảm an toàn margin bot) hoặc Nạp vốn mới từ ví ngoài để cho vay sinh lời cố định.'
-            : 'Institutional P2P lending allows investors to either collateralize active bot trading equity (up to 70% LTV to preserve bot margin) or deposit fresh external liquidity to earn fixed yields.'}
+            ? 'Cơ chế Ký quỹ Thanh khoản P2P cho phép thành viên lựa chọn 2 phương thức: Ký quỹ tạm thời tối đa 70% vốn thuật toán để nhận thanh khoản tức thời (giữ lại 30% bảo đảm an toàn margin) hoặc Cung cấp thanh khoản P2P từ ví ngoài để nhận tỷ lệ phân bổ định chế.'
+            : 'Institutional P2P facility allows members to either escrow active bot equity (up to 70% LTV preserving 30% bot safety buffer) or provide fresh external liquidity to earn institutional fee allocations.'}
         </p>
       </div>
 
@@ -167,7 +167,7 @@ export const P2pLendingView: React.FC<P2pLendingViewProps> = ({
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {/* Nguồn A: Thế chấp Vốn Bot đang Trade */}
+          {/* Nguồn A: Ký Quỹ Vốn Thuật Toán đang Trade */}
           <button
             type="button"
             onClick={() => setCapitalSource('BOT_EQUITY')}
@@ -185,16 +185,16 @@ export const P2pLendingView: React.FC<P2pLendingViewProps> = ({
             <div className="flex items-center gap-2.5 mb-2 text-[#f5d77f]">
               <Bot className="w-5 h-5" />
               <span className="text-xs font-black uppercase tracking-wider">
-                {lang === 'vi' ? 'THẾ CHẤP VỐN BOT ĐANG TRADE' : 'COLLATERALIZE ACTIVE BOT'}
+                {lang === 'vi' ? 'KÝ QUỸ BẢO ĐẢM VỐN THUẬT TOÁN' : 'ESCROW ACTIVE BOT BALANCE'}
               </span>
             </div>
             <p className="text-[11px] text-gray-300 font-sans leading-normal mb-2">
               {lang === 'vi' 
-                ? 'Không cần nạp thêm tiền! Sử dụng chính vốn bot đang chạy để vay tiền mặt hoặc đòn bẩy. Thế chấp tối đa 70% tài sản bot.'
-                : 'No fresh deposit needed! Pledge live bot equity up to 70% LTV while preserving 30% margin.'}
+                ? 'Nhận thanh khoản tức thời mà không cần nạp thêm! Ký quỹ bảo đảm tối đa 70% vốn thuật toán, 30% bộ đệm an toàn tiếp tục vận hành.'
+                : 'Instant liquidity without new capital! Escrow up to 70% bot equity while preserving 30% margin buffer.'}
             </p>
             <div className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 p-2 rounded-xl border border-emerald-500/20">
-              ⚡ Hạn mức vay: <strong>Max 70% Vốn Bot</strong> • Lãi suất theo % thế chấp
+              ⚡ Hạn mức thanh khoản: <strong>Max 70% Vốn Thuật Toán</strong> • Phí dịch vụ theo % ký quỹ
             </div>
           </button>
 
@@ -221,11 +221,11 @@ export const P2pLendingView: React.FC<P2pLendingViewProps> = ({
             </div>
             <p className="text-[11px] text-gray-300 font-sans leading-normal mb-2">
               {lang === 'vi'
-                ? 'Nạp dòng tiền mới độc lập từ ví ngoài vào để cho vay lấy lãi hoặc ký quỹ. Không liên quan và không ảnh hưởng đến số dư Bot.'
-                : 'Inject fresh liquidity from external wallet to lend out for fixed yields. Zero impact on bot trading.'}
+                ? 'Cung cấp thanh khoản mới độc lập từ ví ngoài vào bể P2P để nhận tỷ lệ phân bổ định chế. Độc lập và không ảnh hưởng đến số dư giao dịch thuật toán.'
+                : 'Inject fresh external liquidity to earn institutional fee allocations. Zero impact on bot trading.'}
             </p>
             <div className="text-[10px] font-mono text-[#f5d77f] bg-[#d4af37]/10 p-2 rounded-xl border border-[#d4af37]/20">
-              🛡️ Hạn mức: <strong>100% Vốn Nạp</strong> • Lãi suất cố định 1.8% - 2.5%/tháng
+              🛡️ Hạn mức: <strong>100% Vốn Cung Cấp</strong> • Tỷ lệ phân bổ dịch vụ 1.8% - 2.5%/tháng
             </div>
           </button>
         </div>
@@ -233,16 +233,16 @@ export const P2pLendingView: React.FC<P2pLendingViewProps> = ({
 
       {/* 3. SIMULATION ENGINE BASED ON SELECTED CAPITAL SOURCE */}
       {capitalSource === 'BOT_EQUITY' ? (
-        /* CASE A: THẾ CHẤP VỐN BOT TRADE (MAX 70% LTV) */
+        /* CASE A: KÝ QUỸ VỐN THUẬT TOÁN (MAX 70% LTV) */
         <div className="spartan-card rounded-3xl p-5 border border-[#221c10] bg-[#080b12] space-y-4 shadow-lg">
           <div className="flex items-center justify-between border-b border-[#221c10] pb-3">
             <div>
               <h3 className="text-xs font-black text-white uppercase tracking-wider flex items-center gap-2">
                 <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                <span>{lang === 'vi' ? 'MÔ PHỎNG THẾ CHẤP VỐN BOT (TỐI ĐA 70% TÀI SẢN)' : 'BOT COLLATERAL SIMULATOR (MAX 70% LTV)'}</span>
+                <span>{lang === 'vi' ? 'MÔ PHỎNG KÝ QUỸ VỐN THUẬT TOÁN (TỐI ĐA 70% TÀI SẢN)' : 'BOT MARGIN ESCROW SIMULATOR (MAX 70% LTV)'}</span>
               </h3>
               <span className="text-[10px] text-gray-400 font-mono block pt-0.5">
-                {lang === 'vi' ? 'Vốn Bot hiện có: ' : 'Live Bot Trading Equity: '}
+                {lang === 'vi' ? 'Vốn Thuật Toán hiện có: ' : 'Live Trading Capital: '}
                 <strong className="text-white">${displayBotBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })} USDT</strong>
                 {isDemoBalance && <span className="text-[#d4af37] text-[9px] ml-1">(Minh họa mẫu)</span>}
               </span>
@@ -252,11 +252,11 @@ export const P2pLendingView: React.FC<P2pLendingViewProps> = ({
             </span>
           </div>
 
-          {/* Quy Tắc Thế Chấp 70% - 30% */}
+          {/* Quy Tắc Ký Quỹ 70% - 30% */}
           <div className="p-3.5 rounded-2xl bg-[#05070c] border border-[#221c10] space-y-2">
             <div className="flex items-center justify-between text-xs font-bold">
-              <span className="text-gray-400">{lang === 'vi' ? 'Tỷ Lệ Thế Chấp Vốn Bot Của Khách:' : 'Bot Equity Collateral Ratio:'}</span>
-              <span className="text-base font-black font-mono text-[#f5d77f]">{pledgePercent}% Vốn Bot</span>
+              <span className="text-gray-400">{lang === 'vi' ? 'Tỷ Lệ Ký Quỹ Bảo Đảm Của Thành Viên:' : 'Bot Margin Escrow Ratio:'}</span>
+              <span className="text-base font-black font-mono text-[#f5d77f]">{pledgePercent}% Vốn</span>
             </div>
 
             {/* Interactive Range Slider (Limit strictly to 70%) */}
@@ -292,19 +292,19 @@ export const P2pLendingView: React.FC<P2pLendingViewProps> = ({
             </div>
             <div className="flex justify-between text-[9px] font-mono pt-0.5">
               <span className={dynamicRateInfo.color}>
-                ■ Thế chấp: {pledgePercent}% (${currentLoanAmount.toLocaleString('en-US', { minimumFractionDigits: 0 })} USDT)
+                ■ Ký quỹ: {pledgePercent}% (${currentLoanAmount.toLocaleString('en-US', { minimumFractionDigits: 0 })} USDT)
               </span>
               <span className="text-blue-400">
-                ■ Đệm an toàn Bot: {botSafetyMarginPct}% (${remainingBotMargin.toLocaleString('en-US', { minimumFractionDigits: 0 })} USDT)
+                ■ Đệm an toàn Thuật Toán: {botSafetyMarginPct}% (${remainingBotMargin.toLocaleString('en-US', { minimumFractionDigits: 0 })} USDT)
               </span>
             </div>
           </div>
 
-          {/* Bảng Tính Lãi Suất Tương Ứng Theo % Thế Chấp */}
+          {/* Bảng Tính Phí Dịch Vụ Ký Quỹ Theo % */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
             <div className="p-3 rounded-2xl bg-[#05070c] border border-[#221c10] space-y-1">
               <span className="text-[9px] text-gray-400 uppercase font-mono block">
-                {lang === 'vi' ? 'Lãi Suất Theo Bậc Rủi Ro:' : 'Risk-Adjusted Rate:'}
+                {lang === 'vi' ? 'Biểu Phí Theo Bậc Ký Quỹ:' : 'Risk-Adjusted Escrow Rate:'}
               </span>
               <span className={`text-base font-black font-mono ${dynamicRateInfo.color} block`}>
                 {dynamicRateInfo.rate}% / {lang === 'vi' ? 'tháng' : 'mo'}
@@ -316,19 +316,19 @@ export const P2pLendingView: React.FC<P2pLendingViewProps> = ({
 
             <div className="p-3 rounded-2xl bg-[#05070c] border border-[#221c10] space-y-1">
               <span className="text-[9px] text-gray-400 uppercase font-mono block">
-                {lang === 'vi' ? 'Tiền Được Giải Ngân (USDT):' : 'Disbursed Loan Cash:'}
+                {lang === 'vi' ? 'Thanh Khoản Giải Ngân (USDT):' : 'Disbursed Liquidity:'}
               </span>
               <span className="text-base font-black font-mono text-emerald-400 block">
                 ${currentLoanAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USDT
               </span>
               <span className="text-[8px] font-mono text-gray-400 block">
-                (Tối đa cho phép: ${maxAllowableBorrow.toLocaleString('en-US')} USDT)
+                (Hạn mức tối đa: ${maxAllowableBorrow.toLocaleString('en-US')} USDT)
               </span>
             </div>
 
             <div className="p-3 rounded-2xl bg-[#05070c] border border-[#221c10] space-y-1">
               <span className="text-[9px] text-gray-400 uppercase font-mono block">
-                {lang === 'vi' ? 'Ước Tính Phí Lãi Vay/Tháng:' : 'Est. Monthly Interest:'}
+                {lang === 'vi' ? 'Ước Tính Phí Dịch Vụ/Tháng:' : 'Est. Monthly Escrow Fee:'}
               </span>
               <span className="text-base font-black font-mono text-[#f5d77f] block">
                 ${monthlyInterestUsdt.toFixed(2)} USDT
@@ -339,38 +339,38 @@ export const P2pLendingView: React.FC<P2pLendingViewProps> = ({
             </div>
           </div>
 
-          {/* Giải Thích Minh Bạch Về 3 Mức Lãi Suất Thế Chấp */}
+          {/* Giải Thích Minh Bạch Về 3 Mức Phí Ký Quỹ */}
           <div className="p-3 rounded-2xl bg-[#05070c] border border-[#221c10] space-y-2">
             <span className="text-[10px] font-bold text-gray-300 uppercase tracking-wider flex items-center gap-1.5">
               <Info className="w-3.5 h-3.5 text-[#f5d77f]" />
-              <span>{lang === 'vi' ? 'QUY CHUẨN TÍNH % CHO VAY THEO TỶ LỆ THẾ CHẤP VỐN BOT:' : 'COLLATERAL TIER LENDING RATES:'}</span>
+              <span>{lang === 'vi' ? 'QUY CHUẨN BIỂU PHÍ DỊCH VỤ THEO TỶ LỆ KÝ QUỸ VỐN THUẬT TOÁN:' : 'TIERED MARGIN ESCROW SERVICE RATES:'}</span>
             </span>
 
             <div className="space-y-1.5 text-[10px] font-mono">
               <div className={`p-2 rounded-xl border flex items-center justify-between ${
                 pledgePercent <= 40 ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-300 font-bold' : 'border-[#141924] text-gray-400'
               }`}>
-                <span>• Bậc 1 (Vay $\le 40\%$ Vốn Bot): Lãi suất 1.5%/tháng</span>
-                <span>🟢 Bot an toàn 60%+ Margin</span>
+                <span>• Bậc 1 (Ký quỹ $\le 40\%$ Vốn): Phí dịch vụ 1.5%/tháng</span>
+                <span>🟢 Vốn an toàn 60%+ Margin</span>
               </div>
 
               <div className={`p-2 rounded-xl border flex items-center justify-between ${
                 pledgePercent > 40 && pledgePercent <= 60 ? 'bg-amber-500/10 border-amber-500/40 text-amber-300 font-bold' : 'border-[#141924] text-gray-400'
               }`}>
-                <span>• Bậc 2 (Vay $41\% - 60\%$ Vốn Bot): Lãi suất 2.0%/tháng</span>
-                <span>🟡 Tiêu chuẩn thị trường</span>
+                <span>• Bậc 2 (Ký quỹ $41\% - 60\%$ Vốn): Phí dịch vụ 2.0%/tháng</span>
+                <span>🟡 Tiêu chuẩn hệ sinh thái</span>
               </div>
 
               <div className={`p-2 rounded-xl border flex items-center justify-between ${
                 pledgePercent > 60 ? 'bg-[#ff5500]/10 border-[#ff5500]/40 text-[#ff5500] font-bold' : 'border-[#141924] text-gray-400'
               }`}>
-                <span>• Bậc 3 (Vay $61\% - 70\%$ Vốn Bot - TRẦN MAX): Lãi suất 2.6%/tháng</span>
-                <span>🔴 Giữ lại 30% đệm chống cháy Bot</span>
+                <span>• Bậc 3 (Ký quỹ $61\% - 70\%$ Vốn - TRẦN MAX): Phí dịch vụ 2.6%/tháng</span>
+                <span>🔴 Giữ lại 30% đệm bảo toàn danh mục</span>
               </div>
             </div>
 
             <p className="text-[10px] text-gray-400 font-sans italic pt-1">
-              * Hệ thống Spartan Vault khóa cứng giới hạn 70% để bảo đảm 30% tài sản còn lại luôn đủ sức gồng các đợt sóng Vàng M5/H1 trên sàn Exness ECN mà không bao giờ bị dừng hoạt động bot.
+              * Hệ thống Spartan Vault khóa cứng giới hạn 70% để bảo đảm 30% tài sản còn lại luôn đủ sức thích ứng các biến động thị trường mà không bao giờ bị dừng chiến lược giao dịch.
             </p>
           </div>
         </div>
@@ -381,7 +381,7 @@ export const P2pLendingView: React.FC<P2pLendingViewProps> = ({
             <div>
               <h3 className="text-xs font-black text-white uppercase tracking-wider flex items-center gap-2">
                 <Wallet className="w-4 h-4 text-emerald-400" />
-                <span>{lang === 'vi' ? 'MÔ PHỎNG NẠP VỐN MỚI CHO VAY (SINH LỜI 100%)' : 'FRESH DEPOSIT P2P YIELD SIMULATOR'}</span>
+                <span>{lang === 'vi' ? 'MÔ PHỎNG CUNG CẤP THANH KHOẢN P2P (TỐI ƯU HIỆU QUẢ)' : 'FRESH DEPOSIT P2P LIQUIDITY SIMULATOR'}</span>
               </h3>
               <span className="text-[10px] text-gray-400 font-mono block pt-0.5">
                 {lang === 'vi' ? 'Nạp USDT TRC20 độc lập • Không ràng buộc vốn bot' : 'Independent USDT TRC20 • Zero impact on bot'}
@@ -416,7 +416,7 @@ export const P2pLendingView: React.FC<P2pLendingViewProps> = ({
 
             {/* Term Selector */}
             <div>
-              <span className="text-xs text-gray-400 font-bold block mb-1.5">{lang === 'vi' ? 'Kỳ hạn cho vay:' : 'Lending Term:'}</span>
+              <span className="text-xs text-gray-400 font-bold block mb-1.5">{lang === 'vi' ? 'Kỳ hạn cung cấp thanh khoản:' : 'Liquidity Term:'}</span>
               <div className="grid grid-cols-3 gap-2">
                 {[
                   { days: 30, rate: '2.5%/tháng' },
@@ -518,7 +518,7 @@ export const P2pLendingView: React.FC<P2pLendingViewProps> = ({
               </span>
             </div>
             <p className="text-[11px] text-gray-300 font-sans leading-relaxed">
-              Khách hàng cần vốn giải ngân ngay lập tức trong 30 giây không cần chờ người khác khớp lệnh. Quỹ Admin trực tiếp cấp thanh khoản, thu lãi suất vay 1.5% - 2.6%/tháng và bảo đảm an toàn tuyệt đối bằng 70% vốn bot thế chấp.
+              Thành viên cần tiếp cận thanh khoản ngay lập tức trong 30 giây không cần chờ người khác khớp lệnh. Quỹ Quản Trị trực tiếp cấp thanh khoản, áp dụng phí dịch vụ ký quỹ 1.5% - 2.6%/tháng và bảo đảm an toàn bằng 70% vốn ký quỹ.
             </p>
             <div className="grid grid-cols-3 gap-2 pt-1 text-[10px] font-mono text-gray-300">
               <div className="p-2 rounded-xl bg-[#080b12] border border-[#221c10]">
@@ -526,7 +526,7 @@ export const P2pLendingView: React.FC<P2pLendingViewProps> = ({
                 <strong className="text-emerald-400">⚡ 30 Giây</strong>
               </div>
               <div className="p-2 rounded-xl bg-[#080b12] border border-[#221c10]">
-                <span className="text-gray-500 block">Lãi suất vay:</span>
+                <span className="text-gray-500 block">Phí dịch vụ:</span>
                 <strong className="text-[#f5d77f]">1.5% - 2.6%/th</strong>
               </div>
               <div className="p-2 rounded-xl bg-[#080b12] border border-[#221c10]">
@@ -539,22 +539,22 @@ export const P2pLendingView: React.FC<P2pLendingViewProps> = ({
           <div className="p-3.5 rounded-2xl bg-gradient-to-r from-blue-500/10 to-[#05070c] border border-blue-500/30 space-y-2 text-xs">
             <div className="flex items-center justify-between">
               <span className="font-black text-blue-300 flex items-center gap-1.5">
-                <span>THỊ TRƯỜNG CHO VAY NGANG HÀNG GIỮA CÁC KHÁCH HÀNG (COMMUNITY POOL)</span>
+                <span>BỂ ĐIỀU PHỐI THANH KHOẢN NGANG HÀNG CỘNG ĐỒNG (COMMUNITY POOL)</span>
               </span>
               <span className="text-[9px] font-mono px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 font-black">
                 KHỚP LỆNH TỰ ĐỘNG
               </span>
             </div>
             <p className="text-[11px] text-gray-300 font-sans leading-relaxed">
-              Khách hàng có vốn nhàn rỗi (Lender) cho khách hàng cần vốn (Borrower) vay trực tiếp. Người cho vay nhận lãi cố định 1.8% - 2.2%/tháng, người vay trả 2.2% - 2.5%/tháng. Admin đóng vai trò sàn trọng tài thu chênh lệch lãi suất 0.5% - 0.7%/tháng mà không cần bỏ vốn.
+              Thành viên có nguồn thanh khoản sẵn sàng hỗ trợ thành viên cần ký quỹ tạm thời. Bên cấp thanh khoản nhận tỷ lệ phân bổ 1.8% - 2.2%/tháng, bên nhận trả 2.2% - 2.5%/tháng. Nền tảng điều phối với phí dịch vụ 0.5% - 0.7%/tháng.
             </p>
             <div className="grid grid-cols-3 gap-2 pt-1 text-[10px] font-mono text-gray-300">
               <div className="p-2 rounded-xl bg-[#080b12] border border-[#221c10]">
-                <span className="text-gray-500 block">Người cho vay nhận:</span>
+                <span className="text-gray-500 block">Bên cấp nhận:</span>
                 <strong className="text-emerald-400">+1.8% - 2.2%/th</strong>
               </div>
               <div className="p-2 rounded-xl bg-[#080b12] border border-[#221c10]">
-                <span className="text-gray-500 block">Người vay trả:</span>
+                <span className="text-gray-500 block">Bên nhận trả:</span>
                 <strong className="text-[#f5d77f]">2.2% - 2.5%/th</strong>
               </div>
               <div className="p-2 rounded-xl bg-[#080b12] border border-[#221c10]">
@@ -570,8 +570,8 @@ export const P2pLendingView: React.FC<P2pLendingViewProps> = ({
       <div className="spartan-card rounded-3xl p-5 border border-[#221c10] bg-[#080b12] space-y-3 shadow-lg">
         <div className="flex items-center justify-between border-b border-[#221c10] pb-2.5">
           <h3 className="text-xs font-black text-white uppercase tracking-wider flex items-center gap-2">
-            <HandCoins className="w-4 h-4 text-[#f5d77f]" />
-            <span>{lang === 'vi' ? 'SỔ LỆNH CHO VAY ĐANG CHỜ KHỚP (ORDERBOOK)' : 'LIVE LENDING ORDERBOOK'}</span>
+            <TrendingUp className="w-4 h-4 text-emerald-400" />
+            <span>{lang === 'vi' ? 'SỔ LỆNH ĐIỀU PHỐI THANH KHOẢN P2P (ORDERBOOK)' : 'LIVE LIQUIDITY ORDERBOOK'}</span>
           </h3>
           <span className="text-[9px] font-mono text-gray-400">{SAMPLE_P2P_OFFERS.length} Bids</span>
         </div>
@@ -621,8 +621,8 @@ export const P2pLendingView: React.FC<P2pLendingViewProps> = ({
 
         <p className="text-[11px] text-gray-300 font-sans leading-relaxed">
           {lang === 'vi'
-            ? 'Khi Bot Trade AI và Tín Dụng P2P chạy đồng thời, dòng vốn của khách hàng không bao giờ bị rút ra ngoài mà luân chuyển sinh lời đa tầng: Vốn nạp trade bot sinh lãi, khi cần tiền mặt thế chấp 70% sang P2P, bot dùng 30% margin còn lại tự trade trả lãi vay thay bạn.'
-            : 'When Bot Trading and P2P Credit operate simultaneously, capital never exits the ecosystem: Bot generates yields, 70% is pledged for instant cash, and 30% bot margin continues trading to pay loan interest.'}
+            ? 'Khi Bot Trade AI và Tiện ích Ký Quỹ P2P chạy đồng thời, dòng vốn duy trì trạng thái luân chuyển định lượng liên tục: Vốn khởi tạo trade bot tối ưu hiệu suất, khi cần thanh khoản ký quỹ 70% sang P2P, bot dùng 30% margin còn lại tiếp tục vận hành bù đắp chi phí dịch vụ.'
+            : 'When Bot Trading and P2P Escrow operate simultaneously, capital never exits the ecosystem: Bot generates quantitative yields, 70% is escrowed for liquidity, and 30% margin continues trading to offset service fees.'}
         </p>
 
         {/* 4-Step Flywheel Flow Cards */}
@@ -636,7 +636,7 @@ export const P2pLendingView: React.FC<P2pLendingViewProps> = ({
               <span className="text-emerald-400 font-bold">$150,000 USDT</span>
             </div>
             <p className="text-[10px] text-gray-400 font-sans">
-              50 khách nạp bình quân $3,000 USDT vào Bot Trade Vàng XAU/USD, sinh lãi 8% - 12%/tháng và hoa hồng sàn Exness ($7/lot).
+              50 thành viên khởi tạo bình quân $3,000 USDT vào Bot Trade Vàng XAU/USD, hiệu suất định lượng 8% - 12%/tháng và chiết khấu khối lượng giao dịch ($7/lot).
             </p>
           </div>
 
@@ -644,12 +644,12 @@ export const P2pLendingView: React.FC<P2pLendingViewProps> = ({
             <div className="flex items-center justify-between text-blue-400">
               <span className="font-bold flex items-center gap-1.5">
                 <span className="w-4 h-4 rounded-full bg-blue-500/20 flex items-center justify-center text-[10px]">2</span>
-                <span>GIẢI PHÓNG TIỀN MẶT</span>
+                <span>GIẢI PHÓNG THANH KHOẢN</span>
               </span>
               <span className="text-blue-300 font-bold">+$36,750 USDT</span>
             </div>
             <p className="text-[10px] text-gray-400 font-sans">
-              35% khách cần tiền mặt thế chấp 70% vốn bot. Nhận tiền mặt tiêu dùng ngay mà không cần rút vốn bot, tránh mất phí rút vốn.
+              35% thành viên cần tiền mặt ký quỹ 70% vốn bot. Nhận thanh khoản tức thời mà không cần rút vốn, tránh phát sinh phí dịch vụ rút vốn.
             </p>
           </div>
 
@@ -657,12 +657,12 @@ export const P2pLendingView: React.FC<P2pLendingViewProps> = ({
             <div className="flex items-center justify-between text-purple-400">
               <span className="font-bold flex items-center gap-1.5">
                 <span className="w-4 h-4 rounded-full bg-purple-500/20 flex items-center justify-center text-[10px]">3</span>
-                <span>BOT TỰ ĐỘNG TRẢ NỢ</span>
+                <span>TỰ ĐỘNG BÙ ĐẮP DỊCH VỤ</span>
               </span>
               <span className="text-purple-300 font-bold">30% Margin Safe</span>
             </div>
             <p className="text-[10px] text-gray-400 font-sans">
-              Vốn 30% còn lại ($15,750 USDT) vẫn trade bình thường trên sàn. Tiền lãi bot sinh ra tự động khấu trừ trả lãi vay hàng tháng.
+              Vốn 30% còn lại ($15,750 USDT) vẫn vận hành bình thường trên sàn. Hiệu suất định lượng sinh ra tự động khấu trừ chi phí dịch vụ hàng tháng.
             </p>
           </div>
 
@@ -734,7 +734,7 @@ export const P2pLendingView: React.FC<P2pLendingViewProps> = ({
                 <span className="text-[9px] font-mono text-gray-400">THÁNG 5/2027</span>
               </div>
               <p className="text-[11px] text-gray-300 font-sans">
-                Mở sàn cho vay ngang hàng tự do: Khách có tiền nhàn rỗi cho vay nhận 1.8% - 2.2%/tháng, Admin thu phí chênh lệch sàn 0.5% - 0.7%/tháng.
+                Mở thị trường điều phối thanh khoản ngang hàng: Thành viên cấp thanh khoản nhận 1.8% - 2.2%/tháng, nền tảng điều phối với phí dịch vụ 0.5% - 0.7%/tháng.
               </p>
             </div>
           </div>
@@ -777,9 +777,9 @@ export const P2pLendingView: React.FC<P2pLendingViewProps> = ({
         {!isEnrolled && (
           <div className="grid grid-cols-3 gap-2 max-w-sm mx-auto">
             {[
-              { id: 'LENDER' as const, label: lang === 'vi' ? 'NGƯỜI CHO VAY' : 'LENDER' },
-              { id: 'BORROWER' as const, label: lang === 'vi' ? 'NGƯỜI CẦN VAY' : 'BORROWER' },
-              { id: 'BOTH' as const, label: lang === 'vi' ? 'CẢ HAI NHU CẦU' : 'BOTH' }
+              { id: 'LENDER' as const, label: lang === 'vi' ? 'BÊN CẤP VỐN' : 'LIQUIDITY PROVIDER' },
+              { id: 'BORROWER' as const, label: lang === 'vi' ? 'BÊN KÝ QUỸ' : 'ESCROW USER' },
+              { id: 'BOTH' as const, label: lang === 'vi' ? 'CẢ HAI VAI TRÒ' : 'BOTH' }
             ].map((role) => (
               <button
                 key={role.id}

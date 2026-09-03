@@ -35,10 +35,10 @@ export const PersonnelHrTab: React.FC<PersonnelHrTabProps> = ({
     setUpdatingId(userId);
     const success = await updateUserRoleAndTier(userId, { resellerTier: newTier });
     if (success) {
-      setStatusMsg(`✅ Đã cập nhật thành công người dùng ID ${userId} lên CẤP ĐẠI LÝ ${newTier}!`);
+      setStatusMsg(`✅ Đã cập nhật thành công người dùng ID ${userId} lên HẠNG ĐỐI TÁC ${newTier}!`);
       onRefresh();
     } else {
-      setStatusMsg(`❌ Không thể cập nhật cấp bậc cho người dùng ${userId}!`);
+      setStatusMsg(`❌ Không thể cập nhật hạng đối tác cho người dùng ${userId}!`);
     }
     setTimeout(() => setStatusMsg(null), 4000);
     setUpdatingId(null);
@@ -96,7 +96,7 @@ export const PersonnelHrTab: React.FC<PersonnelHrTabProps> = ({
           <div className="flex items-center gap-2">
             <Users className="w-4 h-4 text-[#ff5500]" />
             <h3 className="text-xs font-black text-white uppercase tracking-wider">
-              DANH BẠ QUẢN LÝ NHÂN SỰ & MẠNG LƯỚI ĐẠI LÝ ({filteredUsers.length})
+              DANH BẠ QUẢN LÝ NHÂN SỰ & MẠNG LƯỚI ĐỐI TÁC ({filteredUsers.length})
             </h3>
           </div>
           <span className="text-[10px] font-bold text-gray-400 font-mono">
@@ -123,7 +123,7 @@ export const PersonnelHrTab: React.FC<PersonnelHrTabProps> = ({
               { id: 'ADMIN', label: 'QUẢN TRỊ (ADMIN)' },
               { id: 'ACCOUNTANT', label: 'KẾ TOÁN' },
               { id: 'TECH_OPS', label: 'KỸ THUẬT' },
-              { id: 'RESELLER', label: 'ĐẠI LÝ' },
+              { id: 'RESELLER', label: 'ĐỐI TÁC' },
               { id: 'CLIENT', label: 'NHÀ ĐẦU TƯ' }
             ] as const).map((r) => (
               <button
@@ -204,7 +204,7 @@ export const PersonnelHrTab: React.FC<PersonnelHrTabProps> = ({
                       <span className="font-black text-white">${u.tradingBalance?.toFixed(2) || '0.00'}</span>
                     </div>
                     <div>
-                      <span className="text-gray-400 block text-[8px]">HOA HỒNG:</span>
+                      <span className="text-gray-400 block text-[8px]">CHIẾT KHẤU:</span>
                       <span className="font-black text-[#00df89]">+${u.referralBalance?.toFixed(2) || '0.00'}</span>
                     </div>
                     <div className="text-right">
@@ -225,7 +225,7 @@ export const PersonnelHrTab: React.FC<PersonnelHrTabProps> = ({
                         className="w-full bg-[#131927] border border-[#1f293d] rounded-xl px-2 py-1.5 text-[11px] font-bold text-gray-200 focus:outline-none focus:border-[#ff5500]"
                       >
                         <option value="CLIENT">NHÀ ĐẦU TƯ (Client)</option>
-                        <option value="RESELLER">ĐẠI LÝ (Reseller)</option>
+                        <option value="RESELLER">ĐỐI TÁC (Affiliate Partner)</option>
                         <option value="ACCOUNTANT">KẾ TOÁN (Accountant)</option>
                         <option value="TECH_OPS">KỸ THUẬT (TechOps)</option>
                         <option value="ADMIN">QUẢN TRỊ TỐI CAO (Admin)</option>
@@ -234,7 +234,7 @@ export const PersonnelHrTab: React.FC<PersonnelHrTabProps> = ({
 
                     {/* Tier Selector */}
                     <div>
-                      <label className="text-[9px] text-gray-400 font-bold block mb-1">CẤP BẬC ĐẠI LÝ</label>
+                      <label className="text-[9px] text-gray-400 font-bold block mb-1">HẠNG THÀNH VIÊN ĐỐI TÁC</label>
                       <select
                         value={u.resellerTier || 1}
                         onChange={(e) => handleTierChange(u.telegramId, parseInt(e.target.value, 10))}
@@ -243,7 +243,7 @@ export const PersonnelHrTab: React.FC<PersonnelHrTabProps> = ({
                       >
                         {Array.from({ length: 10 }, (_, i) => i + 1).map((lvl) => (
                           <option key={lvl} value={lvl}>
-                            CẤP ĐỘ {lvl} (Hoàn {lvl * 2}% Phí)
+                            HẠNG {lvl} (Tier {lvl})
                           </option>
                         ))}
                       </select>

@@ -130,7 +130,7 @@ export const AdminOverviewTab: React.FC<AdminOverviewTabProps> = ({
                         {tx.type === 'DEPOSIT' 
                           ? (lang === 'vi' ? 'NẠP TIỀN' : 'DEPOSIT') 
                           : isRef 
-                          ? (lang === 'vi' ? 'RÚT HOA HỒNG' : 'REF WITHDRAW')
+                          ? (lang === 'vi' ? 'RÚT CHIẾT KHẤU' : 'REBATE WITHDRAW')
                           : (lang === 'vi' ? 'RÚT VỐN' : 'WITHDRAW')}
                       </span>
                       <span className="text-xs font-extrabold text-white">@{tx.username}</span>
@@ -497,9 +497,9 @@ export const AdminOverviewTab: React.FC<AdminOverviewTabProps> = ({
                 <span className="text-[10px] text-gray-400 block">• Phí Nạp (9%+3$) & Rút (19%+5$)</span>
               </div>
               <div className="bg-[#05070c] border border-[#221c10] rounded-2xl p-3 space-y-1">
-                <span className="text-[11px] font-black text-[#f5d77f] uppercase block">2. NHÂN SỰ & ĐẠI LÝ F1</span>
+                <span className="text-[11px] font-black text-[#f5d77f] uppercase block">2. NHÂN SỰ & ĐỐI TÁC F1</span>
                 <span className="text-[10px] text-gray-400 block">• Quản lý {users.length} Thành viên</span>
-                <span className="text-[10px] text-gray-400 block">• Ma trận 10 Cấp bậc Reseller</span>
+                <span className="text-[10px] text-gray-400 block">• Ma trận 10 Hạng thành viên đối tác</span>
               </div>
               <div className="bg-[#05070c] border border-[#221c10] rounded-2xl p-3 space-y-1">
                 <span className="text-[11px] font-black text-emerald-400 uppercase block">3. KỸ THUẬT & TÁC CHIẾN</span>

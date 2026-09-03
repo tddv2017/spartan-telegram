@@ -174,7 +174,7 @@ export function calculateP2pCollateralLimits(
     monthlyInterestUsdt,
     tierName,
     errorMessage: !isEligible && cleanRequested > maxCollateralAllowed
-      ? `⛔ VƯỢT TRẦN THẾ CHẤP 70%: Số tiền vay tối đa là $${maxCollateralAllowed.toFixed(2)} USDT (bắt buộc giữ lại $${safetyMarginBuffer.toFixed(2)} USDT đệm an toàn cho Bot)!`
+      ? `⛔ VƯỢT TRẦN KÝ QUỸ 70%: Hạn mức thanh khoản tối đa là $${maxCollateralAllowed.toFixed(2)} USDT (bắt buộc giữ lại $${safetyMarginBuffer.toFixed(2)} USDT đệm an toàn bảo toàn danh mục)!`
       : undefined
   };
 }

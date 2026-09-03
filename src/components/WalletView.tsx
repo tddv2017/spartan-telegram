@@ -225,7 +225,7 @@ export const WalletView: React.FC<WalletViewProps> = ({
         grossAmount: numAmount,
         percentageFee: 0,
         percentageRate: 0,
-        tierName: 'Hoa Hồng Đại Lý (0% Miễn Phí)',
+        tierName: 'Chiết Khấu Đối Tác (0% Miễn Phí)',
         fixedFee: feeConfig.withdrawGasFee || 5.00,
         totalFee: feeConfig.withdrawGasFee || 5.00,
         netAmount: Math.max(0, numAmount - (feeConfig.withdrawGasFee || 5.00)),
@@ -312,7 +312,7 @@ export const WalletView: React.FC<WalletViewProps> = ({
 
     if (isRefSource) {
       if (numAmount > currentRefBalance) {
-        setErrorMessage(`⛔ VƯỢT QUÁ HOA HỒNG: Số tiền rút vượt quá số dư hoa hồng khả dụng ($${currentRefBalance.toFixed(2)} USDT).`);
+        setErrorMessage(`⛔ VƯỢT QUÁ CHIẾT KHẤU: Số tiền rút vượt quá số dư chiết khấu khả dụng ($${currentRefBalance.toFixed(2)} USDT).`);
         return;
       }
 
@@ -327,7 +327,7 @@ export const WalletView: React.FC<WalletViewProps> = ({
           setErrorMessage(res.message);
         }
       } catch (err: any) {
-        setErrorMessage('Lỗi rút hoa hồng: ' + err.message);
+        setErrorMessage('Lỗi rút chiết khấu: ' + err.message);
       } finally {
         setLoading(false);
       }
@@ -877,7 +877,7 @@ export const WalletView: React.FC<WalletViewProps> = ({
                     : 'text-gray-400 hover:text-white'
                 }`}
               >
-                <span>{lang === 'vi' ? 'HOA HỒNG ĐẠI LÝ' : 'AFFILIATE REBATE'}</span>
+                <span>{lang === 'vi' ? 'CHIẾT KHẤU ĐỐI TÁC' : 'PARTNER REBATE'}</span>
                 <span className="text-[10px] font-mono opacity-90">${currentRefBalance.toFixed(2)} USDT</span>
               </button>
             </div>
@@ -885,7 +885,7 @@ export const WalletView: React.FC<WalletViewProps> = ({
 
           <div className="flex items-center justify-between">
             <h3 className="text-xs font-black text-white uppercase tracking-wider">
-              {isRefSource ? (lang === 'vi' ? 'RÚT HOA HỒNG ĐẠI LÝ' : 'WITHDRAW AFFILIATE REBATE') : (lang === 'vi' ? 'RÚT VỐN BOT (CHÍNH SÁCH SPARTAN TREASURY)' : 'WITHDRAW BOT CAPITAL (TREASURY POLICY)')}
+              {isRefSource ? (lang === 'vi' ? 'RÚT CHIẾT KHẤU ĐỐI TÁC' : 'WITHDRAW PARTNER REBATE') : (lang === 'vi' ? 'RÚT VỐN THUẬT TOÁN (CHÍNH SÁCH SPARTAN TREASURY)' : 'WITHDRAW PORTFOLIO CAPITAL (TREASURY POLICY)')}
             </h3>
             <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${
               isRefSource 
@@ -900,7 +900,7 @@ export const WalletView: React.FC<WalletViewProps> = ({
 
           <div className="bg-[#05070c] p-3 rounded-2xl border border-[#221c10] flex items-center justify-between text-xs font-bold">
             <span className="text-gray-400">
-              {isRefSource ? (lang === 'vi' ? 'Hoa Hồng Khả Dụng Để Rút:' : 'Available Rebate for Withdrawal:') : (lang === 'vi' ? 'Số Dư Khả Dụng Để Rút:' : 'Available Balance for Withdrawal:')}
+              {isRefSource ? (lang === 'vi' ? 'Chiết Khấu Khả Dụng Để Rút:' : 'Available Rebate for Withdrawal:') : (lang === 'vi' ? 'Số Dư Khả Dụng Để Rút:' : 'Available Balance for Withdrawal:')}
             </span>
             <span className="text-emerald-400 font-mono text-sm font-black">
               ${currentAvailableWithdraw.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USDT
@@ -909,7 +909,7 @@ export const WalletView: React.FC<WalletViewProps> = ({
 
           <div>
             <label className="text-xs text-gray-400 font-bold block mb-1.5">
-              {isRefSource ? (lang === 'vi' ? 'Số Tiền Hoa Hồng Muốn Rút ($ USD):' : 'Rebate Withdrawal Amount ($ USD):') : (lang === 'vi' ? 'Nhập Số Tiền Muốn Rút ($ USD):' : 'Enter Withdrawal Amount ($ USD):')}
+              {isRefSource ? (lang === 'vi' ? 'Số Tiền Chiết Khấu Muốn Rút ($ USD):' : 'Rebate Withdrawal Amount ($ USD):') : (lang === 'vi' ? 'Nhập Số Tiền Muốn Rút ($ USD):' : 'Enter Withdrawal Amount ($ USD):')}
             </label>
             <div className="relative">
               <input
@@ -1011,7 +1011,7 @@ export const WalletView: React.FC<WalletViewProps> = ({
                     <span>{lang === 'vi' ? 'Cần tiền mặt gấp? Tránh mất phí rút vốn!' : 'Need emergency cash? Avoid exit fee!'}</span>
                   </span>
                   <span className="text-[10px] text-gray-400 font-sans block">
-                    {lang === 'vi' ? 'Thế chấp 70% vốn bot tại [VAY P2P], bot tự động dùng 30% margin trade trả lãi.' : 'Pledge 70% bot equity in [P2P LEND] to get instant cash while bot pays interest.'}
+                    {lang === 'vi' ? 'Ký quỹ bảo đảm 70% tại [KÝ QUỸ P2P] nhận thanh khoản tạm thời, 30% bộ đệm còn lại tiếp tục trade định lượng.' : 'Pledge 70% equity in [P2P ESCROW] for temporary liquidity while 30% margin maintains quant trading.'}
                   </span>
                 </div>
                 <button
@@ -1019,7 +1019,7 @@ export const WalletView: React.FC<WalletViewProps> = ({
                   onClick={() => setMode('p2p_lending')}
                   className="px-2.5 py-1.5 rounded-xl gold-btn-solid text-black text-[10px] font-mono font-black flex-shrink-0 active:scale-95 shadow-md"
                 >
-                  {lang === 'vi' ? 'VAY P2P →' : 'P2P LEND →'}
+                  {lang === 'vi' ? 'KÝ QUỸ P2P →' : 'P2P ESCROW →'}
                 </button>
               </div>
             </div>
@@ -1071,11 +1071,11 @@ export const WalletView: React.FC<WalletViewProps> = ({
             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
             <span>
               {numAmount > currentAvailableWithdraw
-                ? (isRefSource ? (lang === 'vi' ? 'KHÓA (VƯỢT QUÁ HOA HỒNG KHẢ DỤNG)' : 'LOCKED (EXCEEDS AVAILABLE REBATE)') : (lang === 'vi' ? 'KHÓA (SỐ DƯ KHÔNG ĐỦ)' : 'LOCKED (INSUFFICIENT BALANCE)'))
+                ? (isRefSource ? (lang === 'vi' ? 'KHÓA (VƯỢT QUÁ CHIẾT KHẤU KHẢ DỤNG)' : 'LOCKED (EXCEEDS AVAILABLE REBATE)') : (lang === 'vi' ? 'KHÓA (SỐ DƯ KHÔNG ĐỦ)' : 'LOCKED (INSUFFICIENT BALANCE)'))
                 : withdrawBreakdown.netAmount <= 0
                 ? (lang === 'vi' ? 'KHÔNG THỂ RÚT (SỐ TIỀN ÂM)' : 'CANNOT WITHDRAW (NEGATIVE AMOUNT)')
                 : isRefSource
-                ? (lang === 'vi' ? `XÁC NHẬN RÚT HOA HỒNG (THỰC NHẬN $${withdrawBreakdown.netAmount.toFixed(2)} USDT)` : `CONFIRM REBATE WITHDRAWAL (NET $${withdrawBreakdown.netAmount.toFixed(2)} USDT)`)
+                ? (lang === 'vi' ? `XÁC NHẬN RÚT CHIẾT KHẤU (THỰC NHẬN $${withdrawBreakdown.netAmount.toFixed(2)} USDT)` : `CONFIRM REBATE WITHDRAWAL (NET $${withdrawBreakdown.netAmount.toFixed(2)} USDT)`)
                 : (lang === 'vi' ? `XÁC NHẬN RÚT VỐN (THỰC NHẬN $${withdrawBreakdown.netAmount.toFixed(2)} USDT)` : `CONFIRM WITHDRAWAL (NET $${withdrawBreakdown.netAmount.toFixed(2)} USDT)`)}
             </span>
           </button>
@@ -1235,7 +1235,7 @@ export const WalletView: React.FC<WalletViewProps> = ({
                           <>
                             <div className="flex justify-between text-[#00df89] text-[10px] pl-2">
                               <span>  - Phí sàn (Treasury Policy):</span>
-                              <span>0% ($0.00 USDT - MIỄN PHÍ ĐẠI LÝ)</span>
+                              <span>0% ($0.00 USDT - MIỄN PHÍ ĐỐI TÁC)</span>
                             </div>
                             <div className="flex justify-between text-amber-300/90 text-[10px] pl-2">
                               <span>  - Phí On-Chain Gas chuyển tiền (TRC20):</span>

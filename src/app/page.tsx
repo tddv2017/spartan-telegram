@@ -405,14 +405,14 @@ export default function Home() {
               <div>
                 <div className="flex items-center gap-2">
                   <h4 className="text-xs font-black text-white uppercase tracking-wider">
-                    {lang === 'vi' ? 'CHO VAY NGANG HÀNG (P2P)' : 'P2P LENDING MARKET'}
+                    {lang === 'vi' ? 'THANH KHOẢN KÝ QUỸ P2P' : 'P2P MARGIN ESCROW FACILITY'}
                   </h4>
                   <span className="px-1.5 py-0.2 rounded-full bg-[#ff5500]/20 text-[#ff5500] text-[8px] font-mono font-black border border-[#ff5500]/40 animate-pulse">
                     DEV
                   </span>
                 </div>
                 <span className="text-[10px] text-gray-400 font-sans block pt-0.5">
-                  {lang === 'vi' ? 'Lãi suất 1.8% - 2.8%/tháng • Bảo chứng 100% Quỹ Lạnh' : 'Fixed 1.8% - 2.8%/month • 100% Escrow Protected'}
+                  {lang === 'vi' ? 'Ký quỹ bảo đảm 1.5% - 2.6%/tháng • Bảo chứng 100% Quỹ Lạnh' : 'Escrow Facility 1.5% - 2.6%/month • 100% Cold Vault Protected'}
                 </span>
               </div>
             </div>

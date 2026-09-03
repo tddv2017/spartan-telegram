@@ -127,7 +127,7 @@ export const InvestorStatementModal: React.FC<InvestorStatementModalProps> = ({
             </div>
 
             <div className="col-span-2 sm:col-span-1 bg-[#05070c] p-3 rounded-xl border border-[#221c10]">
-              <span className="text-[9px] text-gray-400 uppercase block">{lang === 'vi' ? 'Hoa Hồng Đại Lý:' : 'Affiliate Earnings:'}</span>
+              <span className="text-[9px] text-gray-400 uppercase block">{lang === 'vi' ? 'Chiết Khấu Đối Tác:' : 'Affiliate Rebates:'}</span>
               <span className="text-base font-black text-[#f5d77f]">${referralBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })} USDT</span>
             </div>
           </div>

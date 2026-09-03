@@ -18,14 +18,14 @@ export const translations = {
   bot_stopped: { vi: 'BOT DỪNG', en: 'BOT STOPPED' },
   bot_standby: { vi: 'STANDBY', en: 'STANDBY' },
   rank_supreme: { vi: 'LÃNH ĐẠO TỐI CAO', en: 'SUPREME LEADER' },
-  rank_reseller_prefix: { vi: 'ĐỐI TÁC CẤP', en: 'RESELLER TIER' },
+  rank_reseller_prefix: { vi: 'ĐỐI TÁC HẠNG', en: 'PARTNER TIER' },
   rank_trader: { vi: 'NHÀ ĐẦU TƯ SPARTAN', en: 'SPARTAN TRADER' },
 
   // Balance Card
-  total_balance: { vi: 'Tổng Tài Sản (Gồm Vốn & Hoa Hồng):', en: 'Total Balance (Capital & Rebate):' },
-  trading_capital: { vi: 'Vốn Bot Giao Dịch:', en: 'Trading Capital:' },
-  rebate: { vi: 'Hoa Hồng:', en: 'Rebate:' },
-  accumulated_profit: { vi: 'Lợi Nhuận Tích Lũy Từ Bot:', en: 'Accumulated Bot Profit:' },
+  total_balance: { vi: 'Tổng Tài Sản (Gồm Vốn & Chiết Khấu):', en: 'Total Balance (Capital & Rebates):' },
+  trading_capital: { vi: 'Vốn Giao Dịch Định Lượng:', en: 'Trading Capital:' },
+  rebate: { vi: 'Chiết Khấu Đối Tác:', en: 'Partner Rebates:' },
+  accumulated_profit: { vi: 'Tăng Trưởng Tích Lũy Từ Bot:', en: 'Accumulated Quant Growth:' },
 
   // Action Buttons
   bot_running: { vi: 'BOT ĐANG CHẠY', en: 'BOT ACTIVE' },
@@ -77,8 +77,8 @@ export const translations = {
   btn_paid: { vi: 'TÔI ĐÃ CHUYỂN TIỀN XONG (ĐÃ THANH TOÁN)', en: 'I HAVE COMPLETED PAYMENT' },
   btn_close_qr: { vi: 'ĐÓNG MÃ QR', en: 'CLOSE QR CODE' },
   wallet_withdraw_source_label: { vi: 'Chọn nguồn rút tiền:', en: 'Select Withdrawal Source:' },
-  wallet_withdraw_from_trading: { vi: 'Vốn Bot Giao Dịch (Phí 9% + $3)', en: 'Trading Capital (Fee 9% + $3)' },
-  wallet_withdraw_from_rebate: { vi: 'Hoa Hồng Đối Tác (Phí $5 cố định)', en: 'Affiliate Rebate (Fixed $5 Fee)' },
+  wallet_withdraw_from_trading: { vi: 'Vốn Thuật Toán Giao Dịch (Phí Bậc Thang + $5)', en: 'Trading Capital (Tiered Fee + $5)' },
+  wallet_withdraw_from_rebate: { vi: 'Chiết Khấu Đối Tác (0% Phí Sàn + $5 Gas)', en: 'Partner Rebate (0% Fee + $5 Gas)' },
   wallet_withdraw_addr_label: { vi: 'Địa chỉ ví nhận USDT TRC20:', en: 'Destination USDT TRC20 Address:' },
   wallet_btn_confirm_withdraw: { vi: 'XÁC NHẬN TẠO ĐƠN RÚT TIỀN', en: 'CONFIRM WITHDRAWAL REQUEST' },
   wallet_ledger_title: { vi: 'SỔ CÁI ĐỐI SOÁT GIAO DỊCH (REALTIME)', en: 'TRANSACTION AUDIT LEDGER (REALTIME)' },

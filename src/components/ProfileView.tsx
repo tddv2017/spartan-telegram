@@ -96,7 +96,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
       return;
     }
     if (val > localRefBal) {
-      setWithdrawError(`Số tiền rút vượt quá số dư hoa hồng ($${localRefBal.toFixed(2)} USDT)!`);
+      setWithdrawError(`Số tiền rút vượt quá số dư chiết khấu ($${localRefBal.toFixed(2)} USDT)!`);
       return;
     }
     if (!withdrawAddress.trim() || !withdrawAddress.trim().startsWith('T') || withdrawAddress.trim().length < 30) {
@@ -120,7 +120,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
         setWithdrawError(res.message);
       }
     } catch (err: any) {
-      setWithdrawError('Lỗi rút hoa hồng: ' + err.message);
+      setWithdrawError('Lỗi rút chiết khấu: ' + err.message);
     } finally {
       setWithdrawLoading(false);
     }
@@ -134,7 +134,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
       return;
     }
     if (val > localRefBal) {
-      setReinvestError(`Số tiền tái đầu tư vượt quá số dư hoa hồng ($${localRefBal.toFixed(2)} USDT)!`);
+      setReinvestError(`Số tiền tái đầu tư vượt quá số dư chiết khấu ($${localRefBal.toFixed(2)} USDT)!`);
       return;
     }
 
@@ -593,7 +593,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
 
             <div className="bg-[#05070c] p-3 rounded-2xl border border-[#221c10] space-y-1">
               <div className="flex justify-between text-xs">
-                <span className="text-gray-400">{lang === 'vi' ? 'Hoa hồng hiện có:' : 'Available Rebate:'}</span>
+                <span className="text-gray-400">{lang === 'vi' ? 'Chiết khấu hiện có:' : 'Available Rebate:'}</span>
                 <span className="font-bold text-[#f5d77f] font-mono">${localRefBal.toFixed(2)} USDT</span>
               </div>
               <div className="flex justify-between text-xs">
@@ -617,7 +617,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
             <form onSubmit={handleReinvestSubmit} className="space-y-3">
               <div className="space-y-1">
                 <label className="text-xs text-gray-400 font-bold block">
-                  {lang === 'vi' ? 'Nhập số tiền muốn chuyển vào Vốn Bot ($ USDT):' : 'Enter amount to transfer to Bot Capital ($ USDT):'}
+                  {lang === 'vi' ? 'Nhập số tiền muốn chuyển vào Vốn Thuật Toán ($ USDT):' : 'Enter amount to transfer to Trading Capital ($ USDT):'}
                 </label>
                 <div className="relative">
                   <input
@@ -669,7 +669,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
               <div className="flex items-center gap-2">
                 <ArrowUpRight className="w-5 h-5 text-[#ff2d55]" />
                 <h3 className="text-sm font-black text-white uppercase tracking-wider">
-                  {lang === 'vi' ? 'RÚT HOA HỒNG VỀ VÍ USDT TRC20' : 'WITHDRAW REBATE (USDT TRC20)'}
+                  {lang === 'vi' ? 'RÚT CHIẾT KHẤU VỀ VÍ USDT TRC20' : 'WITHDRAW REBATE (USDT TRC20)'}
                 </h3>
               </div>
               <button
@@ -682,7 +682,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
 
             <div className="bg-[#05070c] p-3 rounded-2xl border border-[#221c10] space-y-1.5 text-xs">
               <div className="flex justify-between">
-                <span className="text-gray-400">{lang === 'vi' ? 'Hoa hồng khả dụng:' : 'Available Rebate:'}</span>
+                <span className="text-gray-400">{lang === 'vi' ? 'Chiết khấu khả dụng:' : 'Available Rebate:'}</span>
                 <span className="font-bold text-[#f5d77f] font-mono">${localRefBal.toFixed(2)} USDT</span>
               </div>
               <div className="flex justify-between">
@@ -716,7 +716,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
             <form onSubmit={handleWithdrawSubmit} className="space-y-3">
               <div className="space-y-1">
                 <label className="text-xs text-gray-400 font-bold block">
-                  {lang === 'vi' ? 'Số tiền hoa hồng muốn rút ($ USDT):' : 'Rebate amount to withdraw ($ USDT):'}
+                  {lang === 'vi' ? 'Số tiền chiết khấu muốn rút ($ USDT):' : 'Rebate amount to withdraw ($ USDT):'}
                 </label>
                 <div className="relative">
                   <input
@@ -759,7 +759,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                   className="flex-1 py-3 rounded-xl bg-gradient-to-r from-[#ff2d55] to-[#ff5500] hover:opacity-90 text-white font-black text-xs uppercase shadow-md transition-all flex items-center justify-center gap-1.5 active:scale-95"
                 >
                   {withdrawLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowUpRight className="w-4 h-4" />}
-                  <span>{lang === 'vi' ? 'XÁC NHẬN RÚT HOA HỒNG' : 'CONFIRM WITHDRAWAL'}</span>
+                  <span>{lang === 'vi' ? 'XÁC NHẬN RÚT CHIẾT KHẤU' : 'CONFIRM WITHDRAWAL'}</span>
                 </button>
                 <button
                   type="button"

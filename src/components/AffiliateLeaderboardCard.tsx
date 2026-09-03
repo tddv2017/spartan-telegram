@@ -94,7 +94,7 @@ export const AffiliateLeaderboardCard: React.FC<AffiliateLeaderboardCardProps> =
           </div>
           <div>
             <h3 className="text-xs font-black text-white uppercase tracking-wider flex items-center gap-1.5">
-              <span>{lang === 'vi' ? 'BẢNG VINH DANH TOP ĐẠI LÝ F1' : 'AFFILIATE LEADERBOARD'}</span>
+              <span>{lang === 'vi' ? 'BẢNG VINH DANH TOP ĐỐI TÁC F1' : 'AFFILIATE PARTNER LEADERBOARD'}</span>
               <span className="text-[8px] font-black gold-btn-solid text-black px-1.5 py-0.2 rounded uppercase font-mono">
                 TOP 5
               </span>

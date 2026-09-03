@@ -121,7 +121,7 @@ export const NotificationModal: React.FC<NotificationModalProps> = ({
             { id: 'ALL', label: `TẤT CẢ (${notifications.length})` },
             { id: 'TRANSACTIONS', label: 'NẠP & RÚT' },
             { id: 'BROADCAST', label: 'HỆ THỐNG' },
-            { id: 'AFFILIATE', label: 'HOA HỒNG' },
+            { id: 'AFFILIATE', label: 'CHIẾT KHẤU' },
           ].map((tab) => (
             <button
               key={tab.id}

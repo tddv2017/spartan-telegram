@@ -184,7 +184,7 @@ export const AdminUserCrudManager: React.FC<AdminUserCrudManagerProps> = ({
           </div>
           <div>
             <h3 className="text-sm font-black text-white uppercase tracking-wider">
-              QUẢN LÝ NGƯỜI DÙNG & ĐẠI LÝ F1 (FULL CRUD)
+              QUẢN LÝ TÀI KHOẢN & ĐỐI TÁC F1 (FULL CRUD)
             </h3>
             <span className="text-[10px] text-gray-400 font-mono block">
               Tổng số: {users.length} thành viên | Hiển thị: {filteredUsers.length} kết quả
@@ -229,7 +229,7 @@ export const AdminUserCrudManager: React.FC<AdminUserCrudManagerProps> = ({
           {([
             { id: 'ALL', label: 'TẤT CẢ' },
             { id: 'CLIENT', label: 'CLIENT' },
-            { id: 'RESELLER', label: 'ĐẠI LÝ' },
+            { id: 'RESELLER', label: 'ĐỐI TÁC' },
             { id: 'ACCOUNTANT', label: 'KẾ TOÁN' },
             { id: 'TECH_OPS', label: 'KỸ THUẬT' },
             { id: 'ADMIN', label: 'ADMIN' },
@@ -258,9 +258,9 @@ export const AdminUserCrudManager: React.FC<AdminUserCrudManagerProps> = ({
                 <th className="py-3 px-4">THÀNH VIÊN</th>
                 <th className="py-3 px-4">TELEGRAM ID</th>
                 <th className="py-3 px-4">VAI TRÒ</th>
-                <th className="py-3 px-4">CẤP BẬC F1</th>
-                <th className="py-3 px-4 text-right">VỐN BOT (USD)</th>
-                <th className="py-3 px-4 text-right">HOA HỒNG (USD)</th>
+                <th className="py-3 px-4">HẠNG ĐỐI TÁC</th>
+                <th className="py-3 px-4 text-right">VỐN THUẬT TOÁN (USD)</th>
+                <th className="py-3 px-4 text-right">CHIẾT KHẤU (USD)</th>
                 <th className="py-3 px-4 text-center">TRẠNG THÁI</th>
                 <th className="py-3 px-4 text-center">THAO TÁC (CRUD)</th>
               </tr>
@@ -439,7 +439,7 @@ export const AdminUserCrudManager: React.FC<AdminUserCrudManagerProps> = ({
                   />
                 </div>
                 <div>
-                  <label className="text-[10px] font-bold text-gray-400 block mb-1">Hoa Hồng Khởi Tạo ($ USD):</label>
+                  <label className="text-[10px] font-bold text-gray-400 block mb-1">Chiết Khấu Khởi Tạo ($ USD):</label>
                   <input
                     type="number"
                     step="0.01"
@@ -459,21 +459,21 @@ export const AdminUserCrudManager: React.FC<AdminUserCrudManagerProps> = ({
                     className="w-full bg-[#131927] border border-[#1f293d] rounded-xl px-3 py-2 text-white font-bold focus:outline-none focus:border-purple-400"
                   >
                     <option value="CLIENT">CLIENT (Nhà đầu tư)</option>
-                    <option value="RESELLER">RESELLER (Đại lý)</option>
+                    <option value="RESELLER">RESELLER (Đối tác)</option>
                     <option value="ACCOUNTANT">ACCOUNTANT (Kế toán)</option>
                     <option value="TECH_OPS">TECH_OPS (Kỹ thuật)</option>
                     <option value="ADMIN">ADMIN (Quản trị tối cao)</option>
                   </select>
                 </div>
                 <div>
-                  <label className="text-[10px] font-bold text-gray-400 block mb-1">Cấp Bậc Đại Lý (1-10):</label>
+                  <label className="text-[10px] font-bold text-gray-400 block mb-1">Hạng Thành Viên Đối Tác (1-10):</label>
                   <select
                     value={createForm.resellerTier}
                     onChange={(e) => setCreateForm({ ...createForm, resellerTier: parseInt(e.target.value, 10) })}
                     className="w-full bg-[#131927] border border-[#1f293d] rounded-xl px-3 py-2 text-amber-300 font-mono font-bold focus:outline-none focus:border-purple-400"
                   >
                     {Array.from({ length: 10 }, (_, i) => i + 1).map((lvl) => (
-                      <option key={lvl} value={lvl}>CẤP ĐỘ {lvl} (Hoàn {lvl * 2}% Phí)</option>
+                      <option key={lvl} value={lvl}>HẠNG {lvl} (Tier {lvl})</option>
                     ))}
                   </select>
                 </div>
@@ -554,7 +554,7 @@ export const AdminUserCrudManager: React.FC<AdminUserCrudManagerProps> = ({
                   />
                 </div>
                 <div>
-                  <label className="text-[10px] font-bold text-gray-400 block mb-1">Hoa Hồng Khả Dụng ($ USD):</label>
+                  <label className="text-[10px] font-bold text-gray-400 block mb-1">Chiết Khấu Khả Dụng ($ USD):</label>
                   <input
                     type="number"
                     step="0.01"
@@ -574,21 +574,21 @@ export const AdminUserCrudManager: React.FC<AdminUserCrudManagerProps> = ({
                     className="w-full bg-[#131927] border border-[#1f293d] rounded-xl px-3 py-2 text-white font-bold focus:outline-none focus:border-cyan-400"
                   >
                     <option value="CLIENT">CLIENT (Nhà đầu tư)</option>
-                    <option value="RESELLER">RESELLER (Đại lý)</option>
+                    <option value="RESELLER">RESELLER (Đối tác)</option>
                     <option value="ACCOUNTANT">ACCOUNTANT (Kế toán)</option>
                     <option value="TECH_OPS">TECH_OPS (Kỹ thuật)</option>
                     <option value="ADMIN">ADMIN (Quản trị tối cao)</option>
                   </select>
                 </div>
                 <div>
-                  <label className="text-[10px] font-bold text-gray-400 block mb-1">Cấp Bậc Đại Lý (1-10):</label>
+                  <label className="text-[10px] font-bold text-gray-400 block mb-1">Hạng Thành Viên Đối Tác (1-10):</label>
                   <select
                     value={editForm.resellerTier}
                     onChange={(e) => setEditForm({ ...editForm, resellerTier: parseInt(e.target.value, 10) })}
                     className="w-full bg-[#131927] border border-[#1f293d] rounded-xl px-3 py-2 text-amber-300 font-mono font-bold focus:outline-none focus:border-cyan-400"
                   >
                     {Array.from({ length: 10 }, (_, i) => i + 1).map((lvl) => (
-                      <option key={lvl} value={lvl}>CẤP ĐỘ {lvl} (Hoàn {lvl * 2}% Phí)</option>
+                      <option key={lvl} value={lvl}>HẠNG {lvl} (Tier {lvl})</option>
                     ))}
                   </select>
                 </div>
