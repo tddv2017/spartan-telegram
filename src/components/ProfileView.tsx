@@ -18,12 +18,18 @@ import {
   Loader2,
   Zap,
   ArrowRight,
-  FileText
+  FileText,
+  TrendingUp,
+  Coins,
+  Flame,
+  Sparkles,
+  Target,
+  Gift
 } from 'lucide-react';
 import { subscribeToReferredUsers, reinvestReferralBalance, withdrawReferralBalance } from '@/lib/firebaseService';
 import { getUserRankInfo } from './Header';
 import { checkIsAdmin } from '@/lib/adminAuth';
-import { calculateResellerTier } from '@/lib/resellerEngine';
+import { calculateResellerTier, RESELLER_TIERS_MATRIX, ResellerTierInfo } from '@/lib/resellerEngine';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { InvestorStatementModal } from '@/components/InvestorStatementModal';
 import { AffiliateLeaderboardCard } from '@/components/AffiliateLeaderboardCard';
@@ -70,7 +76,8 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
   const [withdrawLoading, setWithdrawLoading] = useState(false);
   const [withdrawSuccess, setWithdrawSuccess] = useState<string | null>(null);
   const [withdrawError, setWithdrawError] = useState<string | null>(null);
-  const [showTierMatrix, setShowTierMatrix] = useState(false);
+  const [showTierMatrix, setShowTierMatrix] = useState(true);
+  const [selectedGoalF1s, setSelectedGoalF1s] = useState<number>(10);
   const [isStatementOpen, setIsStatementOpen] = useState(false);
 
   useEffect(() => {
@@ -170,19 +177,6 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // 10-LEVEL RESELLER SYSTEM SPECIFICATION (LEVEL 1 BASE TO LEVEL 10 MASTER 20%)
-  const resellerLevelsList = [
-    { level: 10, title: 'LEVEL 10 (TOP MASTER)', share: '20% FEE REBATE', req: 'Master Reseller ($100kU Volume)', badge: 'bg-[#ff5500]/20 text-[#ff5500] border-[#ff5500]/40' },
-    { level: 9, title: 'LEVEL 9', share: '18% FEE REBATE', req: '$75,000U Volume Requirement', badge: 'bg-amber-500/20 text-amber-300 border-amber-500/40' },
-    { level: 8, title: 'LEVEL 8', share: '16% FEE REBATE', req: '$50,000U Volume Requirement', badge: 'bg-purple-500/20 text-purple-300 border-purple-500/40' },
-    { level: 7, title: 'LEVEL 7', share: '14% FEE REBATE', req: '$35,000U Volume Requirement', badge: 'bg-blue-500/20 text-blue-300 border-blue-500/40' },
-    { level: 6, title: 'LEVEL 6', share: '12% FEE REBATE', req: '$20,000U Volume Requirement', badge: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' },
-    { level: 5, title: 'LEVEL 5', share: '10% FEE REBATE', req: '$10,000U Volume Requirement', badge: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40' },
-    { level: 4, title: 'LEVEL 4', share: '8% FEE REBATE', req: '$5,000U Volume Requirement', badge: 'bg-teal-500/20 text-teal-300 border-teal-500/40' },
-    { level: 3, title: 'LEVEL 3', share: '6% FEE REBATE', req: '10 Active F1s (6% Fee Rebate)', badge: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40' },
-    { level: 2, title: 'LEVEL 2', share: '4% FEE REBATE', req: '5 Active F1s (4% Fee Rebate)', badge: 'bg-rose-500/20 text-rose-300 border-rose-500/40' },
-    { level: 1, title: 'LEVEL 1 (STARTING)', share: '2% FEE REBATE', req: 'Starting Reseller Tier', badge: 'bg-gray-800 text-gray-300 border-gray-700' },
-  ];
 
   return (
     <div className="w-full space-y-4 pb-20">
@@ -297,67 +291,218 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
         </div>
       </div>
 
-      {/* 2. COLLAPSIBLE 10 RESELLER TIERS SPECIFICATION ACCORDION */}
-      <div className="spartan-card rounded-3xl p-4 border border-[#221c10] bg-[#080b12] space-y-3 shadow-md">
-        <button
-          type="button"
-          onClick={() => setShowTierMatrix(!showTierMatrix)}
-          className="w-full flex items-center justify-between text-left"
-        >
-          <div className="flex items-center gap-2">
-            <Trophy className="w-4 h-4 text-[#f5d77f]" />
-            <h3 className="text-xs font-black text-white uppercase tracking-wider">
-              {t('tier_matrix_title')}
-            </h3>
+      {/* 2. BẢNG GIỚI THIỆU CÁC MỨC HƯỞNG HOA HỒNG ĐẠI LÝ F1 (10 CẤP RESELLER) */}
+      <div className="spartan-card rounded-3xl p-5 border border-[#221c10] bg-[#080b12] space-y-4 shadow-xl">
+        {/* Header & Badges */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#221c10] pb-3">
+          <div className="flex items-center gap-2.5">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-[#d4af37]/20 to-amber-500/10 border border-[#d4af37]/40 flex items-center justify-center shadow-[0_0_12px_rgba(212,175,55,0.2)]">
+              <Trophy className="w-5 h-5 text-[#f5d77f]" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="text-sm font-black text-white uppercase tracking-wider">
+                  {lang === 'vi' ? 'QUYỀN LỢI & BIỂU PHÍ HOA HỒNG ĐẠI LÝ F1' : 'F1 RESELLER COMMISSION & INCENTIVE HUB'}
+                </h3>
+                <span className="text-[9px] font-black text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                  {lang === 'vi' ? 'SẺ THỊT 10 CẤP' : 'GENEROUS 10-TIER'}
+                </span>
+              </div>
+              <p className="text-[11px] text-gray-400 mt-0.5">
+                {lang === 'vi'
+                  ? 'Dòng tiền kép: Hoa hồng nạp tức thì (15% - 50%) + Lương hưu thụ động từ Lãi Bot HWM (10% - 35%)'
+                  : 'Dual cash flow: Instant deposit rebate (15% - 50%) + Lifetime HWM bot profit royalty (10% - 35%)'}
+              </p>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="text-[9px] font-black text-[#f5d77f] bg-[#d4af37]/15 px-2 py-0.5 rounded-full border border-[#d4af37]/35">
-              {isAdmin ? '👑 SUPREME LEADER' : `${t('ref_current_tier')}: ${effectiveTier}`}
-            </span>
-            <span className="text-xs text-gray-400 font-bold">
-              {showTierMatrix ? '▲' : '▼'}
-            </span>
-          </div>
-        </button>
 
-        {showTierMatrix && (
-          <div className="space-y-2 max-h-64 overflow-y-auto pr-1.5 pt-2 border-t border-[#221c10] scrollbar-thin scrollbar-thumb-[#d4af37]/40 scrollbar-track-[#05070c] animate-in fade-in duration-200">
-            {resellerLevelsList.map((item) => {
-              const isCurrent = !isAdmin && effectiveTier === item.level;
+          <div className="flex items-center gap-2 self-end sm:self-auto">
+            <span className="text-[10px] font-black text-[#f5d77f] bg-[#d4af37]/15 px-3 py-1 rounded-full border border-[#d4af37]/35 shadow-[0_0_10px_rgba(212,175,55,0.2)]">
+              {isAdmin ? '👑 SUPREME LEADER' : `${t('ref_current_tier')}: CẤP ${effectiveTier}`}
+            </span>
+            <button
+              type="button"
+              onClick={() => setShowTierMatrix(!showTierMatrix)}
+              className="px-2.5 py-1 rounded-xl bg-[#0e131f] border border-[#221c10] text-xs text-gray-400 hover:text-white font-bold transition-all"
+            >
+              {showTierMatrix ? '▲ Thu gọn' : '▼ Xem chi tiết'}
+            </button>
+          </div>
+        </div>
+
+        {/* 3 Trụ Cột Quyền Lợi "Sẻ Thịt" Đột Phá */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
+          <div className="bg-[#05070c] p-3.5 rounded-2xl border border-emerald-500/20 space-y-1 shadow-sm">
+            <div className="flex items-center gap-2 text-emerald-400 font-black text-xs">
+              <Coins className="w-4 h-4" />
+              <span>1. HOA HỒNG NẠP TIỀN</span>
+            </div>
+            <div className="text-base font-black text-white font-mono">
+              15.0% - 50.0% <span className="text-[10px] text-emerald-400 font-sans font-bold">(50/50 Sàn)</span>
+            </div>
+            <p className="text-[10px] text-gray-400">
+              Nhận ngay <strong className="text-emerald-300 font-mono">+$13.50 đến +$45.00 USDT</strong> khi mỗi khách F1 nạp $1,000U. Tiền tươi vào ví ngay lập tức!
+            </p>
+          </div>
+
+          <div className="bg-[#05070c] p-3.5 rounded-2xl border border-cyan-500/20 space-y-1 shadow-sm">
+            <div className="flex items-center gap-2 text-cyan-400 font-black text-xs">
+              <TrendingUp className="w-4 h-4" />
+              <span>2. LƯƠNG HƯU THỤ ĐỘNG HWM</span>
+            </div>
+            <div className="text-base font-black text-white font-mono">
+              10.0% - 35.0% <span className="text-[10px] text-cyan-400 font-sans font-bold">Lãi Vượt Đỉnh</span>
+            </div>
+            <p className="text-[10px] text-gray-400">
+              Trích từ $20\%$ phí hiệu quả bot chốt lời hàng tuần/tháng. Bot sinh lãi đỉnh $\rightarrow$ Đại lý có dòng tiền thụ động trọn đời!
+            </p>
+          </div>
+
+          <div className="bg-[#05070c] p-3.5 rounded-2xl border border-amber-500/20 space-y-1 shadow-sm">
+            <div className="flex items-center gap-2 text-amber-400 font-black text-xs">
+              <Sparkles className="w-4 h-4" />
+              <span>3. CHỢ P2P & THẾ CHẤP MARGIN</span>
+            </div>
+            <div className="text-base font-black text-white font-mono">
+              35.0% <span className="text-[10px] text-amber-400 font-sans font-bold">Phí Giao Dịch Sàn</span>
+            </div>
+            <p className="text-[10px] text-gray-400">
+              Nhận $35\%$ phí khớp lệnh nạp/rút OTC và $10\%$ tiền lãi vay margin của khách F1 khi thế chấp vốn chạy bot.
+            </p>
+          </div>
+        </div>
+
+        {/* Thước Đo Mục Tiêu Thu Nhập Cho Đại Lý (Interactive Goal Simulator) */}
+        <div className="p-3.5 rounded-2xl bg-gradient-to-r from-[#0d121f] to-[#080b12] border border-[#d4af37]/30 space-y-2.5 shadow-inner">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Target className="w-4 h-4 text-[#f5d77f]" />
+              <span className="text-xs font-black text-white uppercase tracking-wider">
+                {lang === 'vi' ? '🎯 MỤC TIÊU PHÁT TRIỂN & MÔ PHỎNG THU NHẬP' : '🎯 RESELLER INCOME PROJECTION'}
+              </span>
+            </div>
+            <span className="text-[10px] text-gray-400 font-medium">Chọn nấc thang mục tiêu:</span>
+          </div>
+
+          {/* Quick Selectors */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            {[
+              { f1s: 5, label: '5 F1s (Cấp 2)', total: '150 - 300' },
+              { f1s: 10, label: '10 F1s (Cấp 3)', total: '300 - 600' },
+              { f1s: 25, label: '25 F1s (Cấp 5)', total: '1,000 - 1,500' },
+              { f1s: 50, label: '50 F1s (Cấp 10 Master)', total: '5,500 - 12,000+' }
+            ].map((goal) => {
+              const isSelected = selectedGoalF1s === goal.f1s;
               return (
-                <div
-                  key={item.level}
-                  className={`p-2.5 rounded-2xl border flex items-center justify-between transition-all ${
-                    isCurrent
-                      ? 'bg-[#0f1422] border-[#d4af37] shadow-[0_0_15px_rgba(212,175,55,0.25)]'
-                      : 'bg-[#05070c] border-[#221c10]'
+                <button
+                  key={goal.f1s}
+                  type="button"
+                  onClick={() => setSelectedGoalF1s(goal.f1s)}
+                  className={`p-2 rounded-xl text-left border transition-all ${
+                    isSelected
+                      ? 'bg-[#d4af37]/15 border-[#d4af37] text-white shadow-[0_0_10px_rgba(212,175,55,0.3)]'
+                      : 'bg-[#05070c] border-[#1f293d] text-gray-400 hover:border-gray-600'
                   }`}
                 >
-                  <div className="flex items-center gap-2.5">
-                    <span className="text-sm font-black text-[#f5d77f]">🎖️</span>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className={`text-xs font-black uppercase tracking-wider ${item.badge.split(' ')[1]}`}>
-                          {item.title}
-                        </span>
-                        {isCurrent && (
-                          <span className="text-[9px] font-black px-1.5 py-0.2 bg-[#d4af37] text-black rounded uppercase">
-                            {t('ref_your_tier')}
-                          </span>
-                        )}
-                      </div>
-                      <span className="text-[10px] text-gray-400 block mt-0.5">{item.req}</span>
-                    </div>
+                  <div className="text-[11px] font-black text-white">{goal.label}</div>
+                  <div className="text-[10px] font-mono text-[#f5d77f] font-bold mt-0.5">
+                    ~${goal.total} U/tháng
                   </div>
-
-                  <div className="text-right">
-                    <span className="text-xs font-mono font-black text-emerald-400 block">
-                      {item.share}
-                    </span>
-                  </div>
-                </div>
+                </button>
               );
             })}
+          </div>
+
+          {/* Dynamic Projection Result */}
+          {(() => {
+            const goalData = [
+              { f1s: 5, tierName: 'CẤP 2', depRebate: 90, hwmMonthly: 80, totalMonthly: '150 - 300' },
+              { f1s: 10, tierName: 'CẤP 3 (SPARTAN)', depRebate: 225, hwmMonthly: 200, totalMonthly: '300 - 600' },
+              { f1s: 25, tierName: 'CẤP 5 (LEADER)', depRebate: 787, hwmMonthly: 670, totalMonthly: '1,000 - 1,500' },
+              { f1s: 50, tierName: 'CẤP 10 (MASTER VIP)', depRebate: 2250, hwmMonthly: 2330, totalMonthly: '5,500 - 12,000+' }
+            ].find(g => g.f1s === selectedGoalF1s) || { f1s: 10, tierName: 'CẤP 3', depRebate: 225, hwmMonthly: 200, totalMonthly: '300 - 600' };
+
+            return (
+              <div className="bg-[#05070c] p-3 rounded-xl border border-[#221c10] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs font-mono">
+                <div>
+                  <span className="text-gray-400 block text-[10px]">ƯỚC TÍNH VỚI MỤC TIÊU {selectedGoalF1s} F1s ({goalData.tierName}):</span>
+                  <div className="flex items-center gap-3 text-gray-300 text-[11px] mt-0.5">
+                    <span>💵 Nạp tươi: <strong className="text-emerald-400">+${goalData.depRebate} USDT</strong></span>
+                    <span>📈 Lãi HWM: <strong className="text-cyan-400">+${goalData.hwmMonthly} USDT/tháng</strong></span>
+                  </div>
+                </div>
+                <div className="text-right self-end sm:self-auto">
+                  <span className="text-[10px] text-amber-400 block uppercase font-bold">Thu nhập dự kiến:</span>
+                  <span className="text-sm font-black text-[#f5d77f]">
+                    ${goalData.totalMonthly} USDT/tháng
+                  </span>
+                </div>
+              </div>
+            );
+          })()}
+        </div>
+
+        {/* Danh Sách 10 Cấp Bậc Ma Trận (Hiển Thị Đầy Đủ) */}
+        {showTierMatrix && (
+          <div className="space-y-2 pt-2 border-t border-[#221c10] animate-in fade-in duration-200">
+            <div className="flex items-center justify-between text-[10px] font-bold text-gray-500 uppercase px-1">
+              <span>CẤP BẬC & ĐIỀU KIỆN ĐẠT CẤP</span>
+              <span>QUYỀN LỢI PHÍ NẠP & LÃI HWM</span>
+            </div>
+
+            <div className="space-y-2 max-h-96 overflow-y-auto pr-1.5 scrollbar-thin scrollbar-thumb-[#d4af37]/40 scrollbar-track-[#05070c]">
+              {RESELLER_TIERS_MATRIX.map((item) => {
+                const isCurrent = !isAdmin && effectiveTier === item.tier;
+                return (
+                  <div
+                    key={item.tier}
+                    className={`p-3 rounded-2xl border transition-all ${
+                      isCurrent
+                        ? 'bg-[#0f1422] border-[#d4af37] shadow-[0_0_18px_rgba(212,175,55,0.3)] ring-1 ring-[#d4af37]/60'
+                        : 'bg-[#05070c] border-[#221c10] hover:border-gray-700'
+                    }`}
+                  >
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-xl bg-[#0b0e17] border border-[#221c10] flex items-center justify-center font-mono font-black text-amber-400 text-xs">
+                          T{item.tier}
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className={`text-xs font-black uppercase tracking-wider ${item.badgeStyle.split(' ')[1]}`}>
+                              {item.rankName}
+                            </span>
+                            {isCurrent && (
+                              <span className="text-[9px] font-black px-2 py-0.5 bg-[#d4af37] text-black rounded-full uppercase shadow-[0_0_8px_rgba(212,175,55,0.4)]">
+                                {t('ref_your_tier')}
+                              </span>
+                            )}
+                          </div>
+                          <span className="text-[10px] text-gray-400 block mt-0.5">{item.requirementText}</span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between sm:justify-end gap-3 text-right pt-2 sm:pt-0 border-t sm:border-t-0 border-[#1f293d]/40">
+                        <div className="text-left sm:text-right">
+                          <span className="text-xs font-mono font-black text-emerald-400 block">
+                            {item.depositRebatePct}% Phí Nạp ({item.depositPer1k})
+                          </span>
+                          <span className="text-[10px] font-mono text-cyan-400 font-bold block">
+                            +{item.hwmRebatePct}% Lãi Bot HWM
+                          </span>
+                        </div>
+                        <div className="pl-2 border-l border-[#1f293d]/60 text-right">
+                          <span className="text-[9px] text-gray-500 block uppercase">Thu nhập:</span>
+                          <span className="text-[11px] font-mono font-black text-[#f5d77f] whitespace-nowrap block">
+                            {item.estimatedMonthlyIncome}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         )}
       </div>
