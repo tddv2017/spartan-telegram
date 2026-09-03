@@ -24,8 +24,10 @@ import {
 import { generateUserNotifications, AppNotification } from '@/lib/notificationService';
 import { startAutoScanWorker } from '@/lib/tronService';
 import { CheckCircle2, Lock, Wrench, ShieldAlert, AlertTriangle, ExternalLink } from 'lucide-react';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function Home() {
+  const { t, lang } = useLanguage();
   const [activeTab, setActiveTab] = useState<TabType>('home');
   const [tradingBalance, setTradingBalance] = useState<number>(0.00);
   const [referralsIncome, setReferralsIncome] = useState<number>(0.00);
@@ -41,6 +43,7 @@ export default function Home() {
   const [userFirstName, setUserFirstName] = useState<string>('');
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
   const [syncStatus, setSyncStatus] = useState<string | null>(null);
+  const [walletInitialMode, setWalletInitialMode] = useState<'deposit' | 'withdraw' | 'p2p_lending'>('deposit');
 
   // Notification Modal & Transactions state
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
@@ -382,6 +385,39 @@ export default function Home() {
           />
 
           <QuantStrategyCard />
+
+          {/* Institutional P2P Lending Teaser Card */}
+          <div 
+            onClick={() => {
+              setWalletInitialMode('p2p_lending');
+              setActiveTab('wallet');
+            }}
+            className="spartan-card rounded-3xl p-4 border border-[#221c10] bg-gradient-to-r from-[#080b12] to-[#141b2a] flex items-center justify-between cursor-pointer hover:border-[#d4af37]/60 active:scale-[0.98] transition-all shadow-md group"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-11 h-11 rounded-2xl bg-[#d4af37]/15 border border-[#d4af37]/40 flex items-center justify-center text-xl text-[#f5d77f] group-hover:scale-110 transition-transform">
+                🤝
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h4 className="text-xs font-black text-white uppercase tracking-wider">
+                    {lang === 'vi' ? 'CHO VAY NGANG HÀNG (P2P)' : 'P2P LENDING MARKET'}
+                  </h4>
+                  <span className="px-1.5 py-0.2 rounded-full bg-[#ff5500]/20 text-[#ff5500] text-[8px] font-mono font-black border border-[#ff5500]/40 animate-pulse">
+                    DEV
+                  </span>
+                </div>
+                <span className="text-[10px] text-gray-400 font-sans block pt-0.5">
+                  {lang === 'vi' ? 'Lãi suất 1.8% - 2.8%/tháng • Bảo chứng 100% Quỹ Lạnh' : 'Fixed 1.8% - 2.8%/month • 100% Escrow Protected'}
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-1 text-[#f5d77f] text-xs font-bold font-mono group-hover:translate-x-1 transition-transform">
+              <span className="hidden sm:inline">{lang === 'vi' ? 'XEM NGAY' : 'EXPLORE'}</span>
+              <span>→</span>
+            </div>
+          </div>
         </div>
       )}
 
@@ -393,6 +429,7 @@ export default function Home() {
             onUpdateBalance={handleUpdateBalance} 
             telegramId={currentTelegramId}
             username={currentTelegramUser}
+            initialMode={walletInitialMode}
           />
         </div>
       )}

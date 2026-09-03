@@ -25,13 +25,15 @@ import {
   AlertTriangle,
   ExternalLink,
   Camera,
-  Sparkles
+  Sparkles,
+  Users
 } from 'lucide-react';
 import { calculateDepositFee, calculateWithdrawFee } from '@/lib/feeCalculator';
 import { createLiveTransaction, withdrawReferralBalance, subscribeToUserTransactions, TransactionData, RiskAgreementRecord } from '@/lib/firebaseService';
 import { fetchTreasuryVault, DEFAULT_TREASURY_VAULT } from '@/lib/walletConfig';
 import { ReceiptAiAppealModal } from '@/components/ReceiptAiAppealModal';
 import { RiskDisclosureModal } from '@/components/RiskDisclosureModal';
+import { P2pLendingView } from '@/components/P2pLendingView';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 interface WalletViewProps {
@@ -40,6 +42,7 @@ interface WalletViewProps {
   onUpdateBalance: (newBalance: number) => void;
   telegramId?: string;
   username?: string;
+  initialMode?: 'deposit' | 'withdraw' | 'p2p_lending';
 }
 
 export const WalletView: React.FC<WalletViewProps> = ({
@@ -48,9 +51,10 @@ export const WalletView: React.FC<WalletViewProps> = ({
   onUpdateBalance,
   telegramId = '494232782',
   username = 'tddv2017',
+  initialMode = 'deposit',
 }) => {
   const { t, lang } = useLanguage();
-  const [mode, setMode] = useState<'deposit' | 'withdraw'>('deposit');
+  const [mode, setMode] = useState<'deposit' | 'withdraw' | 'p2p_lending'>(initialMode);
   const [withdrawSource, setWithdrawSource] = useState<'trading' | 'referral'>('trading');
   const [amount, setAmount] = useState<string>('100');
   const [copied, setCopied] = useState(false);
@@ -486,30 +490,45 @@ export const WalletView: React.FC<WalletViewProps> = ({
         </div>
       )}
 
-      {/* Primary Mode Switcher: Deposit vs Withdraw */}
-      <div className="grid grid-cols-2 p-1.5 bg-[#05070c] rounded-2xl border border-[#221c10]">
+      {/* Primary Mode Switcher: Deposit vs Withdraw vs P2P Lending */}
+      <div className="grid grid-cols-3 gap-1.5 p-1.5 bg-[#05070c] rounded-2xl border border-[#221c10]">
         <button
           onClick={() => { setMode('deposit'); setErrorMessage(null); }}
-          className={`py-2.5 rounded-xl text-xs font-black flex items-center justify-center gap-2 transition-all ${
+          className={`py-2.5 rounded-xl text-xs font-black flex items-center justify-center gap-1.5 transition-all ${
             mode === 'deposit'
               ? 'spartan-cta-btn text-white shadow-md'
               : 'text-gray-400 hover:text-white'
           }`}
         >
-          <ArrowDownLeft className="w-4 h-4" />
+          <ArrowDownLeft className="w-3.5 h-3.5" />
           <span>{t('tab_deposit')}</span>
         </button>
 
         <button
           onClick={() => { setMode('withdraw'); setErrorMessage(null); }}
-          className={`py-2.5 rounded-xl text-xs font-black flex items-center justify-center gap-2 transition-all ${
+          className={`py-2.5 rounded-xl text-xs font-black flex items-center justify-center gap-1.5 transition-all ${
             mode === 'withdraw'
               ? 'spartan-cta-btn text-white shadow-md'
               : 'text-gray-400 hover:text-white'
           }`}
         >
-          <ArrowUpRight className="w-4 h-4" />
+          <ArrowUpRight className="w-3.5 h-3.5" />
           <span>{t('tab_withdraw')}</span>
+        </button>
+
+        <button
+          onClick={() => { setMode('p2p_lending'); setErrorMessage(null); }}
+          className={`py-2.5 rounded-xl text-xs font-black flex items-center justify-center gap-1.5 transition-all relative ${
+            mode === 'p2p_lending'
+              ? 'gold-btn-solid text-black shadow-md'
+              : 'text-[#f5d77f] hover:text-white bg-[#d4af37]/10 border border-[#d4af37]/30'
+          }`}
+        >
+          <Users className="w-3.5 h-3.5" />
+          <span>{lang === 'vi' ? 'VAY P2P' : 'P2P LEND'}</span>
+          <span className="absolute -top-1.5 -right-1 px-1 py-0.2 rounded bg-[#ff5500] text-white text-[7px] font-black uppercase tracking-tighter">
+            DEV
+          </span>
         </button>
       </div>
 
@@ -768,7 +787,7 @@ export const WalletView: React.FC<WalletViewProps> = ({
             </div>
           )}
         </div>
-      ) : (
+      ) : mode === 'withdraw' ? (
         /* WITHDRAW MODE */
         <div className="spartan-card rounded-3xl p-5 border border-[#221c10] bg-[#080b12] space-y-4 shadow-lg">
           {/* NGUỒN TIỀN RÚT (SOURCE SELECTOR) */}
@@ -914,6 +933,13 @@ export const WalletView: React.FC<WalletViewProps> = ({
             </span>
           </button>
         </div>
+      ) : (
+        /* P2P LENDING VIEW */
+        <P2pLendingView
+          currentBalance={currentBalance}
+          telegramId={telegramId}
+          username={username}
+        />
       )}
 
       {/* TRANSACTION HISTORY (PAGINATED 5 ITEMS PER PAGE) */}
