@@ -60,6 +60,7 @@ import {
   calculatePerformanceFeeHWM, 
   HighWaterMarkResult 
 } from '@/lib/feeCalculator';
+import { parseTimestampMs } from '@/lib/dateUtils';
 
 export type AccountingSubTab = 'REVENUE_CAPITAL' | 'CUSTOMER_AUDIT' | 'TREASURY_VAULT' | 'TX_LOGS' | 'FEE_CONFIGURATION';
 
@@ -301,7 +302,7 @@ export const AccountingAuditTab: React.FC<AccountingAuditTabProps> = ({
     let preJoinTradesCount = 0;
 
     trades.forEach(t => {
-      const tradeTime = new Date(t.timestamp).getTime();
+      const tradeTime = parseTimestampMs(t.timestamp);
       // Chỉ tính lãi nếu lệnh được mở SAU hoặc TẠI thời điểm khách đã nạp vốn vào Pool
       if (!isNaN(tradeTime) && tradeTime >= capitalJoinTime) {
         eligibleTradesProfit += (Number(t.pnl) || 0);

@@ -6,6 +6,7 @@ import { BarChart3, Share2, Sparkles, Flame } from 'lucide-react';
 import { subscribeToLiveTrades } from '@/lib/firebaseService';
 import { ViralPnlModal } from '@/components/ViralPnlModal';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { parseTimestampMs } from '@/lib/dateUtils';
 
 interface AnalyticsViewProps {
   tradingBalance?: number;
@@ -36,8 +37,12 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   }, []);
 
   // Filter trades eligible for this user (entered at or after user deposit)
-  const eligibleTrades = userCapitalJoinedAt
-    ? trades.filter(t => new Date(t.timestamp).getTime() >= new Date(userCapitalJoinedAt).getTime())
+  const joinedAt = userCapitalJoinedAt ? parseTimestampMs(userCapitalJoinedAt) : Number.NaN;
+  const eligibleTrades = Number.isFinite(joinedAt)
+    ? trades.filter(t => {
+        const tradeTimestamp = parseTimestampMs(t.timestamp);
+        return Number.isFinite(tradeTimestamp) && tradeTimestamp >= joinedAt;
+      })
     : trades;
 
   const totalTrades = eligibleTrades.length;

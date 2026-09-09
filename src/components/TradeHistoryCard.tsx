@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { History, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, Clock, ChevronLeft, ChevronRight, Activity, Radio, Share2 } from 'lucide-react';
 import { subscribeToLiveTrades } from '@/lib/firebaseService';
 import { ViralPnlModal } from '@/components/ViralPnlModal';
+import { parseTimestampMs } from '@/lib/dateUtils';
 
 export interface TradeOrder {
   id: string;
@@ -93,7 +94,7 @@ export const TradeHistoryCard: React.FC<TradeHistoryCardProps> = ({
         <div className="space-y-2">
           {paginatedOrders.map((trade) => {
             const isTradeBeforeJoin = userCapitalJoinedAt 
-              ? new Date(trade.timestamp).getTime() < new Date(userCapitalJoinedAt).getTime()
+              ? parseTimestampMs(trade.timestamp) < parseTimestampMs(userCapitalJoinedAt)
               : false;
 
             const effectiveLots = isTradeBeforeJoin ? 0 : Math.max(0.01, Number((trade.lots * userRatio).toFixed(2)));

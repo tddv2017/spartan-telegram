@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { normalizeTimestampIso } from '@/lib/dateUtils';
 
 const RTDB_BASE_URL = "https://decisive-mapper-216306-default-rtdb.asia-southeast1.firebasedatabase.app";
 const EA_SECRET_KEY = process.env.EA_SECRET_KEY || 'SPARTAN_EA_LIVE_2026';
@@ -74,7 +75,7 @@ export async function POST(req: Request) {
         comment: String(comment || '').slice(0, 100),
         magicNumber: Number(magicNumber) || 888899,
         isAnomalous,
-        timestamp: timestamp || new Date().toISOString()
+        timestamp: normalizeTimestampIso(timestamp)
       };
 
       // Save to Firebase RTDB /trades/{tradeId}

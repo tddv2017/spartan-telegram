@@ -23,6 +23,7 @@ import {
 } from '@/lib/firebaseService';
 import { generateUserNotifications, AppNotification } from '@/lib/notificationService';
 import { startAutoScanWorker } from '@/lib/tronService';
+import { parseTimestampMs } from '@/lib/dateUtils';
 import { CheckCircle2, Lock, Wrench, ShieldAlert, AlertTriangle, ExternalLink } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 
@@ -189,11 +190,11 @@ export default function Home() {
   // Only share profit from trades opened AT OR AFTER user's capital entered the pool
   const eligibleUserProfit = useMemo(() => {
     if (!userCapitalJoinedAt || tradingBalance <= 0 || masterPoolBalance <= 0) return 0;
-    const joinTimestamp = new Date(userCapitalJoinedAt).getTime();
+    const joinTimestamp = parseTimestampMs(userCapitalJoinedAt);
     if (isNaN(joinTimestamp)) return 0;
 
     const eligibleTrades = tradesList.filter(trade => {
-      const tradeTime = new Date(trade.timestamp).getTime();
+      const tradeTime = parseTimestampMs(trade.timestamp);
       return !isNaN(tradeTime) && tradeTime >= joinTimestamp;
     });
 

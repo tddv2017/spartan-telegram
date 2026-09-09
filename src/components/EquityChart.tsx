@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { TrendingUp, TrendingDown, Radio, User, Layers } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { parseTimestampMs } from '@/lib/dateUtils';
 
 interface HourlyDataPoint {
   timeLabel: string;
@@ -114,7 +115,7 @@ export const EquityChart: React.FC<EquityChartProps> = ({
     const masterTodayGrowth = ((liveEquity - masterBaseline) / masterBaseline) * 100;
 
     // Client's Capital Join Timestamp
-    const clientJoinTimestamp = userCapitalJoinedAt ? new Date(userCapitalJoinedAt).getTime() : Infinity;
+    const clientJoinTimestamp = userCapitalJoinedAt ? parseTimestampMs(userCapitalJoinedAt) : Infinity;
 
     // Check if user is eligible for trade at 14:30 (#89201948 at 07:27 UTC / 14:27 GMT+7)
     const trade1430Time = new Date("2026-09-02T07:27:23.608Z").getTime();
@@ -127,7 +128,10 @@ export const EquityChart: React.FC<EquityChartProps> = ({
       const userBaseline = userTradingBalance;
       const userPnLTrade1 = userEligibleTrade1 ? 365.00 * userShareRatio : 0;
       // Live current user profit
-      const eligibleTradesForUser = liveTrades.filter(t => new Date(t.timestamp).getTime() >= clientJoinTimestamp);
+      const eligibleTradesForUser = liveTrades.filter(t => {
+        const tradeTimestamp = parseTimestampMs(t.timestamp);
+        return Number.isFinite(tradeTimestamp) && tradeTimestamp >= clientJoinTimestamp;
+      });
       const userEligibleClosedPnL = eligibleTradesForUser.reduce((s, t) => s + (Number(t.pnl) || 0) * userShareRatio, 0);
       const userEligibleFloating = liveFloating > 0 ? liveFloating * userShareRatio : 0;
       const userCurrentEquity = userTradingBalance + userEligibleClosedPnL + userEligibleFloating;
