@@ -31,7 +31,8 @@ export default function RootLayout({
   return (
     <html lang="vi" className={`${inter.variable} ${jetbrainsMono.variable}`}>
       <head>
-        <script src="https://telegram.org/js/telegram-web-app.js" async />
+        {/* Telegram identity must exist before client hydration reads initData. */}
+        <script src="https://telegram.org/js/telegram-web-app.js" />
       </head>
       <body className="bg-[#04060a] text-white min-h-screen font-sans antialiased selection:bg-[#d4af37] selection:text-black">
         <LanguageProvider>
