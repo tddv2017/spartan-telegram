@@ -1,17 +1,28 @@
+import crypto from 'crypto';
 import { NextResponse } from 'next/server';
 import { normalizeTimestampIso } from '@/lib/dateUtils';
+import { toErrorResponse } from '@/lib/server/auth';
+import { getBotToken, getEaSecretKey } from '@/lib/server/env';
+import { dbGet, dbSet } from '@/lib/server/rtdb';
 
-const RTDB_BASE_URL = "https://decisive-mapper-216306-default-rtdb.asia-southeast1.firebasedatabase.app";
-const EA_SECRET_KEY = process.env.EA_SECRET_KEY || 'SPARTAN_EA_LIVE_2026';
+/** Length-safe constant-time comparison, so a wrong key leaks no timing signal. */
+function matchesSecret(provided: string, expected: string): boolean {
+  const a = crypto.createHash('sha256').update(provided).digest();
+  const b = crypto.createHash('sha256').update(expected).digest();
+  return crypto.timingSafeEqual(a, b);
+}
 
 export async function POST(req: Request) {
   try {
-    // 1. API Security Gate Check
+    // 1. API Security Gate Check. The key has no literal fallback: if it is not
+    // configured the endpoint must reject everything rather than accept a value
+    // that is readable in the repository history.
+    const eaSecretKey = getEaSecretKey();
     const authHeader = req.headers.get('x-ea-key') || req.headers.get('authorization');
     const body = await req.json().catch(() => ({}));
-    const providedKey = authHeader?.replace('Bearer ', '').trim() || body.apiKey;
+    const providedKey = String(authHeader?.replace('Bearer ', '').trim() || body.apiKey || '');
 
-    if (providedKey !== EA_SECRET_KEY) {
+    if (!providedKey || !matchesSecret(providedKey, eaSecretKey)) {
       return NextResponse.json(
         { success: false, error: 'UNAUTHORIZED: Khóa API EA không chính xác hoặc không có quyền truy cập!' },
         { status: 401 }
@@ -47,18 +58,14 @@ export async function POST(req: Request) {
       const isAnomalous = Math.abs(cleanPnl) > 50000;
       if (isAnomalous) {
         cleanPnl = Math.min(50000, Math.max(-50000, cleanPnl));
-        fetch(`${RTDB_BASE_URL}/security_alerts/ANOMALY_${Date.now()}.json`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
+        dbSet(`security_alerts/ANOMALY_${Date.now()}`, {
             type: 'PNL_ANOMALY_DETECTED',
             ticket: tradeId,
             rawPnl: pnl,
             rawLots: lots,
             cappedPnl: cleanPnl,
             timestamp: new Date().toISOString()
-          })
-        }).catch(() => {});
+          }).catch(() => {});
       }
 
       const cleanPnlPct = Number(pnlPercentage) || (openPrice > 0 ? ((closePrice - openPrice) / openPrice) * 100 : 0);
@@ -79,23 +86,15 @@ export async function POST(req: Request) {
       };
 
       // Save to Firebase RTDB /trades/{tradeId}
-      await fetch(`${RTDB_BASE_URL}/trades/${tradeId}.json`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(tradeData)
-      });
+      await dbSet(`trades/${tradeId}`, tradeData);
 
       // Automatically Broadcast Live Signal to Telegram Channel if configured
       try {
-        const configRes = await fetch(`${RTDB_BASE_URL}/system_config.json`);
-        let channelId = process.env.TELEGRAM_SIGNAL_CHANNEL_ID || '';
-        if (configRes.ok) {
-          const cfg = await configRes.json();
-          if (cfg?.signalChannelId) channelId = cfg.signalChannelId;
-        }
+        const cfg = await dbGet<{ signalChannelId?: string } | null>('system_config').catch(() => null);
+        const channelId = cfg?.signalChannelId || process.env.TELEGRAM_SIGNAL_CHANNEL_ID || '';
 
         if (channelId) {
-          const botToken = process.env.BOT_TOKEN || '8897704483:AAFRtOHaF4UdH25pgf_IffQUNpCAy0YFp_Q';
+          const botToken = getBotToken();
           const isWin = cleanPnl >= 0;
           const statusHeader = isWin 
             ? '🎯 *[SPARTAN QUANT 300 AI • CHỐT LỜI THÀNH CÔNG]*' 
@@ -170,11 +169,7 @@ export async function POST(req: Request) {
       };
 
       // Update /master_pool.json in Firebase RTDB
-      await fetch(`${RTDB_BASE_URL}/master_pool.json`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(poolData)
-      });
+      await dbSet('master_pool', poolData);
 
       return NextResponse.json({
         success: true,
@@ -192,12 +187,8 @@ export async function POST(req: Request) {
       timestamp: Date.now()
     });
 
-  } catch (err: any) {
-    console.error('Lỗi EA Webhook Route:', err);
-    return NextResponse.json(
-      { success: false, error: 'Internal Server Error: ' + err.message },
-      { status: 500 }
-    );
+  } catch (err) {
+    return toErrorResponse(err);
   }
 }
 

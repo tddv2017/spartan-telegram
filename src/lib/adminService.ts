@@ -5,8 +5,23 @@
 
 import { UserData, TransactionData } from './firebaseService';
 import { calculateDepositFee, calculateWithdrawFee } from './feeCalculator';
+import { apiFetch } from './telegramClient';
 
 const RTDB_BASE_URL = "https://decisive-mapper-216306-default-rtdb.asia-southeast1.firebasedatabase.app";
+
+async function adminRtdbWrite(
+  method: 'PUT' | 'PATCH' | 'DELETE',
+  path: string,
+  data?: unknown
+): Promise<boolean> {
+  try {
+    await apiFetch('/api/admin/rtdb', { method, path, data });
+    return true;
+  } catch (err) {
+    console.error('Admin RTDB write failed:', path, err);
+    return false;
+  }
+}
 
 export interface SystemConfig {
   maintenanceMode: boolean;
@@ -31,9 +46,8 @@ export interface UserAuditItem extends UserData {
 // READ: Fetch All System Users
 export async function fetchAllUsers(): Promise<UserAuditItem[]> {
   try {
-    const res = await fetch(`${RTDB_BASE_URL}/users.json`, { cache: 'no-store' });
-    if (!res.ok) return [];
-    const data = await res.json();
+    const payload = await apiFetch<{ data?: Record<string, any> }>('/api/admin/rtdb?resource=users');
+    const data = payload?.data;
     if (!data || typeof data !== 'object') return [];
 
     const users: UserAuditItem[] = [];
@@ -91,13 +105,8 @@ export async function createAdminUser(user: {
       updatedAt: new Date().toISOString()
     };
 
-    const res = await fetch(`${RTDB_BASE_URL}/users/${cleanId}.json`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(newUserPayload)
-    });
-
-    if (res.ok) {
+    const ok = await adminRtdbWrite('PUT', `users/${cleanId}`, newUserPayload);
+    if (ok) {
       return { success: true, message: `Đã tạo thành công người dùng @${newUserPayload.username} (ID: ${cleanId})!` };
     }
     return { success: false, message: 'Lỗi ghi dữ liệu vào Firebase' };
@@ -112,15 +121,10 @@ export async function updateUserDetails(
   updates: Partial<UserAuditItem>
 ): Promise<boolean> {
   try {
-    const res = await fetch(`${RTDB_BASE_URL}/users/${userId}.json`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        ...updates,
-        updatedAt: new Date().toISOString()
-      })
+    return adminRtdbWrite('PATCH', `users/${userId}`, {
+      ...updates,
+      updatedAt: new Date().toISOString(),
     });
-    return res.ok;
   } catch (err) {
     console.error('Lỗi khi cập nhật người dùng:', err);
     return false;
@@ -130,10 +134,7 @@ export async function updateUserDetails(
 // DELETE: Delete User from System
 export async function deleteUserFromSystem(userId: string): Promise<boolean> {
   try {
-    const res = await fetch(`${RTDB_BASE_URL}/users/${userId}.json`, {
-      method: 'DELETE'
-    });
-    return res.ok;
+    return adminRtdbWrite('DELETE', `users/${userId}`);
   } catch (err) {
     console.error('Lỗi khi xóa người dùng:', err);
     return false;
@@ -160,9 +161,8 @@ export async function updateUserRoleAndTier(
 // READ: Fetch All Transactions
 export async function fetchAllTransactions(): Promise<TransactionData[]> {
   try {
-    const res = await fetch(`${RTDB_BASE_URL}/transactions.json`, { cache: 'no-store' });
-    if (!res.ok) return [];
-    const data = await res.json();
+    const payload = await apiFetch<{ data?: Record<string, TransactionData> }>('/api/admin/rtdb?resource=transactions');
+    const data = payload?.data;
     if (!data || typeof data !== 'object') return [];
 
     const txs: TransactionData[] = Object.values(data);
@@ -209,34 +209,20 @@ export async function createManualTransaction(tx: {
       approvedBy: tx.status === 'APPROVED' ? 'tddv2017 (Admin)' : undefined
     };
 
-    // Save to global transactions
-    await fetch(`${RTDB_BASE_URL}/transactions/${txId}.json`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(newTx)
-    });
+    await adminRtdbWrite('PUT', `transactions/${txId}`, newTx);
+    await adminRtdbWrite('PUT', `users/${tx.userId}/transactions/${txId}`, newTx);
 
-    // Save to user transactions
-    await fetch(`${RTDB_BASE_URL}/users/${tx.userId}/transactions/${txId}.json`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(newTx)
-    });
-
-    // If APPROVED, update user balance accordingly
     if (tx.status === 'APPROVED') {
       const uRes = await fetch(`${RTDB_BASE_URL}/users/${tx.userId}.json`);
       if (uRes.ok) {
         const uData = await uRes.json();
         const currentBal = uData?.tradingBalance || 0;
-        const newBal = tx.type === 'DEPOSIT' 
-          ? currentBal + breakdown.netAmount 
+        const newBal = tx.type === 'DEPOSIT'
+          ? currentBal + breakdown.netAmount
           : Math.max(0, currentBal - tx.grossAmount);
-
-        await fetch(`${RTDB_BASE_URL}/users/${tx.userId}.json`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ tradingBalance: newBal, updatedAt: new Date().toISOString() })
+        await adminRtdbWrite('PATCH', `users/${tx.userId}`, {
+          tradingBalance: newBal,
+          updatedAt: new Date().toISOString(),
         });
       }
     }
@@ -259,20 +245,12 @@ export async function updateTransactionRecord(
       updatedAt: new Date().toISOString()
     };
 
-    const p1 = fetch(`${RTDB_BASE_URL}/transactions/${txId}.json`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-
-    const p2 = userId ? fetch(`${RTDB_BASE_URL}/users/${userId}/transactions/${txId}.json`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    }) : Promise.resolve();
-
-    await Promise.all([p1, p2]);
-    return true;
+    const p1 = adminRtdbWrite('PATCH', `transactions/${txId}`, payload);
+    const p2 = userId
+      ? adminRtdbWrite('PATCH', `users/${userId}/transactions/${txId}`, payload)
+      : Promise.resolve(true);
+    const results = await Promise.all([p1, p2]);
+    return results.every(Boolean);
   } catch (err) {
     console.error('Lỗi khi cập nhật giao dịch:', err);
     return false;
@@ -282,16 +260,12 @@ export async function updateTransactionRecord(
 // DELETE: Delete Transaction from System
 export async function deleteTransactionRecord(txId: string, userId?: string): Promise<boolean> {
   try {
-    const p1 = fetch(`${RTDB_BASE_URL}/transactions/${txId}.json`, {
-      method: 'DELETE'
-    });
-
-    const p2 = userId ? fetch(`${RTDB_BASE_URL}/users/${userId}/transactions/${txId}.json`, {
-      method: 'DELETE'
-    }) : Promise.resolve();
-
-    await Promise.all([p1, p2]);
-    return true;
+    const p1 = adminRtdbWrite('DELETE', `transactions/${txId}`);
+    const p2 = userId
+      ? adminRtdbWrite('DELETE', `users/${userId}/transactions/${txId}`)
+      : Promise.resolve(true);
+    const results = await Promise.all([p1, p2]);
+    return results.every(Boolean);
   } catch (err) {
     console.error('Lỗi khi xóa giao dịch:', err);
     return false;
@@ -301,25 +275,9 @@ export async function deleteTransactionRecord(txId: string, userId?: string): Pr
 // CLEAR ALL: Delete All Test Transactions & Fraud Alerts from Database
 export async function clearAllTestTransactions(): Promise<{ success: boolean; message: string }> {
   try {
-    // 1. Clear /transactions.json
-    await fetch(`${RTDB_BASE_URL}/transactions.json`, { method: 'DELETE' });
+    await adminRtdbWrite('DELETE', 'fraud_alerts');
 
-    // 2. Clear /users/{id}/transactions.json for all users
-    const res = await fetch(`${RTDB_BASE_URL}/users.json`);
-    if (res.ok) {
-      const users = await res.json();
-      if (users && typeof users === 'object') {
-        const deletePromises = Object.keys(users).map(userId => 
-          fetch(`${RTDB_BASE_URL}/users/${userId}/transactions.json`, { method: 'DELETE' })
-        );
-        await Promise.all(deletePromises);
-      }
-    }
-
-    // 3. Clear /fraud_alerts.json
-    await fetch(`${RTDB_BASE_URL}/fraud_alerts.json`, { method: 'DELETE' });
-
-    return { success: true, message: 'Đã dọn dẹp sạch toàn bộ dữ liệu giao dịch test trên toàn hệ thống!' };
+    return { success: true, message: 'Đã xóa nhật ký cảnh báo gian lận. Lệnh nạp/rút không bị xóa hàng loạt từ trình duyệt.' };
   } catch (err: any) {
     console.error('Lỗi khi xóa dữ liệu giao dịch test:', err);
     return { success: false, message: err.message || 'Lỗi khi xóa dữ liệu giao dịch test' };
@@ -349,15 +307,10 @@ export async function fetchSystemConfig(): Promise<SystemConfig> {
 
 export async function updateSystemConfig(updates: Partial<SystemConfig>): Promise<boolean> {
   try {
-    const res = await fetch(`${RTDB_BASE_URL}/system_config.json`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        ...updates,
-        updatedAt: new Date().toISOString()
-      })
+    return adminRtdbWrite('PATCH', 'system_config', {
+      ...updates,
+      updatedAt: new Date().toISOString(),
     });
-    return res.ok;
   } catch (err) {
     console.error('Error updating system config:', err);
     return false;

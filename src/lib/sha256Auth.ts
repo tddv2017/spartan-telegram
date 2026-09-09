@@ -1,6 +1,14 @@
 import crypto from 'crypto';
+import { getHmacSecret } from './server/env';
 
-const SECRET_KEY = process.env.SPARTAN_HMAC_SECRET || 'SPARTAN_QUANT_AI_SECRET_KEY_2026';
+/**
+ * Server-only deposit integrity seal.
+ *
+ * This module reads `SPARTAN_HMAC_SECRET` and must never be imported from a
+ * component or any module that reaches the browser bundle: doing so would ship
+ * the signing key to every client. Client code should use
+ * `@/lib/orderReference` instead.
+ */
 
 export interface DepositSignaturePayload {
   orderId: string;
@@ -8,22 +16,20 @@ export interface DepositSignaturePayload {
   timestamp: number;
 }
 
-/**
- * Generates an HMAC-SHA256 64-character hexadecimal signature for flexible deposit integrity.
- * Flexible Formula: OrderID|MasterWalletAddress|Timestamp
- */
+/** HMAC-SHA256 over `OrderID|MasterWalletAddress|Timestamp`. */
 export function generateDepositSignature(payload: DepositSignaturePayload): string {
   const rawString = `${payload.orderId}|${payload.masterWalletAddress}|${payload.timestamp}`;
-  return crypto.createHmac('sha256', SECRET_KEY).update(rawString).digest('hex');
+  return crypto.createHmac('sha256', getHmacSecret()).update(rawString).digest('hex');
 }
 
-/**
- * Verifies if an incoming HMAC-SHA256 signature matches expected deposit payload.
- */
-export function verifyDepositSignature(payload: DepositSignaturePayload, signature: string): boolean {
+export function verifyDepositSignature(
+  payload: DepositSignaturePayload,
+  signature: string
+): boolean {
   try {
-    const expectedSig = generateDepositSignature(payload);
-    return crypto.timingSafeEqual(Buffer.from(signature, 'hex'), Buffer.from(expectedSig, 'hex'));
+    const expected = Buffer.from(generateDepositSignature(payload), 'hex');
+    const received = Buffer.from(signature, 'hex');
+    return expected.length === received.length && crypto.timingSafeEqual(expected, received);
   } catch (e) {
     return false;
   }

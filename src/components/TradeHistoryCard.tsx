@@ -28,7 +28,7 @@ interface TradeHistoryCardProps {
 import { useLanguage } from '@/contexts/LanguageContext';
 
 export const TradeHistoryCard: React.FC<TradeHistoryCardProps> = ({
-  shareRatio = 1,
+  shareRatio = 0,
   userCapitalJoinedAt,
   username = 'spartan_trader',
   telegramId = '494232782',
@@ -40,7 +40,8 @@ export const TradeHistoryCard: React.FC<TradeHistoryCardProps> = ({
   const [selectedTradeForShare, setSelectedTradeForShare] = useState<TradeOrder | null>(null);
   const ITEMS_PER_PAGE = 5;
 
-  const userRatio = (typeof shareRatio === 'number' && shareRatio > 0 && shareRatio <= 1) ? shareRatio : 1;
+  const userRatio =
+    typeof shareRatio === 'number' && Number.isFinite(shareRatio) ? Math.max(0, shareRatio) : 0;
 
   // Realtime Live Stream Listener for Trades executed on MT5 Exness
   useEffect(() => {
@@ -52,9 +53,20 @@ export const TradeHistoryCard: React.FC<TradeHistoryCardProps> = ({
     return () => unsub();
   }, []);
 
-  const totalPages = Math.max(1, Math.ceil(trades.length / ITEMS_PER_PAGE));
+  const sortedTrades = [...trades].sort((a, b) => {
+    const timeB = parseTimestampMs(b.timestamp);
+    const timeA = parseTimestampMs(a.timestamp);
+    const newest = (Number.isFinite(timeB) ? timeB : 0) - (Number.isFinite(timeA) ? timeA : 0);
+    if (newest !== 0) return newest;
+    return String(b.id).localeCompare(String(a.id));
+  });
+
+  const totalPages = Math.max(1, Math.ceil(sortedTrades.length / ITEMS_PER_PAGE));
   const validPage = Math.min(currentPage, totalPages);
-  const paginatedOrders = trades.slice((validPage - 1) * ITEMS_PER_PAGE, validPage * ITEMS_PER_PAGE);
+  const paginatedOrders = sortedTrades.slice(
+    (validPage - 1) * ITEMS_PER_PAGE,
+    validPage * ITEMS_PER_PAGE
+  );
 
   return (
     <div className="w-full spartan-card rounded-3xl p-4 border border-[#221c10] bg-[#080b12] space-y-3 shadow-lg">
@@ -97,8 +109,11 @@ export const TradeHistoryCard: React.FC<TradeHistoryCardProps> = ({
               ? parseTimestampMs(trade.timestamp) < parseTimestampMs(userCapitalJoinedAt)
               : false;
 
-            const effectiveLots = isTradeBeforeJoin ? 0 : Math.max(0.01, Number((trade.lots * userRatio).toFixed(2)));
-            const effectivePnl = isTradeBeforeJoin ? 0 : trade.pnl * userRatio;
+            const effectiveLots =
+              isTradeBeforeJoin || userRatio <= 0
+                ? 0
+                : Math.max(0.01, Number((trade.lots * userRatio).toFixed(2)));
+            const effectivePnl = isTradeBeforeJoin || userRatio <= 0 ? 0 : trade.pnl * userRatio;
 
             return (
               <div
@@ -144,44 +159,47 @@ export const TradeHistoryCard: React.FC<TradeHistoryCardProps> = ({
                   </div>
                 </div>
 
-                <div className="text-right font-mono">
+                <div className="flex flex-col items-end justify-center font-mono min-w-[64px] shrink-0">
                   {isTradeBeforeJoin ? (
-                    <div>
-                      <span className="font-bold text-gray-500 text-xs block">$0.00</span>
-                      <span className="text-[8px] font-bold text-amber-400/90 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20 block mt-0.5">
+                    <>
+                      <span className="font-bold text-gray-500 text-xs leading-tight">$0.00</span>
+                      <span className="text-[9px] font-bold text-amber-400/80 leading-tight">
                         {t('trades_not_joined')}
                       </span>
-                    </div>
+                    </>
                   ) : (
-                    <div>
+                    <>
                       <span
-                        className={`font-black text-xs block ${
+                        className={`font-black text-xs leading-tight ${
                           effectivePnl >= 0 ? 'text-emerald-400' : 'text-[#ff2d55]'
                         }`}
                       >
                         {effectivePnl >= 0 ? `+$${effectivePnl.toFixed(2)}` : `-$${Math.abs(effectivePnl).toFixed(2)}`}
                       </span>
                       <span
-                        className={`text-[9px] font-bold block ${
+                        className={`text-[9px] font-bold leading-tight ${
                           trade.pnlPercentage >= 0 ? 'text-emerald-400' : 'text-[#ff2d55]'
                         }`}
                       >
                         {trade.pnlPercentage >= 0 ? `+${trade.pnlPercentage.toFixed(2)}%` : `${trade.pnlPercentage.toFixed(2)}%`}
                       </span>
-
-                      {/* Khoe Lai Button on profitable trades */}
-                      {trade.pnl > 0 && (
-                        <button
-                          onClick={() => setSelectedTradeForShare(trade)}
-                          className="mt-1 px-2 py-0.5 rounded-lg bg-[#d4af37]/15 hover:bg-[#d4af37]/30 border border-[#d4af37]/40 text-[#f5d77f] text-[9px] font-black flex items-center gap-1 transition-all ml-auto shadow-sm"
-                          title="Tạo ảnh poster khoe lãi"
-                        >
-                          <Share2 className="w-2.5 h-2.5" />
-                          <span>{t('trades_share_pnl')}</span>
-                        </button>
-                      )}
-                    </div>
+                    </>
                   )}
+                  <div className="h-5 mt-0.5 flex items-center justify-end">
+                    {!isTradeBeforeJoin && trade.pnl > 0 ? (
+                      <button
+                        type="button"
+                        onClick={() => setSelectedTradeForShare(trade)}
+                        className="w-5 h-5 rounded-md bg-[#d4af37]/15 hover:bg-[#d4af37]/30 border border-[#d4af37]/40 text-[#f5d77f] flex items-center justify-center transition-all"
+                        title={t('trades_share_pnl')}
+                        aria-label={t('trades_share_pnl')}
+                      >
+                        <Share2 className="w-2.5 h-2.5" />
+                      </button>
+                    ) : (
+                      <span className="w-5 h-5" aria-hidden />
+                    )}
+                  </div>
                 </div>
               </div>
             );
@@ -190,7 +208,7 @@ export const TradeHistoryCard: React.FC<TradeHistoryCardProps> = ({
       )}
 
       {/* PAGINATION CONTROLS BAR */}
-      {trades.length > ITEMS_PER_PAGE && (
+      {sortedTrades.length > ITEMS_PER_PAGE && (
         <div className="flex items-center justify-between border-t border-[#1f293d] pt-3 text-xs font-bold">
           <button
             onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}

@@ -7,7 +7,6 @@
  *    - Mismatch / Fake: Flags FRAUD_WARNING and routes incident to Spartan Cyber Defense Team.
  */
 
-import { approveLiveTransaction, TransactionData } from './firebaseService';
 import { fetchTreasuryVault, DEFAULT_TREASURY_VAULT } from './walletConfig';
 import { fetchTronScanTRC20Transfers, fetchTronGridTRC20Transfers, TronTRC20Transfer } from './tronService';
 
@@ -158,8 +157,7 @@ export async function scanReceiptAndVerifyOnChain(
 
     match = allTransfers.find(tr => 
       (tr.transaction_id && tr.transaction_id.toLowerCase() === extractedTxHash.toLowerCase()) ||
-      (tr.memo && tr.memo.toLowerCase() === extractedMemo.toLowerCase()) ||
-      (expectedGrossAmount && Math.abs(tr.amount - expectedGrossAmount) < 0.01)
+      (tr.memo && tr.memo.toLowerCase() === extractedMemo.toLowerCase())
     ) || null;
   }
 
@@ -234,12 +232,9 @@ export async function scanReceiptAndVerifyOnChain(
       }
     } catch (e) {}
 
-    // MATCH SUCCESS -> Auto Approve Deposit
-    const approveRes = await approveLiveTransaction(orderId, 'AI_VISION_OCR_RESOLVER', match.amount);
-    
     return {
       status: 'VERIFIED_MATCH',
-      score: 100,
+      score: 90,
       extractedData: {
         txHash: match.transaction_id,
         amount: match.amount,
@@ -253,7 +248,7 @@ export async function scanReceiptAndVerifyOnChain(
         contractRet: 'SUCCESS'
       },
       resolvedOrderId: orderId,
-      aiVerdict: `🎉 AI FORENSICS ĐỐI SOÁT THÀNH CÔNG: Giao dịch ${match.transaction_id.slice(0, 12)}... (${match.amount.toFixed(2)} USDT) gửi tới ví Master ${match.to.slice(0, 8)}... đã được xác thực 100% trên Blockchain TRON! Đã tự động duyệt đơn nạp #${orderId} và cộng vốn Net.`
+      aiVerdict: `Đã khớp on-chain ${match.transaction_id.slice(0, 12)}... (${match.amount.toFixed(2)} USDT). Vui lòng dán TxHash vào cổng xác minh để cộng vốn — hệ thống không tự duyệt từ trình duyệt.`
     };
   }
 

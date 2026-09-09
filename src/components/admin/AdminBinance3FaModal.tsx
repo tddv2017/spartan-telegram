@@ -26,12 +26,9 @@ import {
   sendRealCustodyOtp, 
   verifyRealCustodyOtp, 
   verifyLiveTotp,
-  getOtpauthUrl,
-  getQrCodeUrl,
-  DEFAULT_TOTP_SECRET,
   Admin3FaConfig 
 } from '@/lib/admin3faService';
-import { hashMasterPin, verifyPinHash, DEFAULT_MASTER_PIN } from '@/lib/pinCrypto';
+import { verifyMasterPin } from '@/lib/pinCrypto';
 import { ADMIN_TELEGRAM_IDS } from '@/lib/adminAuth';
 import { useLanguage } from '@/contexts/LanguageContext';
 
@@ -41,7 +38,6 @@ interface AdminBinance3FaModalProps {
   adminUsername?: string;
 }
 
-const PIN_STORAGE_KEY = 'spartan_admin_master_pin_v2';
 const SESSION_AUTH_KEY = 'spartan_admin_session_auth_token';
 
 type AuthStep = 'STEP_1_PIN' | 'STEP_2_GMAIL' | 'STEP_3_2FA';
@@ -122,24 +118,8 @@ export const AdminBinance3FaModal: React.FC<AdminBinance3FaModalProps> = ({
   // Step 1 States (PIN)
   const [pin, setPin] = useState<string>('');
   const [pinError, setPinError] = useState<string | null>(null);
-  const [cloudMasterPinHash, setCloudMasterPinHash] = useState<string | null>(null);
+  const [isVerifyingPin, setIsVerifyingPin] = useState<boolean>(false);
   const nativeInputRef = useRef<HTMLInputElement | null>(null);
-
-  // Sync Master PIN Hash from Firebase Realtime Database
-  useEffect(() => {
-    fetch('https://decisive-mapper-216306-default-rtdb.asia-southeast1.firebasedatabase.app/system_config.json')
-      .then(res => res.json())
-      .then(cfg => {
-        if (cfg) {
-          if (cfg.master_pin_hash) {
-            setCloudMasterPinHash(String(cfg.master_pin_hash).trim());
-          } else if (cfg.master_pin) {
-            setCloudMasterPinHash(hashMasterPin(String(cfg.master_pin).trim()));
-          }
-        }
-      })
-      .catch(() => {});
-  }, []);
 
   // Step 2 States (Live Server OTP)
   const [gmailOtp, setGmailOtp] = useState<string>('');
@@ -151,14 +131,9 @@ export const AdminBinance3FaModal: React.FC<AdminBinance3FaModalProps> = ({
 
   // Step 3 States (Real 2FA Google / Binance Authenticator)
   const [authenticatorCode, setAuthenticatorCode] = useState<string>('');
-  const [showQrCode, setShowQrCode] = useState<boolean>(false);
   const [isVerifyingTotp, setIsVerifyingTotp] = useState<boolean>(false);
   const [totpError, setTotpError] = useState<string | null>(null);
   const [totpSuccess, setTotpSuccess] = useState<string | null>(null);
-  const [copiedSecret, setCopiedSecret] = useState<boolean>(false);
-
-  const otpauthUrl = getOtpauthUrl(config.adminEmail, DEFAULT_TOTP_SECRET);
-  const qrCodeUrl = getQrCodeUrl(otpauthUrl);
 
   // Countdown timer for OTP resend
   useEffect(() => {
@@ -184,6 +159,7 @@ export const AdminBinance3FaModal: React.FC<AdminBinance3FaModalProps> = ({
   // STEP 1: PIN HANDLERS
   // ----------------------------------------------------------------------
   const handlePinKeyPress = (num: string) => {
+    if (isVerifyingPin) return;
     if (pin.length < 6) {
       const nextPin = pin + num;
       setPin(nextPin);
@@ -203,37 +179,21 @@ export const AdminBinance3FaModal: React.FC<AdminBinance3FaModalProps> = ({
     }
   };
 
-  const verifyPin = (enteredPin: string) => {
-    // 1. Check against Cloud Master PIN Hash (Highest Priority)
-    if (cloudMasterPinHash) {
-      if (verifyPinHash(enteredPin, cloudMasterPinHash)) {
-        setPinError(null);
+  const verifyPin = async (enteredPin: string) => {
+    setIsVerifyingPin(true);
+    setPinError(null);
+
+    try {
+      const result = await verifyMasterPin(enteredPin);
+      if (result.success) {
         setCurrentStep('STEP_2_GMAIL');
         return;
       }
-    } else {
-      // 2. Default PIN ONLY allowed if no cloud hash is established yet
-      if (enteredPin === DEFAULT_MASTER_PIN) {
-        setPinError(null);
-        setCurrentStep('STEP_2_GMAIL');
-        return;
-      }
+      setPinError(result.message);
+      setTimeout(() => setPin(''), 500);
+    } finally {
+      setIsVerifyingPin(false);
     }
-
-    // 3. Local storage check
-    const localHash = localStorage.getItem(PIN_STORAGE_KEY);
-    if (localHash && verifyPinHash(enteredPin, localHash)) {
-      setPinError(null);
-      setCurrentStep('STEP_2_GMAIL');
-      return;
-    }
-
-    setPinError(
-      lang === 'vi'
-        ? '❌ MÃ PIN BẢO MẬT KHÔNG CHÍNH XÁC! Vui lòng thử lại.'
-        : '❌ INCORRECT SECURITY MASTER PIN! Please try again.'
-    );
-    setTimeout(() => setPin(''), 500);
   };
 
   // ----------------------------------------------------------------------
@@ -245,13 +205,15 @@ export const AdminBinance3FaModal: React.FC<AdminBinance3FaModalProps> = ({
     setOtpSentNotice(null);
 
     try {
-      const res = await sendRealCustodyOtp(config.adminEmail, selectedAdminId, selectedAdminUser);
+      // The recipient is resolved server-side from the Telegram signature, so the
+      // caller can only ever receive a code for their own account.
+      const res = await sendRealCustodyOtp();
       if (res.success) {
         setOtpCountdown(60);
         setOtpSentNotice(
           lang === 'vi'
-            ? `📲 ĐÃ GỬI MÃ OTP THẬT VỀ TELEGRAM @${selectedAdminUser} (ID: ${selectedAdminId})!`
-            : `📲 LIVE OTP DISPATCHED DIRECTLY TO TELEGRAM @${selectedAdminUser} (ID: ${selectedAdminId})!`
+            ? '📲 ĐÃ GỬI MÃ OTP VỀ TELEGRAM CỦA BẠN!'
+            : '📲 LIVE OTP DISPATCHED TO YOUR TELEGRAM ACCOUNT!'
         );
       } else {
         setGmailError(res.message || 'Không thể gửi OTP. Vui lòng thử lại!');
@@ -273,7 +235,7 @@ export const AdminBinance3FaModal: React.FC<AdminBinance3FaModalProps> = ({
     setGmailError(null);
 
     try {
-      const result = await verifyRealCustodyOtp(gmailOtp, selectedAdminId);
+      const result = await verifyRealCustodyOtp(gmailOtp);
       if (result.success) {
         setGmailError(null);
         setCurrentStep('STEP_3_2FA');
@@ -312,12 +274,6 @@ export const AdminBinance3FaModal: React.FC<AdminBinance3FaModalProps> = ({
     } finally {
       setIsVerifyingTotp(false);
     }
-  };
-
-  const handleCopySecret = () => {
-    navigator.clipboard.writeText(DEFAULT_TOTP_SECRET);
-    setCopiedSecret(true);
-    setTimeout(() => setCopiedSecret(false), 2000);
   };
 
   const finalizeCompleteLogin = () => {
@@ -449,7 +405,7 @@ export const AdminBinance3FaModal: React.FC<AdminBinance3FaModalProps> = ({
                 {lang === 'vi' ? 'Bước 1: Nhập mã Master PIN Quản Trị Cấp 1' : 'Step 1: Enter Master Admin PIN'}
               </span>
               <span className="text-[10px] text-gray-500 font-mono block">
-                {lang === 'vi' ? 'Mã mặc định hệ thống: 888899' : 'Default system PIN: 888899'}
+                {lang === 'vi' ? 'Nhập PIN quản trị đã cấu hình trên máy chủ' : 'Enter the server-configured admin PIN'}
               </span>
             </div>
 

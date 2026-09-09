@@ -69,12 +69,22 @@ export function verifyTelegramWebAppData(
       return { isValid: false, error: 'INVALID_SIGNATURE: Chữ ký HMAC-SHA256 không hợp lệ (Dữ liệu bị can thiệp)' };
     }
 
-    // 4. Validate auth_date: prevent replay attacks older than 24 hours (86400s)
+    // 4. Validate auth_date: reject stale payloads and timestamps beyond clock skew
     const authDateStr = urlParams.get('auth_date');
     const authDate = authDateStr ? parseInt(authDateStr, 10) : 0;
     const now = Math.floor(Date.now() / 1000);
+    const MAX_AGE_SECONDS = 86400;
+    const MAX_CLOCK_SKEW_SECONDS = 300;
 
-    if (now - authDate > 86400) {
+    if (!Number.isFinite(authDate) || authDate <= 0) {
+      return { isValid: false, error: 'INVALID_AUTH_DATE: Thiếu hoặc sai mốc thời gian auth_date' };
+    }
+
+    if (authDate - now > MAX_CLOCK_SKEW_SECONDS) {
+      return { isValid: false, error: 'INVALID_AUTH_DATE: auth_date nằm ở tương lai (nghi vấn giả mạo)' };
+    }
+
+    if (now - authDate > MAX_AGE_SECONDS) {
       return { isValid: false, error: 'EXPIRED_SESSION: Phiên đăng nhập đã quá hạn 24 giờ' };
     }
 

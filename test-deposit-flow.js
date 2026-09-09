@@ -2,7 +2,11 @@ const crypto = require('crypto');
 
 const RTDB_BASE_URL = "https://decisive-mapper-216306-default-rtdb.asia-southeast1.firebasedatabase.app";
 const FIRESTORE_REST_BASE = "https://firestore.googleapis.com/v1/projects/decisive-mapper-216306/databases/(default)/documents";
-const SECRET_KEY = process.env.SPARTAN_HMAC_SECRET || 'SPARTAN_QUANT_AI_SECRET_KEY_2026';
+const SECRET_KEY = process.env.SPARTAN_HMAC_SECRET;
+if (!SECRET_KEY) {
+  console.error('SPARTAN_HMAC_SECRET is required');
+  process.exit(1);
+}
 
 function generateSignature(orderId, masterWallet, timestamp) {
   const rawString = `${orderId}|${masterWallet}|${timestamp}`;

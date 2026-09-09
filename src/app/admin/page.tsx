@@ -27,7 +27,6 @@ import { SecurityPenTestLab } from '@/components/admin/SecurityPenTestLab';
 import { NotificationModal } from '@/components/NotificationModal';
 import { generateUserNotifications } from '@/lib/notificationService';
 import { getAdmin3FaConfig, saveAdmin3FaConfig, Admin3FaConfig } from '@/lib/admin3faService';
-import { hashMasterPin } from '@/lib/pinCrypto';
 import { 
   ShieldCheck, 
   Layers, 
@@ -155,47 +154,11 @@ export default function StandaloneAdminPortalPage() {
 
   const handleChangePinSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (newPinInput.length !== 6 || !/^\d+$/.test(newPinInput)) {
-      alert('Mã PIN mới phải gồm đúng 6 chữ số');
-      return;
-    }
-    try {
-      const hashedPin = await hashMasterPin(newPinInput);
-      localStorage.setItem(PIN_STORAGE_KEY, hashedPin);
-
-      // 1. Sync to Firebase Realtime Database
-      const rtdbPromise = fetch('https://decisive-mapper-216306-default-rtdb.asia-southeast1.firebasedatabase.app/system_config.json', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          master_pin_hash: hashedPin,
-          master_pin: null
-        })
-      });
-
-      // 2. Sync to Cloud Firestore (collection: system_config, doc: admin_security)
-      const firestorePromise = fetch('https://firestore.googleapis.com/v1/projects/decisive-mapper-216306/databases/(default)/documents/system_config/admin_security', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          fields: {
-            master_pin_hash: { stringValue: hashedPin },
-            updatedAt: { stringValue: new Date().toISOString() },
-            description: { stringValue: 'Salted SHA-256 Hash of Master Admin PIN' }
-          }
-        })
-      });
-
-      await Promise.allSettled([rtdbPromise, firestorePromise]);
-      setPinChangeSuccess('✅ ĐÃ BĂM MẬT MÃ SHA-256 & ĐỒNG BỘ LÊN CẢ FIRESTORE & RTDB!');
-    } catch {
-      setPinChangeSuccess('⚠️ ĐÃ LƯU CỤC BỘ (Không thể kết nối đám mây)');
-    }
-    setTimeout(() => {
-      setPinChangeSuccess(null);
-      setIsChangePinOpen(false);
-      setNewPinInput('');
-    }, 2000);
+    alert(
+      'Master PIN được lưu trên máy chủ (ADMIN_PIN_HASH). Tạo hash bằng `npm run hash-pin` rồi cập nhật biến môi trường — không đổi PIN từ trình duyệt.'
+    );
+    setIsChangePinOpen(false);
+    setNewPinInput('');
   };
 
   const handleApprove = async (tx: TransactionData) => {

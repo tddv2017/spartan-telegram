@@ -5,12 +5,48 @@ import { TrendingUp, TrendingDown, Radio, User, Layers } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { parseTimestampMs } from '@/lib/dateUtils';
 
+const VN_OFFSET_MS = 7 * 60 * 60 * 1000;
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+type ChartRange = '1D' | '7D' | '1M';
+const RANGE_DAYS: Record<ChartRange, number> = { '1D': 1, '7D': 7, '1M': 30 };
+
 interface HourlyDataPoint {
   timeLabel: string;
   hour: number;
   equity: number;
   growthPercent: number;
   note: string;
+}
+
+function pad2(value: number): string {
+  return String(value).padStart(2, '0');
+}
+
+function vnParts(ms: number) {
+  const shifted = new Date(ms + VN_OFFSET_MS);
+  return {
+    year: shifted.getUTCFullYear(),
+    month: shifted.getUTCMonth(),
+    date: shifted.getUTCDate(),
+    hour: shifted.getUTCHours(),
+    minute: shifted.getUTCMinutes(),
+  };
+}
+
+function vnDayStartMs(ms: number): number {
+  const parts = vnParts(ms);
+  return Date.UTC(parts.year, parts.month, parts.date) - VN_OFFSET_MS;
+}
+
+function formatVnDay(ms: number): string {
+  const parts = vnParts(ms);
+  return `${pad2(parts.date)}/${pad2(parts.month + 1)}`;
+}
+
+function growthPct(equity: number, baseline: number): number {
+  if (!(baseline > 0)) return 0;
+  return Number((((equity - baseline) / baseline) * 100).toFixed(2));
 }
 
 interface EquityChartProps {
@@ -34,6 +70,8 @@ export const EquityChart: React.FC<EquityChartProps> = ({
   const [liveFloating, setLiveFloating] = useState<number>(179.22);
   const [liveTrades, setLiveTrades] = useState<any[]>(propTrades || []);
   const [activePointIndex, setActivePointIndex] = useState<number | null>(null);
+  const [timeRange, setTimeRange] = useState<ChartRange>('1D');
+  const [nowMs, setNowMs] = useState<number | null>(null);
 
   const hasUserCapital = typeof userTradingBalance === 'number' && userTradingBalance > 0;
   // Default to PERSONAL view if client has invested capital, otherwise MASTER_POOL
@@ -45,6 +83,16 @@ export const EquityChart: React.FC<EquityChartProps> = ({
       setViewMode('PERSONAL');
     }
   }, [userTradingBalance]);
+
+  useEffect(() => {
+    setNowMs(Date.now());
+    const timer = setInterval(() => setNowMs(Date.now()), 30000);
+    return () => clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    setActivePointIndex(null);
+  }, [timeRange, viewMode]);
 
   // Auto fetch live metrics from Exness MT5 / Firebase RTDB
   useEffect(() => {
@@ -94,178 +142,145 @@ export const EquityChart: React.FC<EquityChartProps> = ({
   const userShareRatio = hasUserCapital ? (userTradingBalance / effectiveMasterPool) : 1;
   const userSharePercent = userShareRatio * 100;
 
-  // Compute Hourly Timeline Series scaled by Client's % Capital or Master Pool
+  // Reconstruct the growth curve from live trades for 1D / 7D / 1M
   const { hourlyPoints, dayGrowthPercent, minVal, maxVal, yLabels, displayEquity } = useMemo(() => {
-    // Current Local Vietnam Time (UTC+7)
-    const now = new Date();
-    const vnTime = new Date(now.getTime() + (7 * 60 + now.getTimezoneOffset()) * 60000);
-    const curHour = vnTime.getHours();
-    const curMin = vnTime.getMinutes();
-    const curTimeStr = `${String(curHour).padStart(2, '0')}:${String(curMin).padStart(2, '0')}`;
+    const fallbackEquity =
+      viewMode === 'PERSONAL' && hasUserCapital ? userTradingBalance : liveEquity;
+    const emptyChart = {
+      hourlyPoints: [{
+        timeLabel: '--:--',
+        hour: 0,
+        equity: fallbackEquity,
+        growthPercent: 0,
+        note: '',
+      }] as HourlyDataPoint[],
+      dayGrowthPercent: 0,
+      minVal: Math.floor((fallbackEquity - 80) / 10) * 10,
+      maxVal: Math.ceil((fallbackEquity + 80) / 10) * 10,
+      yLabels: ['', '', '', '', ''],
+      displayEquity: fallbackEquity,
+    };
 
-    // Closed Trades Today Sum:
-    // Trade #89201948: +365.00 (14:27)
-    // Trade #4089331991: -258.95 (19:04)
-    // Trade #4089332011: -258.95 (19:04)
-    const closedTradesPnL = liveTrades.reduce((sum: number, t: any) => sum + (Number(t.pnl) || 0), 0);
-    const totalTodayMasterPnL = closedTradesPnL + liveFloating;
+    if (nowMs == null) return emptyChart;
 
-    // Master Pool Day Start Baseline Equity (00:00 today)
-    const masterBaseline = Math.max(1000, liveEquity - totalTodayMasterPnL);
-    const masterTodayGrowth = ((liveEquity - masterBaseline) / masterBaseline) * 100;
+    const clockMs = nowMs;
+    const todayStart = vnDayStartMs(clockMs);
+    const rangeDays = RANGE_DAYS[timeRange];
+    const rangeStart = todayStart - (rangeDays - 1) * DAY_MS;
+    const nowParts = vnParts(clockMs);
+    const curTimeStr = `${pad2(nowParts.hour)}:${pad2(nowParts.minute)}`;
 
-    // Client's Capital Join Timestamp
-    const clientJoinTimestamp = userCapitalJoinedAt ? parseTimestampMs(userCapitalJoinedAt) : Infinity;
+    const isPersonal = viewMode === 'PERSONAL' && hasUserCapital;
+    const share = isPersonal ? userShareRatio : 1;
+    const joinTs = userCapitalJoinedAt ? parseTimestampMs(userCapitalJoinedAt) : Number.NaN;
 
-    // Check if user is eligible for trade at 14:30 (#89201948 at 07:27 UTC / 14:27 GMT+7)
-    const trade1430Time = new Date("2026-09-02T07:27:23.608Z").getTime();
-    const userEligibleTrade1 = trade1430Time >= clientJoinTimestamp;
+    const parsedTrades = liveTrades
+      .map((trade: any) => ({
+        ts: parseTimestampMs(trade.timestamp),
+        pnl: Number(trade.pnl) || 0,
+      }))
+      .filter((trade) => Number.isFinite(trade.ts))
+      .sort((a, b) => a.ts - b.ts);
+
+    const eligibleTrades =
+      isPersonal && Number.isFinite(joinTs)
+        ? parsedTrades.filter((trade) => trade.ts >= joinTs)
+        : parsedTrades;
+
+    const allEligiblePnl = eligibleTrades.reduce((sum, trade) => sum + trade.pnl * share, 0);
+    const floatingShare = (Number(liveFloating) || 0) * share;
+    const currentEquity = isPersonal
+      ? userTradingBalance + allEligiblePnl + floatingShare
+      : liveEquity;
+
+    const pnlInRange = eligibleTrades
+      .filter((trade) => trade.ts >= rangeStart && trade.ts <= clockMs)
+      .reduce((sum, trade) => sum + trade.pnl * share, 0);
+    const startEquity = currentEquity - pnlInRange - floatingShare;
+    const baseline = startEquity > 0 ? startEquity : Math.max(currentEquity, 0);
+
+    const liveNote = isPersonal
+      ? `Live Portfolio (${userSharePercent.toFixed(1)}% Pool)`
+      : `Live Exness MT5 (Lãi thả nổi: +$${liveFloating.toFixed(2)})`;
 
     let points: HourlyDataPoint[] = [];
 
-    if (viewMode === 'PERSONAL' && hasUserCapital) {
-      // PERSONAL VIEW: Scaled directly by client's invested capital (x % vốn góp)
-      const userBaseline = userTradingBalance;
-      const userPnLTrade1 = userEligibleTrade1 ? 365.00 * userShareRatio : 0;
-      // Live current user profit
-      const eligibleTradesForUser = liveTrades.filter(t => {
-        const tradeTimestamp = parseTimestampMs(t.timestamp);
-        return Number.isFinite(tradeTimestamp) && tradeTimestamp >= clientJoinTimestamp;
-      });
-      const userEligibleClosedPnL = eligibleTradesForUser.reduce((s, t) => s + (Number(t.pnl) || 0) * userShareRatio, 0);
-      const userEligibleFloating = liveFloating > 0 ? liveFloating * userShareRatio : 0;
-      const userCurrentEquity = userTradingBalance + userEligibleClosedPnL + userEligibleFloating;
-      const userGrowth = ((userCurrentEquity - userBaseline) / userBaseline) * 100;
+    if (timeRange === '1D') {
+      const hourPnl = new Array(24).fill(0);
+      for (const trade of eligibleTrades) {
+        if (trade.ts < todayStart || trade.ts > clockMs) continue;
+        hourPnl[vnParts(trade.ts).hour] += trade.pnl * share;
+      }
 
-      points = [
-        {
-          timeLabel: '00:00',
-          hour: 0,
-          equity: userBaseline,
-          growthPercent: 0.00,
-          note: 'Mở đầu ngày - Vốn bảo toàn'
-        },
-        {
-          timeLabel: '04:00',
-          hour: 4,
-          equity: userBaseline,
-          growthPercent: 0.00,
-          note: 'Phiên Á tích lũy'
-        },
-        {
-          timeLabel: '08:00',
-          hour: 8,
-          equity: userBaseline,
-          growthPercent: 0.00,
-          note: 'Chờ tín hiệu M5/H1'
-        },
-        {
-          timeLabel: '12:00',
-          hour: 12,
-          equity: userBaseline,
-          growthPercent: 0.00,
-          note: 'Phiên London mở cửa'
-        },
-        {
-          timeLabel: '14:30',
-          hour: 14.5,
-          equity: userBaseline + userPnLTrade1,
-          growthPercent: userPnLTrade1 > 0 ? Number(((userPnLTrade1 / userBaseline) * 100).toFixed(2)) : 0.00,
-          note: userEligibleTrade1 
-            ? `Nhận +$${userPnLTrade1.toFixed(2)} (${userSharePercent.toFixed(1)}% lệnh Gold)`
-            : 'Lệnh #89201948 mở trước giờ nạp vốn ($0.00)'
-        },
-        {
-          timeLabel: '17:00',
-          hour: 17,
-          equity: userBaseline + userPnLTrade1,
-          growthPercent: userPnLTrade1 > 0 ? Number(((userPnLTrade1 / userBaseline) * 100).toFixed(2)) : 0.00,
-          note: 'Phiên New York biến động'
-        },
-        {
-          timeLabel: curTimeStr,
-          hour: curHour + (curMin / 60),
-          equity: userCurrentEquity,
-          growthPercent: Number(userGrowth.toFixed(2)),
-          note: `Live Portfolio (${userSharePercent.toFixed(1)}% Pool)`
-        }
-      ];
+      const markers = new Set<number>([0, nowParts.hour]);
+      for (let hour = 0; hour <= nowParts.hour; hour += 1) {
+        if (hourPnl[hour] !== 0) markers.add(hour);
+      }
+      for (const hour of [4, 8, 12, 16, 20]) {
+        if (hour <= nowParts.hour) markers.add(hour);
+      }
+
+      const hours = [...markers].sort((a, b) => a - b);
+      for (const hour of hours) {
+        const isNow = hour === nowParts.hour;
+        const closedBefore = hourPnl.slice(0, hour).reduce((sum, value) => sum + value, 0);
+        const equity = isNow ? currentEquity : baseline + closedBefore;
+        points.push({
+          timeLabel: isNow ? curTimeStr : `${pad2(hour)}:00`,
+          hour,
+          equity,
+          growthPercent: growthPct(equity, baseline),
+          note: isNow
+            ? liveNote
+            : hour === 0
+              ? (isPersonal ? 'Mở đầu ngày - Vốn bảo toàn' : 'Bắt đầu phiên giao dịch ngày')
+              : `Phiên ${pad2(hour)}:00`,
+        });
+      }
     } else {
-      // MASTER POOL VIEW: Entire fund metrics ($50k pool)
-      points = [
-        {
-          timeLabel: '00:00',
-          hour: 0,
-          equity: masterBaseline,
-          growthPercent: 0.00,
-          note: 'Bắt đầu phiên giao dịch ngày'
-        },
-        {
-          timeLabel: '04:00',
-          hour: 4,
-          equity: masterBaseline,
-          growthPercent: 0.00,
-          note: 'Phiên Tokyo / Sydney tích lũy'
-        },
-        {
-          timeLabel: '08:00',
-          hour: 8,
-          equity: masterBaseline,
-          growthPercent: 0.00,
-          note: 'Mở cửa phiên Á - Chờ tín hiệu M5'
-        },
-        {
-          timeLabel: '12:00',
-          hour: 12,
-          equity: masterBaseline,
-          growthPercent: 0.00,
-          note: 'Giao thoa London - Quét thanh khoản'
-        },
-        {
-          timeLabel: '14:30',
-          hour: 14.5,
-          equity: masterBaseline + 365.00,
-          growthPercent: Number(((365.00 / masterBaseline) * 100).toFixed(2)),
-          note: 'Chốt lời Gold XAUUSD #89201948 (+365U)'
-        },
-        {
-          timeLabel: '17:00',
-          hour: 17,
-          equity: masterBaseline + 365.00 + 95.19,
-          growthPercent: Number((((365.00 + 95.19) / masterBaseline) * 100).toFixed(2)),
-          note: 'Đỉnh tăng trưởng phiên Âu (+0.92%)'
-        },
-        {
-          timeLabel: curTimeStr,
-          hour: curHour + (curMin / 60),
-          equity: liveEquity,
-          growthPercent: Number(masterTodayGrowth.toFixed(2)),
-          note: `Live Exness MT5 (Lãi thả nổi: +$${liveFloating.toFixed(2)})`
-        }
-      ];
+      for (let dayIndex = 0; dayIndex < rangeDays; dayIndex += 1) {
+        const dayStart = rangeStart + dayIndex * DAY_MS;
+        const dayEnd = dayStart + DAY_MS;
+        const isLast = dayIndex === rangeDays - 1;
+        const pnlThroughDay = eligibleTrades
+          .filter((trade) => trade.ts >= rangeStart && trade.ts < dayEnd)
+          .reduce((sum, trade) => sum + trade.pnl * share, 0);
+        const equity = isLast ? currentEquity : baseline + pnlThroughDay;
+        points.push({
+          timeLabel: formatVnDay(dayStart),
+          hour: dayIndex,
+          equity,
+          growthPercent: growthPct(equity, baseline),
+          note: isLast ? liveNote : `Khóa phiên ${formatVnDay(dayStart)}`,
+        });
+      }
     }
 
-    // Filter points up to current hour
-    const activePoints = points.filter(p => p.hour <= curHour + (curMin / 60) + 0.1);
-    if (activePoints.length === 0) activePoints.push(points[0]);
+    if (points.length === 0) {
+      points = [{
+        timeLabel: curTimeStr,
+        hour: nowParts.hour,
+        equity: currentEquity,
+        growthPercent: 0,
+        note: liveNote,
+      }];
+    }
 
-    const latestPoint = activePoints[activePoints.length - 1];
+    const latestPoint = points[points.length - 1];
     const currentDisplayEquity = latestPoint.equity;
-    const currentTodayGrowth = latestPoint.growthPercent;
+    const currentRangeGrowth = latestPoint.growthPercent;
 
-    const equities = activePoints.map(p => p.equity);
+    const equities = points.map((point) => point.equity);
     const minE = Math.min(...equities);
     const maxE = Math.max(...equities);
-    // Dynamic padding so curve doesn't touch borders
     const span = maxE - minE;
     const pad = Math.max(span * 0.25, Math.max(currentDisplayEquity * 0.004, 30));
     const chartMin = Math.floor((minE - pad) / 10) * 10;
     const chartMax = Math.ceil((maxE + pad) / 10) * 10;
 
-    // Generate 5 Y-Axis Tick Labels
     const labels: string[] = [];
     const step = (chartMax - chartMin) / 4;
-    for (let i = 4; i >= 0; i--) {
+    for (let i = 4; i >= 0; i -= 1) {
       const val = chartMin + step * i;
       if (val >= 1000) {
         labels.push(`$${(val / 1000).toFixed(1)}k`);
@@ -275,14 +290,14 @@ export const EquityChart: React.FC<EquityChartProps> = ({
     }
 
     return {
-      hourlyPoints: activePoints,
-      dayGrowthPercent: currentTodayGrowth,
+      hourlyPoints: points,
+      dayGrowthPercent: currentRangeGrowth,
       minVal: chartMin,
       maxVal: chartMax,
       yLabels: labels,
-      displayEquity: currentDisplayEquity
+      displayEquity: currentDisplayEquity,
     };
-  }, [liveEquity, liveTrades, liveFloating, viewMode, hasUserCapital, userTradingBalance, userShareRatio, userCapitalJoinedAt]);
+  }, [liveEquity, liveTrades, liveFloating, viewMode, hasUserCapital, userTradingBalance, userShareRatio, userSharePercent, userCapitalJoinedAt, timeRange, nowMs]);
 
   // Coordinate mapping for SVG (Width: 260, Height: 90)
   const svgWidth = 260;
@@ -349,7 +364,9 @@ export const EquityChart: React.FC<EquityChartProps> = ({
           </span>
           <span className="text-[9px] font-bold text-gray-400 bg-[#05070c] px-2 py-0.5 rounded-full border border-[#221c10] flex items-center gap-1 font-mono">
             <Radio className="w-2.5 h-2.5 text-emerald-400 animate-pulse" />
-            <span>{t('chart_hourly')}</span>
+            <span>
+              {timeRange === '1D' ? t('chart_hourly') : timeRange === '7D' ? t('chart_7d_badge') : t('chart_1m_badge')}
+            </span>
           </span>
         </div>
 
@@ -384,14 +401,36 @@ export const EquityChart: React.FC<EquityChartProps> = ({
             </div>
           )}
 
-          {/* Dynamic Live Growth Today Badge */}
+          {/* Time range: 1D / 7D / 1M */}
+          <div className="flex items-center bg-[#05070c] p-0.5 rounded-xl border border-[#221c10] text-[9px] font-black">
+            {([
+              { id: '1D' as const, label: t('chart_range_1d') },
+              { id: '7D' as const, label: t('chart_range_7d') },
+              { id: '1M' as const, label: t('chart_range_1m') },
+            ]).map((range) => (
+              <button
+                key={range.id}
+                type="button"
+                onClick={() => setTimeRange(range.id)}
+                className={`px-2 py-1 rounded-lg transition-all ${
+                  timeRange === range.id
+                    ? 'bg-gradient-to-r from-[#d4af37] to-[#f6e27a] text-black shadow-sm'
+                    : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                {range.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Dynamic Live Growth Badge */}
           <span className={`text-[11px] font-black px-2.5 py-1 rounded-full border font-mono flex items-center gap-1 ${
             isPositiveGrowth 
               ? 'text-emerald-400 bg-emerald-500/15 border-emerald-500/35 shadow-[0_0_10px_rgba(16,185,129,0.15)]' 
               : 'text-red-400 bg-red-500/15 border-red-500/40'
           }`}>
             {isPositiveGrowth ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-            <span>{isPositiveGrowth ? '+' : ''}{dayGrowthPercent.toFixed(2)}% {t('chart_today')}</span>
+            <span>{isPositiveGrowth ? '+' : ''}{dayGrowthPercent.toFixed(2)}% {timeRange === '1D' ? t('chart_today') : timeRange === '7D' ? t('chart_7d') : t('chart_1m')}</span>
           </span>
         </div>
       </div>
@@ -433,7 +472,7 @@ export const EquityChart: React.FC<EquityChartProps> = ({
         </div>
 
         {/* SVG Curve Canvas */}
-        <div className="flex-1 relative flex flex-col justify-between overflow-hidden">
+        <div className="flex-1 relative flex flex-col justify-between overflow-visible">
           <div className="flex-1 relative">
             <svg 
               className="w-full h-full" 
@@ -518,20 +557,26 @@ export const EquityChart: React.FC<EquityChartProps> = ({
             </svg>
           </div>
 
-          {/* Bottom X-Axis Hourly Timeline */}
-          <div className="flex items-center justify-between text-[8px] text-gray-500 font-mono pt-1 select-none border-t border-[#1f293d]/50 mt-1">
+          {/* Bottom X-Axis Timeline */}
+          <div className="relative h-4 border-t border-[#1f293d]/50 mt-1 select-none">
             {mappedPoints.map((pt, idx) => {
-              const isLatest = idx === mappedPoints.length - 1;
+              const count = mappedPoints.length;
+              const step = Math.max(1, Math.ceil((count - 1) / 6));
+              const showLabel = count <= 8 || idx === 0 || idx === count - 1 || idx % step === 0;
+              if (!showLabel) return null;
+              const isLatest = idx === count - 1;
+              const left = (pt.x / svgWidth) * 100;
               return (
-                <span 
-                  key={idx} 
-                  className={`transition-colors ${
-                    isLatest 
-                      ? 'text-[#00df89] font-black' 
-                      : activePointIndex === idx 
-                        ? 'text-white font-bold' 
-                        : 'hover:text-gray-300'
+                <span
+                  key={idx}
+                  className={`absolute top-1 -translate-x-1/2 text-[8px] font-mono whitespace-nowrap ${
+                    isLatest
+                      ? 'text-[#00df89] font-black'
+                      : activePointIndex === idx
+                        ? 'text-white font-bold'
+                        : 'text-gray-500'
                   }`}
+                  style={{ left: `${left}%` }}
                 >
                   {pt.timeLabel}
                 </span>

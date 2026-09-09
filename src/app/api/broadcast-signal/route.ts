@@ -1,10 +1,21 @@
 import { NextResponse } from 'next/server';
+import { authorizeAdmin, toErrorResponse } from '@/lib/server/auth';
+import { getBotToken } from '@/lib/server/env';
+import { dbGet } from '@/lib/server/rtdb';
 
-const BOT_TOKEN = process.env.BOT_TOKEN || '8897704483:AAFRtOHaF4UdH25pgf_IffQUNpCAy0YFp_Q';
-const RTDB_BASE_URL = 'https://decisive-mapper-216306-default-rtdb.asia-southeast1.firebasedatabase.app';
+export const dynamic = 'force-dynamic';
 
+/**
+ * Publishes a trade signal to the configured Telegram channel.
+ *
+ * Admin-only: the endpoint posts under the official bot identity, so open
+ * access would hand anyone a channel-wide broadcast with fabricated numbers.
+ */
 export async function POST(req: Request) {
   try {
+    await authorizeAdmin(req);
+
+    const BOT_TOKEN = getBotToken();
     const body = await req.json();
     const { 
       channelId: inputChannelId, 
@@ -21,11 +32,10 @@ export async function POST(req: Request) {
     // Get Channel ID from request or Firebase config
     let targetChannel = inputChannelId;
     if (!targetChannel) {
-      const cfgRes = await fetch(`${RTDB_BASE_URL}/system_config.json`);
-      if (cfgRes.ok) {
-        const cfg = await cfgRes.json();
-        if (cfg?.signalChannelId) targetChannel = cfg.signalChannelId;
-      }
+      const signalChannelId = await dbGet<string | null>('system_config/signalChannelId').catch(
+        () => null
+      );
+      if (signalChannelId) targetChannel = signalChannelId;
     }
 
     if (!targetChannel) {
@@ -88,10 +98,7 @@ export async function POST(req: Request) {
       message: `✓ Đã bắn tín hiệu thành công vào Kênh ${targetChannel}!`,
       data: tgData.result
     });
-  } catch (err: any) {
-    return NextResponse.json({
-      success: false,
-      message: 'Lỗi máy chủ phát tín hiệu: ' + err.message
-    }, { status: 500 });
+  } catch (err) {
+    return toErrorResponse(err);
   }
 }

@@ -1,9 +1,20 @@
 import { NextResponse } from 'next/server';
+import { authorizeAdmin, toErrorResponse } from '@/lib/server/auth';
+import { getBotToken } from '@/lib/server/env';
 
-const BOT_TOKEN = process.env.BOT_TOKEN || '8897704483:AAFRtOHaF4UdH25pgf_IffQUNpCAy0YFp_Q';
+export const dynamic = 'force-dynamic';
 
+/**
+ * Sends a transaction outcome notice to a user.
+ *
+ * Restricted to administrators: an open endpoint here would let anyone send
+ * bot-branded "deposit approved" messages to arbitrary Telegram accounts.
+ */
 export async function POST(req: Request) {
   try {
+    await authorizeAdmin(req);
+
+    const BOT_TOKEN = getBotToken();
     const body = await req.json();
     const { 
       telegramId, 
@@ -80,8 +91,7 @@ export async function POST(req: Request) {
       success: tgData.ok,
       result: tgData
     });
-  } catch (err: any) {
-    console.error('Error in notify-user route:', err);
-    return NextResponse.json({ success: false, error: err.message }, { status: 500 });
+  } catch (err) {
+    return toErrorResponse(err);
   }
 }

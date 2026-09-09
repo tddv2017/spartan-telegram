@@ -1,9 +1,15 @@
 /**
- * SPARTAN ADMIN 3FA & BINANCE-GRADE CUSTODIAL VERIFICATION SERVICE (100% LIVE REAL)
- * 1. Master PIN: Level 1 Access Gate
- * 2. Live Server Custody OTP: Dispatched to Admin's phone via Telegram Bot API + Firebase Session
- * 3. Real Native Hardware Biometrics: WebAuthn Platform Authenticator (Face ID / Touch ID / Passkey)
+ * SPARTAN ADMIN 3FA CUSTODIAL VERIFICATION SERVICE
+ * 1. Master PIN: Level 1 access gate
+ * 2. Custody OTP: generated, delivered and verified entirely server-side
+ * 3. Device presence check: WebAuthn platform authenticator
+ *
+ * Every factor is adjudicated by an API route that re-verifies the caller's
+ * Telegram signature. Nothing in this file may decide on its own that a factor
+ * passed, because the browser is under the user's control.
  */
+
+import { ApiError, apiFetch } from './telegramClient';
 
 export interface Admin3FaConfig {
   adminEmail: string;
@@ -14,7 +20,6 @@ export interface Admin3FaConfig {
 }
 
 const CONFIG_STORAGE_KEY = 'spartan_admin_3fa_config_v1';
-const RTDB_BASE_URL = "https://decisive-mapper-216306-default-rtdb.asia-southeast1.firebasedatabase.app";
 
 export const DEFAULT_3FA_CONFIG: Admin3FaConfig = {
   adminEmail: 'tddv2017@gmail.com',
@@ -37,109 +42,82 @@ export function saveAdmin3FaConfig(config: Admin3FaConfig): void {
   localStorage.setItem(CONFIG_STORAGE_KEY, JSON.stringify(config));
 }
 
-/**
- * Dispatch real OTP directly to specific Admin's Telegram ID via backend API
- */
-export async function sendRealCustodyOtp(
-  email?: string,
-  targetTelegramId?: string,
-  targetUsername?: string
-): Promise<{ success: boolean; message: string; telegramSent?: boolean; targetChatId?: string }> {
-  try {
-    const res = await fetch('/api/send-custody-otp', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
-        email: email || DEFAULT_3FA_CONFIG.adminEmail,
-        telegramId: targetTelegramId || '',
-        username: targetUsername || ''
-      })
-    });
-
-    const data = await res.json();
-    return {
-      success: data.success,
-      telegramSent: data.telegramSent,
-      targetChatId: data.targetChatId,
-      message: data.message || 'Đã gửi mã xác thực OTP về thiết bị của bạn!'
-    };
-  } catch (err: any) {
-    return { success: false, message: 'Lỗi gửi OTP: ' + err.message };
-  }
+function describeError(error: unknown, fallback: string): string {
+  if (error instanceof ApiError) return error.message;
+  return fallback;
 }
 
 /**
- * Verify OTP directly against Firebase RTDB Live Session for specific Admin
+ * Requests a custody OTP for the signed-in administrator.
+ *
+ * The recipient is resolved server-side from the Telegram signature, so there
+ * is deliberately no parameter for choosing a target account.
  */
+export async function sendRealCustodyOtp(): Promise<{
+  success: boolean;
+  message: string;
+  telegramSent?: boolean;
+}> {
+  try {
+    const data = await apiFetch<{ message?: string; telegramSent?: boolean }>(
+      '/api/send-custody-otp',
+      {}
+    );
+    return {
+      success: true,
+      telegramSent: data.telegramSent,
+      message: data.message || 'Đã gửi mã xác thực OTP về Telegram của bạn.',
+    };
+  } catch (err) {
+    return { success: false, message: describeError(err, 'Không gửi được mã OTP.') };
+  }
+}
+
 export async function verifyRealCustodyOtp(
-  enteredOtp: string,
-  targetTelegramId?: string
+  enteredOtp: string
 ): Promise<{ success: boolean; message: string }> {
   const cleanOtp = enteredOtp.trim();
-  if (cleanOtp.length !== 6) {
-    return { success: false, message: 'Vui lòng nhập đủ 6 chữ số OTP!' };
-  }
-
-  // Master Override Bypass restricted strictly to local development
-  if (process.env.NODE_ENV === 'development' && cleanOtp === '999888') {
-    return { success: true, message: 'Xác minh thành công (Master Override Dev)!' };
+  if (!/^\d{6}$/.test(cleanOtp)) {
+    return { success: false, message: 'Vui lòng nhập đủ 6 chữ số OTP.' };
   }
 
   try {
-    // 1. Check isolated admin session endpoint first
-    if (targetTelegramId) {
-      const res = await fetch(`${RTDB_BASE_URL}/admin_custody_session/${targetTelegramId}.json`);
-      if (res.ok) {
-        const data = await res.json();
-        if (data && data.otp) {
-          if (Date.now() > data.expiresAt) {
-            return { success: false, message: 'Mã OTP đã hết hạn 5 phút. Vui lòng bấm gửi lại mã mới!' };
-          }
-          if (data.otp === cleanOtp) {
-            await fetch(`${RTDB_BASE_URL}/admin_custody_session/${targetTelegramId}.json`, { method: 'DELETE' });
-            return { success: true, message: '✓ Xác minh mã ký lưu ký thành công 100%!' };
-          }
-        }
-      }
-    }
-
-    // 2. Fallback to global latest_otp.json
-    const res = await fetch(`${RTDB_BASE_URL}/admin_custody_session/latest_otp.json`);
-    if (res.ok) {
-      const data = await res.json();
-      if (!data || !data.otp) {
-        return { success: false, message: 'Chưa có mã OTP nào được gửi. Vui lòng bấm [GỬI MÃ]!' };
-      }
-
-      if (Date.now() > data.expiresAt) {
-        return { success: false, message: 'Mã OTP đã hết hạn 5 phút. Vui lòng bấm gửi lại mã mới!' };
-      }
-
-      if (data.otp === cleanOtp) {
-        // Clear used OTP to prevent replay
-        await fetch(`${RTDB_BASE_URL}/admin_custody_session/latest_otp.json`, { method: 'DELETE' });
-        return { success: true, message: '✓ Xác minh mã ký lưu ký thành công 100%!' };
-      }
-    }
+    const data = await apiFetch<{ message?: string }>('/api/verify-custody-otp', {
+      code: cleanOtp,
+    });
+    return { success: true, message: data.message || '✓ Xác minh mã lưu ký thành công.' };
   } catch (err) {
-    console.error('Lỗi kiểm tra OTP trên Firebase:', err);
+    return { success: false, message: describeError(err, '❌ Mã OTP không chính xác.') };
   }
+}
 
-  return { success: false, message: '❌ Mã OTP không chính xác. Vui lòng kiểm tra tin nhắn trên điện thoại!' };
+export async function verifyLiveTotp(
+  code: string
+): Promise<{ success: boolean; message: string }> {
+  try {
+    const data = await apiFetch<{ message?: string }>('/api/verify-totp', { code: code.trim() });
+    return { success: true, message: data.message || '✓ Xác thực 2FA thành công.' };
+  } catch (err) {
+    return { success: false, message: describeError(err, '❌ Mã 2FA không đúng.') };
+  }
 }
 
 /**
- * Trigger Real Native WebAuthn Platform Biometrics (Face ID / Touch ID / Windows Hello)
+ * Prompts the platform authenticator (Face ID / Touch ID / Windows Hello).
+ *
+ * This establishes that the operator is physically present on an enrolled
+ * device. It is a presence check rather than a cryptographic factor, so a
+ * failure or an unsupported browser is reported as a failure — returning
+ * success there would make the whole step decorative.
  */
-export async function triggerRealWebAuthnBiometrics(): Promise<{ success: boolean; message: string }> {
-  if (typeof window === 'undefined') {
-    return { success: false, message: 'Môi trường không hỗ trợ.' };
-  }
-
-  if (!window.PublicKeyCredential) {
-    return { 
-      success: true, 
-      message: '✓ Thiết bị đã xác nhận qua Token phần cứng (Fallback Secure Enclave).' 
+export async function triggerRealWebAuthnBiometrics(): Promise<{
+  success: boolean;
+  message: string;
+}> {
+  if (typeof window === 'undefined' || !window.PublicKeyCredential) {
+    return {
+      success: false,
+      message: 'Thiết bị hoặc trình duyệt này không hỗ trợ xác thực sinh trắc học.',
     };
   }
 
@@ -147,76 +125,47 @@ export async function triggerRealWebAuthnBiometrics(): Promise<{ success: boolea
     const challenge = new Uint8Array(32);
     window.crypto.getRandomValues(challenge);
 
-    // Call Real Native Browser Biometrics Dialog
     const credential = await navigator.credentials.create({
       publicKey: {
         challenge,
-        rp: {
-          name: "Spartan Admin Custody",
-          id: window.location.hostname === 'localhost' ? 'localhost' : window.location.hostname
-        },
+        rp: { name: 'Spartan Admin Custody', id: window.location.hostname },
         user: {
-          id: new Uint8Array([4, 9, 4, 2, 3, 2, 7, 8, 2]),
-          name: "tddv2017",
-          displayName: "Supreme Commander @tddv2017"
+          id: window.crypto.getRandomValues(new Uint8Array(16)),
+          name: 'spartan-admin',
+          displayName: 'Spartan Administrator',
         },
         pubKeyCredParams: [
-          { alg: -7, type: "public-key" },  // ES256
-          { alg: -257, type: "public-key" } // RS256
+          { alg: -7, type: 'public-key' },
+          { alg: -257, type: 'public-key' },
         ],
         authenticatorSelection: {
-          authenticatorAttachment: "platform", // Forces Touch ID / Face ID on this phone/computer
-          userVerification: "required"
+          authenticatorAttachment: 'platform',
+          userVerification: 'required',
         },
-        timeout: 60000
-      }
+        timeout: 60000,
+      },
     });
 
-    if (credential) {
-      return {
-        success: true,
-        message: '✓ Xác thực sinh trắc học phần cứng (Face ID / Vân tay) thành công 100%!'
-      };
+    if (!credential) {
+      return { success: false, message: 'Không thể xác thực sinh trắc học thiết bị.' };
     }
-  } catch (err: any) {
-    console.warn('WebAuthn notification:', err);
-    if (err.name === 'NotAllowedError') {
-      return { success: false, message: 'Bạn đã từ chối hoặc hủy yêu cầu quét Face ID / Vân tay.' };
-    }
-    // If device doesn't have local platform biometric sensor registered, allow device approval token
+
     return {
       success: true,
-      message: '✓ Thiết bị di động đã được xác nhận quyền sở hữu qua khóa phần cứng trình duyệt!'
-    };
-  }
-
-  return { success: false, message: 'Không thể xác thực sinh trắc học thiết bị.' };
-}
-
-export const DEFAULT_TOTP_SECRET = 'KVKFKRCPNZQUYMLXOVYDSQKJIFBEURKW';
-
-export function getOtpauthUrl(email = 'tddv2017@gmail.com', secret = DEFAULT_TOTP_SECRET): string {
-  return `otpauth://totp/SpartanAdmin:${email}?secret=${secret}&issuer=SpartanTradingBot`;
-}
-
-export function getQrCodeUrl(otpauthUrl: string): string {
-  return `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(otpauthUrl)}`;
-}
-
-export async function verifyLiveTotp(code: string, secret = DEFAULT_TOTP_SECRET): Promise<{ success: boolean; message: string }> {
-  try {
-    const res = await fetch('/api/verify-totp', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ code, secret })
-    });
-
-    const data = await res.json();
-    return {
-      success: data.success,
-      message: data.message || (data.success ? '✓ Xác thực 2FA thành công!' : '❌ Mã 2FA không đúng!')
+      message: '✓ Xác thực sinh trắc học phần cứng (Face ID / Vân tay) thành công.',
     };
   } catch (err: any) {
-    return { success: false, message: 'Lỗi đối soát 2FA: ' + err.message };
+    if (err?.name === 'NotAllowedError') {
+      return { success: false, message: 'Bạn đã từ chối hoặc hủy yêu cầu quét Face ID / Vân tay.' };
+    }
+    console.warn('WebAuthn error:', err);
+    return {
+      success: false,
+      message: 'Không thể xác thực sinh trắc học trên thiết bị này. Vui lòng thử lại.',
+    };
   }
+}
+
+export function getQrCodeUrl(data: string): string {
+  return `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(data)}`;
 }

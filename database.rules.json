@@ -1,9 +1,11 @@
 {
   "rules": {
+    ".read": false,
+    ".write": false,
     "users": {
       "$uid": {
-        ".read": "auth != null || true",
-        ".write": "auth != null",
+        ".read": true,
+        ".write": false,
         "tradingBalance": {
           ".validate": "newData.isNumber() && newData.val() >= 0"
         },
@@ -12,29 +14,49 @@
         }
       }
     },
-    "used_tx_hashes": {
+    "transactions": {
       ".read": true,
-      "$txHash": {
-        ".write": "!data.exists() && newData.exists()",
-        ".validate": "newData.hasChildren(['approvedAt', 'userId'])"
-      }
+      ".write": false
     },
     "trades": {
       ".read": true,
-      "$tradeId": {
-        ".write": true,
-        ".validate": "newData.hasChildren(['id', 'symbol', 'lots', 'pnl', 'timestamp'])"
-      }
+      ".write": false
+    },
+    "master_pool": {
+      ".read": true,
+      ".write": false
     },
     "system_config": {
       ".read": true,
-      ".write": "auth != null"
+      ".write": false
+    },
+    "p2p_waitlist": {
+      ".read": true,
+      ".write": false
+    },
+    "p2p_loans": {
+      ".read": true,
+      ".write": false
+    },
+    "used_tx_hashes": {
+      ".read": false,
+      ".write": false
+    },
+    "admin_custody_session": {
+      ".read": false,
+      ".write": false
     },
     "security_alerts": {
       ".read": false,
-      "$alertId": {
-        ".write": "!data.exists()"
-      }
+      ".write": false
+    },
+    "fraud_alerts": {
+      ".read": false,
+      ".write": false
+    },
+    "locks": {
+      ".read": false,
+      ".write": false
     }
   }
 }

@@ -3,7 +3,7 @@
  * Responds to /start, /app, /wallet, /admin commands instantly with WebApp buttons.
  */
 
-const BOT_TOKEN = process.env.BOT_TOKEN || '8897704483:AAFRtOHaF4UdH25pgf_IffQUNpCAy0YFp_Q';
+const BOT_TOKEN = process.env.BOT_TOKEN || '';
 // Versioned URL prevents Telegram WebView from reusing stale cached HTML/bundles.
 const WEBAPP_URL = process.env.WEBAPP_URL || 'https://spartan-telegram.vercel.app/?v=656d30d-20260909';
 

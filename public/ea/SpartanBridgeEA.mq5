@@ -11,7 +11,7 @@
 //--- Input Parameters
 input group "=== CẤU HÌNH KẾT NỐI SPARTAN BACKEND ==="
 input string   InpServerUrl         = "https://spartan-telegram.vercel.app/api/ea/webhook"; // Webhook API URL
-input string   InpApiKey            = "SPARTAN_EA_LIVE_2026";                              // Khóa bảo mật API
+input string   InpApiKey            = "";                                                   // Khóa bảo mật API (điền EA_SECRET_KEY, không commit khóa)
 input int      InpHeartbeatSeconds  = 15;                                                   // Tần suất gửi Heartbeat (Giây)
 
 input group "=== BỘ LỌC GIAO DỊCH ==="

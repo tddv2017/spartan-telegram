@@ -40,7 +40,7 @@ export const BalanceCard: React.FC<BalanceCardProps> = ({
             {t('total_balance')}
           </span>
           <span className="text-[9px] font-mono font-black px-2.5 py-0.5 rounded-full bg-[#d4af37]/15 text-[#f5d77f] border border-[#d4af37]/40 uppercase tracking-wider">
-            {poolSharePercentage > 0 ? `POOL SHARE ${(poolSharePercentage * 100).toFixed(1)}%` : 'SPARTAN 300 AI'}
+            {poolSharePercentage > 0 ? `POOL SHARE ${poolSharePercentage.toFixed(1)}%` : 'SPARTAN 300 AI'}
           </span>
         </div>
 

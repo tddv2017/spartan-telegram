@@ -1,7 +1,4 @@
-/**
- * Spartan Institutional P2P Lending & Credit Facility Service
- * Manages peer-to-peer credit orders, interest calculation, and VIP Waitlist enrollment.
- */
+import { apiFetch } from './telegramClient';
 
 export interface P2pOfferItem {
   id: string;
@@ -69,34 +66,12 @@ export async function enrollP2pWaitlist(
   role: 'LENDER' | 'BORROWER' | 'BOTH' = 'BOTH'
 ): Promise<{ success: boolean; message: string }> {
   try {
-    const cleanId = String(userId || '494232782').trim();
-    const cleanUser = String(username || 'tddv2017').trim();
-
-    const record: P2pWaitlistRecord = {
-      userId: cleanId,
-      username: cleanUser,
-      registeredAt: new Date().toISOString(),
-      requestedRole: role
-    };
-
-    const res = await fetch(
-      `https://decisive-mapper-216306-default-rtdb.asia-southeast1.firebasedatabase.app/p2p_waitlist/${cleanId}.json`,
-      {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(record)
-      }
-    );
-
-    if (res.ok) {
-      return {
-        success: true,
-        message: '🎉 Bạn đã được ghi danh thành công vào Danh Sách Chờ Ưu Tiên P2P Lending!'
-      };
+    if (!String(userId || '').trim()) {
+      return { success: false, message: 'Thiếu định danh Telegram.' };
     }
-    return { success: false, message: 'Không thể ghi danh vào hàng chờ lúc này. Vui lòng thử lại sau!' };
+    return await apiFetch('/api/p2p', { action: 'enroll', role, username });
   } catch (err: any) {
-    return { success: false, message: 'Lỗi kết nối máy chủ: ' + err.message };
+    return { success: false, message: err?.message || 'Không thể ghi danh vào hàng chờ lúc này.' };
   }
 }
 
@@ -212,68 +187,11 @@ export async function requestP2pMarginLoan(
   termDays: number = 90
 ): Promise<{ success: boolean; message: string; loan?: P2pMarginEscrowOrder }> {
   try {
-    const cleanId = String(userId || '').trim();
-    if (!cleanId) return { success: false, message: 'Định danh người dùng không hợp lệ!' };
-
-    // Fetch live user balance
-    const uRes = await fetch(`https://decisive-mapper-216306-default-rtdb.asia-southeast1.firebasedatabase.app/users/${cleanId}.json`);
-    if (!uRes.ok) return { success: false, message: 'Không thể xác thực số dư tài khoản!' };
-    const uData = await uRes.json();
-    const balance = (uData && typeof uData.tradingBalance === 'number') ? uData.tradingBalance : 0;
-
-    const limits = calculateP2pCollateralLimits(balance, requestedAmount);
-    if (!limits.isEligible) {
-      return { success: false, message: limits.errorMessage || 'Số tiền ký quỹ không hợp lệ!' };
+    if (!String(userId || '').trim()) {
+      return { success: false, message: 'Định danh người dùng không hợp lệ!' };
     }
-
-    const loanId = `P2P_ESCROW_${cleanId}_${Date.now().toString().slice(-6)}`;
-    const loanPayload: P2pMarginEscrowOrder = {
-      id: loanId,
-      userId: cleanId,
-      username: username || 'user_' + cleanId.slice(-4),
-      escrowAmount: requestedAmount,
-      collateralPledged: requestedAmount,
-      safetyBufferRemaining: limits.safetyMarginBuffer,
-      autoStopOutLtvPercent: 85,
-      monthlyFeePct: limits.interestRateMonthly,
-      monthlyFeeUsdt: limits.monthlyInterestUsdt,
-      termDays,
-      status: 'PENDING_DISBURSEMENT',
-      createdAt: new Date().toISOString()
-    };
-
-    // Lock collateral in user profile
-    await fetch(
-      `https://decisive-mapper-216306-default-rtdb.asia-southeast1.firebasedatabase.app/users/${cleanId}.json`,
-      {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          lockedCollateral: (uData.lockedCollateral || 0) + requestedAmount,
-          lastP2pLoanId: loanId
-        })
-      }
-    );
-
-    // Save escrow in /p2p_loans
-    const saveRes = await fetch(
-      `https://decisive-mapper-216306-default-rtdb.asia-southeast1.firebasedatabase.app/p2p_loans/${loanId}.json`,
-      {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(loanPayload)
-      }
-    );
-
-    if (saveRes.ok) {
-      return {
-        success: true,
-        message: `🎉 Đã tạo thỏa thuận ký quỹ thanh khoản #${loanId} ($${requestedAmount.toFixed(2)} USDT) thành công! Quỹ Spartan Treasury đang chuẩn bị điều phối kết chuyển.`,
-        loan: loanPayload
-      };
-    }
-    return { success: false, message: 'Lỗi lưu trữ thỏa thuận ký quỹ!' };
+    return await apiFetch('/api/p2p', { action: 'loan', requestedAmount, termDays, username });
   } catch (err: any) {
-    return { success: false, message: 'Lỗi hệ thống: ' + err.message };
+    return { success: false, message: err?.message || 'Lỗi hệ thống khi tạo lệnh ký quỹ.' };
   }
 }

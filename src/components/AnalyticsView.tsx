@@ -8,6 +8,64 @@ import { ViralPnlModal } from '@/components/ViralPnlModal';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { parseTimestampMs } from '@/lib/dateUtils';
 
+/**
+ * Annualized daily Sharpe and peak-to-trough Max DD vs starting capital.
+ * Returns 0 / 0% when the user has no capital or no eligible trades.
+ */
+function computeRiskStats(
+  trades: TradeOrder[],
+  startEquity: number,
+  shareRatio: number
+): { sharpe: number; maxDdPct: number } {
+  if (!(startEquity > 0) || trades.length === 0) return { sharpe: 0, maxDdPct: 0 };
+
+  const sorted = [...trades].sort((a, b) => {
+    const ta = parseTimestampMs(a.timestamp);
+    const tb = parseTimestampMs(b.timestamp);
+    return (Number.isFinite(ta) ? ta : 0) - (Number.isFinite(tb) ? tb : 0);
+  });
+
+  let equity = startEquity;
+  let peak = startEquity;
+  let maxDdPct = 0;
+  const dailyPnl = new Map<string, number>();
+
+  for (const trade of sorted) {
+    const pnl = (Number(trade.pnl) || 0) * shareRatio;
+    equity += pnl;
+    if (equity > peak) peak = equity;
+    if (peak > 0) {
+      const drawdown = ((peak - equity) / peak) * 100;
+      if (drawdown > maxDdPct) maxDdPct = drawdown;
+    }
+
+    const ts = parseTimestampMs(trade.timestamp);
+    if (!Number.isFinite(ts)) continue;
+    const day = new Date(ts).toISOString().slice(0, 10);
+    dailyPnl.set(day, (dailyPnl.get(day) || 0) + pnl);
+  }
+
+  const days = [...dailyPnl.keys()].sort();
+  const returns: number[] = [];
+  let dayEquity = startEquity;
+  for (const day of days) {
+    const pnl = dailyPnl.get(day) || 0;
+    if (dayEquity > 0) returns.push(pnl / dayEquity);
+    dayEquity += pnl;
+  }
+
+  let sharpe = 0;
+  if (returns.length >= 2) {
+    const mean = returns.reduce((sum, value) => sum + value, 0) / returns.length;
+    const variance =
+      returns.reduce((sum, value) => sum + (value - mean) ** 2, 0) / (returns.length - 1);
+    const stdev = Math.sqrt(variance);
+    if (stdev > 0) sharpe = (mean / stdev) * Math.sqrt(365);
+  }
+
+  return { sharpe, maxDdPct };
+}
+
 interface AnalyticsViewProps {
   tradingBalance?: number;
   masterPoolBalance?: number;
@@ -19,7 +77,7 @@ interface AnalyticsViewProps {
 
 export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   tradingBalance = 0,
-  masterPoolBalance = 50308.20,
+  masterPoolBalance = 0,
   totalMasterProfit = 0,
   userCapitalJoinedAt,
   username = 'spartan_trader',
@@ -55,9 +113,16 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   const avgWin = winningTrades.length > 0 ? (grossProfit / winningTrades.length).toFixed(2) : '0.00';
   const avgLoss = losingTrades.length > 0 ? (grossLoss / losingTrades.length).toFixed(2) : '0.00';
 
-  // Capital Share Ratio for this customer
-  const effectivePool = Math.max(masterPoolBalance, 1);
-  const userRatio = (tradingBalance > 0 && effectivePool > 0) ? (tradingBalance / effectivePool) : 1;
+  // Capital share: 0 when the user has no capital — never impersonate 100% of the pool.
+  const effectivePool = Math.max(Number(masterPoolBalance) || 0, 0);
+  const userRatio =
+    tradingBalance > 0 && effectivePool > 0 ? tradingBalance / effectivePool : 0;
+
+  const { sharpe, maxDdPct } = computeRiskStats(
+    eligibleTrades,
+    tradingBalance > 0 ? tradingBalance : 0,
+    userRatio
+  );
 
   // Personal Scaled PnL
   const userGrossProfit = grossProfit * userRatio;
@@ -106,8 +171,8 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
           {/* Sharpe Ratio */}
           <div className="bg-[#05070c] p-3.5 rounded-2xl border border-[#221c10]">
             <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block mb-1">{t('analytics_sharpe')}</span>
-            <div className="text-xl font-black text-[#f5d77f] font-mono">
-              {totalTrades > 0 ? '2.18' : '0.00'}
+            <div className={`text-xl font-black font-mono ${sharpe >= 0 ? 'text-[#f5d77f]' : 'text-[#ff2d55]'}`}>
+              {sharpe.toFixed(2)}
             </div>
             <span className="text-[9px] text-gray-500 font-bold block mt-0.5">Risk-Adjusted Return</span>
           </div>
@@ -115,8 +180,8 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
           {/* Max Drawdown */}
           <div className="bg-[#05070c] p-3.5 rounded-2xl border border-[#221c10]">
             <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block mb-1">{t('analytics_max_dd')}</span>
-            <div className="text-xl font-black text-emerald-400 font-mono">
-              {totalTrades > 0 ? '-3.8%' : '0.0%'}
+            <div className={`text-xl font-black font-mono ${maxDdPct > 0 ? 'text-[#ff2d55]' : 'text-emerald-400'}`}>
+              {maxDdPct > 0 ? `-${maxDdPct.toFixed(1)}%` : '0.0%'}
             </div>
             <span className="text-[9px] text-gray-500 font-bold block mt-0.5">Peak Drawdown</span>
           </div>

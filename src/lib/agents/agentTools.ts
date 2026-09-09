@@ -4,7 +4,7 @@
  */
 
 import { fetchAllTransactions, fetchAllUsers, setUserBotStatus, updateUserRoleAndTier, updateSystemConfig, fetchSystemConfig } from '@/lib/adminService';
-import { approveLiveTransaction, rejectLiveTransaction, TransactionData } from '@/lib/firebaseService';
+import { TransactionData } from '@/lib/firebaseService';
 import { fetchLiveGoldPrice } from '@/lib/goldPriceService';
 
 export interface AgentAuditReport {

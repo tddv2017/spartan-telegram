@@ -37,6 +37,7 @@ import {
 } from '@/lib/feeCalculator';
 import { createLiveTransaction, withdrawReferralBalance, subscribeToUserTransactions, TransactionData, RiskAgreementRecord } from '@/lib/firebaseService';
 import { fetchTreasuryVault, DEFAULT_TREASURY_VAULT } from '@/lib/walletConfig';
+import { apiFetch } from '@/lib/telegramClient';
 import { ReceiptAiAppealModal } from '@/components/ReceiptAiAppealModal';
 import { RiskDisclosureModal } from '@/components/RiskDisclosureModal';
 import { P2pLendingView } from '@/components/P2pLendingView';
@@ -55,8 +56,8 @@ export const WalletView: React.FC<WalletViewProps> = ({
   currentBalance,
   referralBalance = 0,
   onUpdateBalance,
-  telegramId = '494232782',
-  username = 'tddv2017',
+  telegramId = '',
+  username = '',
   initialMode = 'deposit',
 }) => {
   const { t, lang } = useLanguage();
@@ -97,31 +98,23 @@ export const WalletView: React.FC<WalletViewProps> = ({
 
     try {
       const orderId = activeDepositTx.id || activeDepositTx.memoCode;
-      const res = await fetch('/api/verify-txhash', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          orderId,
-          txHash: txHashInput.trim(),
-          userId: telegramId,
-          username: username
-        })
-      });
+      // The credited account is derived server-side from the Telegram
+      // signature, so no identity is sent in the body.
+      const data = await apiFetch<{
+        newTradingBalance?: number;
+        netAmount: number;
+        txHash: string;
+      }>('/api/verify-txhash', { orderId, txHash: txHashInput.trim() });
 
-      const data = await res.json();
-      if (data.success) {
-        setActiveDepositTx(null);
-        setTxHashInput('');
-        if (typeof data.newTradingBalance === 'number') {
-          onUpdateBalance(data.newTradingBalance);
-        }
-        setNotification(`🎉 XÁC THỰC MÃ BĂM THÀNH CÔNG! Đã khớp On-Chain +$${data.netAmount.toFixed(2)} USDT vào vốn Bot của bạn! Mã băm: ${data.txHash.slice(0, 12)}...`);
-        setTimeout(() => setNotification(null), 10000);
-      } else {
-        setHashVerifyError(data.message || 'Xác thực mã băm thất bại');
+      setActiveDepositTx(null);
+      setTxHashInput('');
+      if (typeof data.newTradingBalance === 'number') {
+        onUpdateBalance(data.newTradingBalance);
       }
+      setNotification(`🎉 XÁC THỰC MÃ BĂM THÀNH CÔNG! Đã khớp On-Chain +$${data.netAmount.toFixed(2)} USDT vào vốn Bot của bạn! Mã băm: ${data.txHash.slice(0, 12)}...`);
+      setTimeout(() => setNotification(null), 10000);
     } catch (err: any) {
-      setHashVerifyError('Lỗi kết nối kiểm tra mã băm: ' + err.message);
+      setHashVerifyError(err?.message || 'Xác thực mã băm thất bại');
     } finally {
       setVerifyingHash(false);
     }
@@ -185,7 +178,7 @@ export const WalletView: React.FC<WalletViewProps> = ({
     .filter(t => t.type === 'WITHDRAW' && t.status === 'PENDING')
     .reduce((sum, t) => sum + (t.grossAmount || 0), 0);
 
-  const availableForWithdraw = Math.max(0, currentBalance - pendingWithdrawalTotal);
+  const availableForWithdraw = Math.max(0, currentBalance);
 
   // Compute Net Totals
   const totalDepositedNet = allTransactions
@@ -346,7 +339,7 @@ export const WalletView: React.FC<WalletViewProps> = ({
     setLoading(true);
 
     try {
-      const newTx = await createLiveTransaction(telegramId, username, 'WITHDRAW', numAmount);
+      const newTx = await createLiveTransaction(telegramId, username, 'WITHDRAW', numAmount, undefined, withdrawAddress.trim());
       setLocalTxs((prev) => [newTx, ...prev]);
       setCurrentPage(1);
 
@@ -357,9 +350,8 @@ export const WalletView: React.FC<WalletViewProps> = ({
       if (err.message && err.message.includes('INSUFFICIENT_AVAILABLE_FUNDS')) {
         setErrorMessage(`⛔ LOCKED: Insufficient available balance due to pending withdrawals.`);
       } else {
-        setNotification(`Withdrawal request created: $${withdrawBreakdown.netAmount.toFixed(2)} USDT! Awaiting approval.`);
+        setErrorMessage(err?.message || 'Không tạo được lệnh rút. Vui lòng thử lại.');
       }
-      setTimeout(() => setNotification(null), 5000);
     } finally {
       setLoading(false);
     }

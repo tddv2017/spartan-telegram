@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { UserAuditItem, setUserBotStatus, SystemConfig, updateSystemConfig } from '@/lib/adminService';
+import { apiFetch } from '@/lib/telegramClient';
 import { 
   Activity, 
   Cpu, 
@@ -47,7 +48,6 @@ export const TechOpsTab: React.FC<TechOpsTabProps> = ({
   // Live EA Master Pool State
   const [masterPool, setMasterPool] = useState<any>(null);
   const [copiedUrl, setCopiedUrl] = useState(false);
-  const [copiedKey, setCopiedKey] = useState(false);
 
   useEffect(() => {
     let isSubscribed = true;
@@ -209,21 +209,9 @@ export const TechOpsTab: React.FC<TechOpsTabProps> = ({
               2. KHÓA BẢO MẬT EA (API SECRET KEY):
             </label>
             <div className="flex items-center gap-2 bg-[#0b0e17] border border-[#1f293d] p-2 rounded-xl">
-              <span className="text-[#00df89] text-[11px] font-bold truncate flex-1 select-all">
-                SPARTAN_EA_LIVE_2026
+              <span className="text-gray-400 text-[11px] truncate flex-1">
+                Cấu hình trên server (biến EA_SECRET_KEY). Không hiển thị khóa trên giao diện.
               </span>
-              <button
-                type="button"
-                onClick={() => {
-                  navigator.clipboard.writeText("SPARTAN_EA_LIVE_2026");
-                  setCopiedKey(true);
-                  setTimeout(() => setCopiedKey(false), 2000);
-                }}
-                className="px-2.5 py-1 rounded-lg bg-[#00df89]/20 text-[#00df89] hover:bg-[#00df89]/30 text-[10px] font-bold flex items-center gap-1"
-              >
-                {copiedKey ? <CheckCircle2 className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
-                <span>{copiedKey ? 'Đã chép' : 'Sao chép'}</span>
-              </button>
             </div>
           </div>
         </div>
@@ -254,7 +242,7 @@ export const TechOpsTab: React.FC<TechOpsTabProps> = ({
           <span className="font-bold text-white block">📖 HƯỚNG DẪN CÀI ĐẶT NHANH VÀO METATRADER:</span>
           <div>1. Mở MT5/MT4 -&gt; Bấm <strong className="text-white">Ctrl + O</strong> -&gt; Tab <strong className="text-white">Expert Advisors</strong> -&gt; Tích chọn <strong className="text-amber-300">Allow WebRequest for listed URL</strong> -&gt; Thêm URL: <strong className="text-amber-300">https://spartan-telegram.vercel.app</strong></div>
           <div>2. Tải file <strong className="text-white">SpartanBridgeEA.mq5</strong> ở trên -&gt; Bỏ vào thư mục <strong className="text-white">MQL5/Experts</strong> (hoặc MQL4/Experts) -&gt; Biên dịch (F7) -&gt; Kéo thả vào bất kỳ biểu đồ nào (VD: XAUUSD).</div>
-          <div>3. Điền Khóa API: <strong className="text-[#00df89]">SPARTAN_EA_LIVE_2026</strong> -&gt; Bấm OK. Mọi lệnh đóng và số dư sẽ tự động nhảy lên Mini App realtime 0.01s!</div>
+          <div>3. Điền Khóa API bằng giá trị EA_SECRET_KEY trên máy chủ (không lưu khóa trong Mini App) -&gt; Bấm OK. Mọi lệnh đóng và số dư sẽ tự động nhảy lên Mini App realtime!</div>
         </div>
       </div>
 
@@ -320,29 +308,20 @@ export const TechOpsTab: React.FC<TechOpsTabProps> = ({
                 setTestingSignal(true);
                 setSignalResult(null);
                 try {
-                  const res = await fetch('/api/broadcast-signal', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                      channelId: signalChannel.trim(),
-                      symbol: 'XAUUSD',
-                      type: 'BUY',
-                      lots: 0.5,
-                      pnl: 365.00,
-                      pnlPercentage: 1.46,
-                      openPrice: 2498.50,
-                      closePrice: 2505.80,
-                      isTest: true
-                    })
+                  const data = await apiFetch<{ message?: string }>('/api/broadcast-signal', {
+                    channelId: signalChannel.trim(),
+                    symbol: 'XAUUSD',
+                    type: 'BUY',
+                    lots: 0.5,
+                    pnl: 365.00,
+                    pnlPercentage: 1.46,
+                    openPrice: 2498.50,
+                    closePrice: 2505.80,
+                    isTest: true
                   });
-                  const data = await res.json();
-                  if (data.success) {
-                    setSignalResult(`🎉 THÀNH CÔNG: ${data.message}`);
-                  } else {
-                    setSignalResult(`⚠️ LỖI: ${data.message}`);
-                  }
+                  setSignalResult(`🎉 THÀNH CÔNG: ${data.message}`);
                 } catch (err: any) {
-                  setSignalResult(`⚠️ Lỗi kết nối: ${err.message}`);
+                  setSignalResult(`⚠️ LỖI: ${err?.message || 'Không gửi được tín hiệu'}`);
                 } finally {
                   setTestingSignal(false);
                 }

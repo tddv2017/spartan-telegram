@@ -22,9 +22,9 @@ import {
   TransactionData 
 } from '@/lib/firebaseService';
 import { generateUserNotifications, AppNotification } from '@/lib/notificationService';
-import { startAutoScanWorker } from '@/lib/tronService';
+import { getTelegramIdentity, hasTelegramSignature } from '@/lib/telegramClient';
 import { parseTimestampMs } from '@/lib/dateUtils';
-import { CheckCircle2, Lock, Wrench, ShieldAlert, AlertTriangle, ExternalLink } from 'lucide-react';
+import { Lock, Wrench, ShieldAlert, AlertTriangle, ExternalLink } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function Home() {
@@ -58,91 +58,58 @@ export default function Home() {
   const [userCapitalJoinedAt, setUserCapitalJoinedAt] = useState<string | null>(null);
   const [tradesList, setTradesList] = useState<any[]>([]);
 
-  // Dynamic Real Telegram SDK User Detection & Force Firebase Profile Write
   useEffect(() => {
-    let handle = '';
-    let id = '';
-    let firstName = '';
-    let referrerId = '';
-
     if (typeof window !== 'undefined') {
-      const tg = (window as any).Telegram?.WebApp;
-      if (tg) {
-        tg.ready();
-        const tgUser = tg.initDataUnsafe?.user;
-        if (tgUser) {
-          id = String(tgUser.id);
-          handle = tgUser.username || `user_${id.slice(-4)}`;
-          firstName = tgUser.first_name || 'Warrior';
-        }
-
-        const startParam = tg.initDataUnsafe?.start_param;
-        if (startParam && startParam.startsWith('ref_')) {
-          referrerId = startParam.replace('ref_', '');
-        }
-      }
-
-      if (!id || !handle) {
-        const params = new URLSearchParams(window.location.search);
-        id = params.get('id') || '';
-        handle = params.get('user') || '';
-        firstName = params.get('name') || '';
-
-        const refParam = params.get('ref') || params.get('start');
-        if (refParam) {
-          referrerId = refParam.replace('ref_', '');
-        }
-      }
-
-      if (!id && !handle) {
-        handle = localStorage.getItem('spartan_username') || 'tddv2017';
-        id = localStorage.getItem('spartan_userid') || '494232782';
-        firstName = 'Dung';
-      }
+      (window as any).Telegram?.WebApp?.ready?.();
     }
 
-    if (!handle) handle = 'user_' + id.slice(-4);
-    if (!id) id = '494232782';
-    if (!firstName) firstName = 'Dung';
+    const identity = getTelegramIdentity();
+    let unsubUser = () => {};
+    let unsubTxs = () => {};
 
-    setCurrentTelegramUser(handle);
-    setCurrentTelegramId(id);
-    setUserFirstName(firstName);
+    if (!identity) {
+      setSyncStatus('NO_TELEGRAM');
+    } else {
+      const { telegramId: id, username: handle, firstName, referrerId } = identity;
 
-    const adminStatus = checkIsAdmin(handle) || checkIsAdmin(id);
-    setIsAdmin(adminStatus);
+      setCurrentTelegramUser(handle);
+      setCurrentTelegramId(id);
+      setUserFirstName(firstName);
 
-    // SILENT FIREBASE PROFILE SYNC
-    forceSyncUserProfile(id, handle, firstName, referrerId);
+      const adminStatus = checkIsAdmin(handle) || checkIsAdmin(id);
+      setIsAdmin(adminStatus);
 
-    // Realtime Listener for User Profile (Balance, Frozen State, Bot status)
-    const unsubUser = subscribeToUser(id, (userData) => {
-      if (userData) {
-        if (typeof userData.tradingBalance === 'number') setTradingBalance(userData.tradingBalance);
-        if (typeof userData.referralBalance === 'number') setReferralsIncome(userData.referralBalance);
-        if (typeof userData.resellerTier === 'number') setResellerTier(userData.resellerTier);
-        if (typeof userData.isFrozen === 'boolean') setIsAccountFrozen(userData.isFrozen);
-        if (typeof userData.freezeReason === 'string') setFreezeReason(userData.freezeReason);
-        if (typeof userData.botActive === 'boolean') setIsBotActive(userData.botActive);
-        if (userData.capitalJoinedAt) setUserCapitalJoinedAt(userData.capitalJoinedAt);
-        // DYNAMIC ADMIN PRIVILEGE: Update isAdmin if user is granted ADMIN in database
-        if (userData.role === 'ADMIN' || (userData as any).role === 'SUPER_ADMIN' || checkIsAdmin(handle, userData.role) || checkIsAdmin(id, userData.role)) {
-          setIsAdmin(true);
+      if (hasTelegramSignature()) {
+        forceSyncUserProfile(id, handle, firstName, referrerId).catch(() => {
+          setSyncStatus('SYNC_FAILED');
+        });
+      }
+
+      unsubUser = subscribeToUser(id, (userData) => {
+        if (userData) {
+          if (typeof userData.tradingBalance === 'number') setTradingBalance(userData.tradingBalance);
+          if (typeof userData.referralBalance === 'number') setReferralsIncome(userData.referralBalance);
+          if (typeof userData.resellerTier === 'number') setResellerTier(userData.resellerTier);
+          if (typeof userData.isFrozen === 'boolean') setIsAccountFrozen(userData.isFrozen);
+          if (typeof userData.freezeReason === 'string') setFreezeReason(userData.freezeReason);
+          if (typeof userData.botActive === 'boolean') setIsBotActive(userData.botActive);
+          if (userData.capitalJoinedAt) setUserCapitalJoinedAt(userData.capitalJoinedAt);
+          if (userData.role === 'ADMIN' || (userData as any).role === 'SUPER_ADMIN' || checkIsAdmin(handle, userData.role) || checkIsAdmin(id, userData.role)) {
+            setIsAdmin(true);
+          }
         }
-      }
-    });
+      });
 
-    // Realtime Listener for User Transactions
-    const unsubTxs = subscribeToUserTransactions(id, (txs) => {
-      setUserTransactions(txs);
-      const approvedDeps = txs.filter(t => t.type === 'DEPOSIT' && t.status === 'APPROVED');
-      if (approvedDeps.length > 0) {
-        const earliest = approvedDeps[0].approvedAt || approvedDeps[0].createdAt;
-        if (earliest) setUserCapitalJoinedAt(prev => prev || earliest);
-      }
-    });
+      unsubTxs = subscribeToUserTransactions(id, (txs) => {
+        setUserTransactions(txs);
+        const approvedDeps = txs.filter(t => t.type === 'DEPOSIT' && t.status === 'APPROVED');
+        if (approvedDeps.length > 0) {
+          const earliest = approvedDeps[0].approvedAt || approvedDeps[0].createdAt;
+          if (earliest) setUserCapitalJoinedAt(prev => prev || earliest);
+        }
+      });
+    }
 
-    // Realtime Listener for System Maintenance & Global Bot
     const unsubSystem = subscribeToSystemConfig((config) => {
       setIsMaintenanceMode(config.maintenanceMode);
       setMaintenanceNotice(config.broadcastNotice || '');
@@ -273,11 +240,20 @@ export default function Home() {
         onClose={() => alert('Telegram Mini App Closed')} 
       />
 
-      {/* Sync Diagnostic Status Toast */}
-      {syncStatus && (
-        <div className="mx-4 my-2 p-3 rounded-2xl bg-[#00df89]/20 border border-[#00df89] text-[#00df89] text-xs font-bold flex items-center gap-2 animate-in fade-in slide-from-top-2 duration-300">
-          <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
-          <span>{syncStatus}</span>
+      {syncStatus === 'NO_TELEGRAM' && (
+        <div className="mx-4 my-2 p-3 rounded-2xl bg-amber-500/15 border border-amber-500/50 text-amber-200 text-xs font-bold flex items-center gap-2">
+          <ShieldAlert className="w-4 h-4 flex-shrink-0" />
+              <span>
+                {process.env.NODE_ENV === 'development'
+                  ? 'Đang mở trên trình duyệt (không có chữ ký Telegram). Thêm ?id=TELEGRAM_ID để xem số dư local. Nạp/rút vẫn phải mở từ Telegram.'
+                  : 'Vui lòng mở Mini App từ Telegram để xác thực danh tính. Không dùng tài khoản mặc định.'}
+              </span>
+        </div>
+      )}
+      {syncStatus === 'SYNC_FAILED' && (
+        <div className="mx-4 my-2 p-3 rounded-2xl bg-red-500/15 border border-red-500/50 text-red-300 text-xs font-bold flex items-center gap-2">
+          <ShieldAlert className="w-4 h-4 flex-shrink-0" />
+          <span>Không đồng bộ được hồ sơ. Hãy mở lại ứng dụng từ Telegram.</span>
         </div>
       )}
 
