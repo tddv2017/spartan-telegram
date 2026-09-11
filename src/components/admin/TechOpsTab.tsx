@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { UserAuditItem, setUserBotStatus, SystemConfig, updateSystemConfig } from '@/lib/adminService';
 import { apiFetch } from '@/lib/telegramClient';
+import { Mt5DirectConnectCard } from '../Mt5DirectConnectCard';
 import { 
   Activity, 
   Cpu, 
@@ -132,6 +133,9 @@ export const TechOpsTab: React.FC<TechOpsTabProps> = ({
           <span>{statusMsg}</span>
         </div>
       )}
+
+      {/* ⚡ KẾT NỐI TRỰC TIẾP MT5 KHÔNG CẦN EA (DIRECT CONNECT CARD) */}
+      <Mt5DirectConnectCard onConnectionSuccess={onRefresh} />
 
       {/* 🚀 CẦU NỐI EA METATRADER 4/5 (EXNESS BRIDGE) */}
       <div className="spartan-card rounded-3xl p-5 border border-amber-500/30 space-y-4 shadow-xl">

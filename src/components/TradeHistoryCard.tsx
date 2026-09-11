@@ -5,6 +5,7 @@ import { History, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, Clock,
 import { subscribeToLiveTrades } from '@/lib/firebaseService';
 import { ViralPnlModal } from '@/components/ViralPnlModal';
 import { parseTimestampMs } from '@/lib/dateUtils';
+import { formatTradePrice, inferOpenPrice, tradePnlPercent } from '@/lib/tradePrices';
 
 export interface TradeOrder {
   id: string;
@@ -114,6 +115,9 @@ export const TradeHistoryCard: React.FC<TradeHistoryCardProps> = ({
                 ? 0
                 : Math.max(0.01, Number((trade.lots * userRatio).toFixed(2)));
             const effectivePnl = isTradeBeforeJoin || userRatio <= 0 ? 0 : trade.pnl * userRatio;
+            const displayOpen = inferOpenPrice(trade);
+            const displayClose = Number(trade.closePrice) || 0;
+            const displayPct = tradePnlPercent({ ...trade, openPrice: displayOpen });
 
             return (
               <div
@@ -149,7 +153,7 @@ export const TradeHistoryCard: React.FC<TradeHistoryCardProps> = ({
                       </span>
                     </div>
                     <div className="flex items-center gap-2 text-[10px] text-gray-500 font-mono mt-0.5">
-                      <span>{trade.openPrice} ➔ {trade.closePrice}</span>
+                      <span>{formatTradePrice(displayOpen)} ➔ {formatTradePrice(displayClose)}</span>
                       <span>•</span>
                       <span className="flex items-center gap-0.5 text-gray-400">
                         <Clock className="w-3 h-3 text-gray-500" />
@@ -178,10 +182,10 @@ export const TradeHistoryCard: React.FC<TradeHistoryCardProps> = ({
                       </span>
                       <span
                         className={`text-[9px] font-bold leading-tight ${
-                          trade.pnlPercentage >= 0 ? 'text-emerald-400' : 'text-[#ff2d55]'
+                          displayPct >= 0 ? 'text-emerald-400' : 'text-[#ff2d55]'
                         }`}
                       >
-                        {trade.pnlPercentage >= 0 ? `+${trade.pnlPercentage.toFixed(2)}%` : `${trade.pnlPercentage.toFixed(2)}%`}
+                        {displayPct >= 0 ? `+${displayPct.toFixed(2)}%` : `${displayPct.toFixed(2)}%`}
                       </span>
                     </>
                   )}

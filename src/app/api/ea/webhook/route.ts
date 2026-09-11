@@ -4,6 +4,7 @@ import { normalizeTimestampIso } from '@/lib/dateUtils';
 import { toErrorResponse } from '@/lib/server/auth';
 import { getBotToken, getEaSecretKey } from '@/lib/server/env';
 import { dbGet, dbSet } from '@/lib/server/rtdb';
+import { inferOpenPrice, tradePnlPercent } from '@/lib/tradePrices';
 
 /** Length-safe constant-time comparison, so a wrong key leaks no timing signal. */
 function matchesSecret(provided: string, expected: string): boolean {
@@ -68,14 +69,30 @@ export async function POST(req: Request) {
           }).catch(() => {});
       }
 
-      const cleanPnlPct = Number(pnlPercentage) || (openPrice > 0 ? ((closePrice - openPrice) / openPrice) * 100 : 0);
+      const resolvedOpen = inferOpenPrice({
+        openPrice,
+        closePrice,
+        pnl: cleanPnl,
+        lots: cleanLots,
+        type: tradeType,
+        symbol,
+      });
+      const cleanPnlPct = tradePnlPercent({
+        openPrice: resolvedOpen,
+        closePrice,
+        pnl: cleanPnl,
+        lots: cleanLots,
+        type: tradeType,
+        symbol,
+        pnlPercentage,
+      });
 
       const tradeData = {
         id: tradeId,
         type: tradeType,
         symbol: String(symbol).toUpperCase(),
         lots: cleanLots,
-        openPrice: Number(openPrice) || 0,
+        openPrice: resolvedOpen,
         closePrice: Number(closePrice) || 0,
         pnl: cleanPnl,
         pnlPercentage: Number(cleanPnlPct.toFixed(2)),
@@ -105,7 +122,7 @@ export async function POST(req: Request) {
             `📊 *Cặp giao dịch:* #${tradeData.symbol} (Gold Scalp M5)\n` +
             `📌 *Vị thế:* ${tradeData.type} ${tradeData.lots} Lot\n` +
             `💵 *Lợi nhuận Master Pool:* *${isWin ? '+' : ''}$${cleanPnl.toFixed(2)} USD* (${isWin ? '+' : ''}${cleanPnlPct.toFixed(2)}%)\n` +
-            (openPrice > 0 ? `⏱ *Khớp lệnh:* ${openPrice} ➔ ${closePrice}\n` : '') +
+            (resolvedOpen > 0 ? `⏱ *Khớp lệnh:* ${resolvedOpen} ➔ ${closePrice}\n` : '') +
             `👥 *Phân bổ:* 100% nhà đầu tư có vốn góp đã được tự động chia lãi vào tài khoản!\n\n` +
             `🚀 *Tham gia góp vốn & nhận chia sẻ lợi nhuận 24/7 cùng Bot tại:*`;
 

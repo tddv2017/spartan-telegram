@@ -1,0 +1,21 @@
+# Progress Heartbeat - Reviewer M4 & M5
+
+- **Status**: COMPLETED
+- **Last visited**: 2026-09-11T07:06:45+07:00
+- **Current Step**: Delivered review report and issuing final verdict APPROVE
+- **Completed Steps**:
+  - [x] Read DISPATCH.md, ORIGINAL_REQUEST.md, PROJECT.md
+  - [x] Read worker_m4/handoff.md and worker_m5/handoff.md
+  - [x] Initialized BRIEFING.md and DISPATCH.md
+  - [x] Code inspection of `quant_research/validation/` and `quant_research/execution/`
+  - [x] Checked for integrity violations (zero found)
+  - [x] Ran unit tests: `test_validation.py` (50 passed)
+  - [x] Ran MQL5 syntax and Webhook tests: `test_mql5_syntax.py` and `test_webhook_bridge.py` (22 passed)
+  - [x] Ran full test suite: `quant_research/tests/` (211 passed)
+  - [x] Ran E2E runner: `quant_research/run_e2e_tests.py` (310 passed)
+  - [x] Ran TypeScript check: `npx tsc --noEmit` (code 0)
+  - [x] Ran Next.js production build: `npx next build` (code 0)
+  - [x] Re-generated institutional validation reports: `validation_report.html`, `summary_report.md`
+  - [x] Conducted adversarial stress tests across edge cases and assumptions
+  - [x] Updated BRIEFING.md
+  - [x] Wrote comprehensive handoff report in `handoff.md`

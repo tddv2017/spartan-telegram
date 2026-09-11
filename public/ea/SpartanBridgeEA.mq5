@@ -5,7 +5,7 @@
 //+------------------------------------------------------------------+
 #property copyright "Copyright 2026, Spartan Quant AI"
 #property link      "https://spartan-telegram.vercel.app"
-#property version   "2.00"
+#property version   "2.01"
 #property description "EA Cầu Nối Đồng Bộ Realtime Lệnh MT5 Exness về Telegram Mini App"
 
 //--- Input Parameters
@@ -96,11 +96,23 @@ void OnTradeTransaction(const MqlTradeTransaction& trans,
             string comment     = HistoryDealGetString(dealTicket, DEAL_COMMENT);
             long positionId    = HistoryDealGetInteger(dealTicket, DEAL_POSITION_ID);
 
-            // Tìm giá mở lệnh từ vị thế gốc
-            double openPrice = price;
-            if(HistoryOrderSelect(positionId))
+            // DEAL_POSITION_ID is not an order ticket — HistoryOrderSelect()
+            // often "succeeds" on a wrong order and returns ORDER_PRICE_OPEN = 0.
+            double openPrice = 0.0;
+            if(HistorySelectByPosition(positionId))
             {
-               openPrice = HistoryOrderGetDouble(positionId, ORDER_PRICE_OPEN);
+               int dealCount = HistoryDealsTotal();
+               for(int i = 0; i < dealCount; i++)
+               {
+                  ulong inTicket = HistoryDealGetTicket(i);
+                  if(inTicket == 0) continue;
+                  ENUM_DEAL_ENTRY inEntry = (ENUM_DEAL_ENTRY)HistoryDealGetInteger(inTicket, DEAL_ENTRY);
+                  if(inEntry == DEAL_ENTRY_IN)
+                  {
+                     openPrice = HistoryDealGetDouble(inTicket, DEAL_PRICE);
+                     if(openPrice > 0) break;
+                  }
+               }
             }
 
             string orderTypeStr = (dealType == DEAL_TYPE_BUY) ? "BUY" : "SELL";

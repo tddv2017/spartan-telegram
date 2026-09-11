@@ -1,0 +1,89 @@
+# Spartan Quantitative Alpha Models & Market Regime Parameters
+
+regime_engine:
+  hurst:
+    lookback: 100
+    min_lookback: 50
+    mean_reversion_threshold: 0.45
+    trend_threshold: 0.55
+  vol_metrics:
+    atr_period: 14
+    sma_atr_period: 50
+    atr_norm_compression: 0.75
+    atr_norm_normal_max: 1.80
+    atr_norm_crisis: 2.50
+    hv_window: 30
+    hv_percentile_window: 252
+  shock_detector:
+    bar_range_multiplier: 3.5
+    spread_multiplier: 3.0
+    jump_sigma_multiplier: 4.0
+
+models:
+  model_1_stat_arb:
+    name: "Statistical Arbitrage (ETH/BTC)"
+    magic_number: 888801
+    strategy_code: 3
+    pair:
+      asset_y: "ETHUSDT"
+      asset_x: "BTCUSDT"
+    adf_threshold: -3.43
+    z_entry: 2.0
+    z_exit: 0.20
+    z_stop: 3.50
+    kalman_delta: 0.0001
+    kalman_r: 0.001
+    min_half_life: 5
+    max_half_life: 80
+    permitted_regimes: ["RANGE_BOUND"]
+
+  model_2_momentum_trend:
+    name: "Momentum Multi-Timeframe Trend"
+    magic_number: 888802
+    strategy_code: 1
+    supported_assets: ["XAUUSD", "BTCUSDT", "ETHUSDT", "EURUSD", "GBPUSD"]
+    timeframes:
+      macro_filter: "H4"
+      trend_alignment: "H1"
+      execution: "M15"
+    ema_fast: 21
+    ema_med: 55
+    ema_slow: 200
+    donchian_period: 20
+    supertrend_atr: 10
+    supertrend_mult: 3.0
+    adx_threshold: 25.0
+    risk_reward_tp1: 2.0
+    permitted_regimes: ["BULL_TREND", "BEAR_TREND"]
+
+  model_3_vol_breakout:
+    name: "Dynamic Volatility Breakout"
+    magic_number: 888803
+    strategy_code: 2
+    supported_assets: ["XAUUSD", "BTCUSDT", "ETHUSDT"]
+    bb_period: 20
+    bb_std: 2.0
+    kc_period: 20
+    kc_atr_mult: 1.5
+    min_squeeze_bars: 6
+    volume_surge_mult: 1.5
+    bandwidth_expansion: 1.15
+    mom_osc_period: 20
+    permitted_regimes: ["BULL_TREND", "BEAR_TREND", "VOL_COMPRESSION"]
+
+  model_4_mean_reversion:
+    name: "Regime-Filtered Mean-Reversion"
+    magic_number: 888804
+    strategy_code: 4
+    supported_assets: ["EURUSD", "GBPUSD", "XAUUSD"]
+    rsi_period: 14
+    rsi_quantile_lookback: 100
+    oversold_quantile: 0.10
+    overbought_quantile: 0.90
+    bb_period: 20
+    bb_std: 2.0
+    min_wick_ratio: 0.60
+    max_bars_in_trade: 16
+    adx_max: 20.0
+    hurst_max: 0.45
+    permitted_regimes: ["RANGE_BOUND"]

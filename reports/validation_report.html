@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spartan Quant Engine - Institutional Validation Report</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;900&family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            background-color: #04060a;
+            color: #f3f4f6;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+        .font-mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .font-brand {
+            font-family: 'Cinzel', serif;
+        }
+        .spartan-card {
+            background-color: #080b12;
+            border: 1px solid #221c10;
+        }
+        .spartan-gold-gradient {
+            background: linear-gradient(135deg, #d4af37 0%, #f5d77f 50%, #aa8010 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+    </style>
+</head>
+<body class="p-6 md:p-12 min-h-screen">
+    <div class="max-w-7xl mx-auto space-y-8">
+        <!-- Header -->
+        <header class="flex flex-col md:flex-row items-start md:items-center justify-between pb-6 border-b border-[#221c10] gap-4">
+            <div>
+                <div class="flex items-center gap-3">
+                    <span class="text-2xl font-brand font-black spartan-gold-gradient tracking-wider">SPARTAN</span>
+                    <span class="text-xs font-mono uppercase tracking-widest text-[#9ca3af] px-2 py-0.5 border border-[#2a2215] rounded">Institutional Quant Research</span>
+                </div>
+                <h1 class="text-2xl md:text-3xl font-bold mt-1 text-white">Validation & Stress-Testing Report</h1>
+                <p class="text-xs font-mono text-[#9ca3af] mt-1">Generated: 2026-09-11 03:58:23 UTC | Supreme Governance: @tddv2017</p>
+            </div>
+            <div>
+                <span class="px-3 py-1 text-sm font-mono font-bold bg-[#10b98122] text-[#10b981] border border-[#10b98155] rounded-md tracking-wider">ALL INSTITUTIONAL GATES PASSED</span>
+            </div>
+        </header>
+
+        <!-- KPI Grid -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div class="spartan-card p-5 rounded-lg">
+                <span class="text-xs font-mono text-[#9ca3af] uppercase">Ending Equity</span>
+                <div class="text-2xl font-mono font-bold text-[#d4af37] mt-1">$158,358.80</div>
+                <span class="text-xs font-mono text-[#10b981] mt-1 block">Net Profit: $58,358.80</span>
+            </div>
+            <div class="spartan-card p-5 rounded-lg">
+                <span class="text-xs font-mono text-[#9ca3af] uppercase">Sharpe Ratio</span>
+                <div class="text-2xl font-mono font-bold text-white mt-1">7.15</div>
+                <span class="text-xs font-mono text-[#9ca3af] mt-1 block">Sortino: 25.38 (Target &ge; 3.5)</span>
+            </div>
+            <div class="spartan-card p-5 rounded-lg">
+                <span class="text-xs font-mono text-[#9ca3af] uppercase">Profit Factor</span>
+                <div class="text-2xl font-mono font-bold text-white mt-1">2.72</div>
+                <span class="text-xs font-mono text-[#9ca3af] mt-1 block">Win Rate: 61.7% | R:R: 1.69</span>
+            </div>
+            <div class="spartan-card p-5 rounded-lg">
+                <span class="text-xs font-mono text-[#9ca3af] uppercase">Max Drawdown</span>
+                <div class="text-2xl font-mono font-bold text-[#10b981] mt-1">3.34%</div>
+                <span class="text-xs font-mono text-[#9ca3af] mt-1 block">Institutional Cap: &le; 5.0%</span>
+            </div>
+        </div>
+
+        <!-- Equity Curve Section -->
+        <div class="spartan-card p-6 rounded-lg">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-lg font-bold text-white flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-[#d4af37]"></span>
+                    Portfolio Equity Curve
+                </h2>
+                <span class="text-xs font-mono text-[#d4af37] font-semibold">36-Month High-Fidelity Simulation</span>
+            </div>
+            <div class="w-full overflow-hidden rounded bg-[#04060a] p-2 border border-[#221c10]">
+                <svg viewBox="0 0 800 260" class="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+            <line x1="0" y1="245.0" x2="800" y2="245.0" stroke="#221c10" stroke-width="1"/>
+            <polygon points="0,245.0 0.0,242.4 4.4,245.0 8.9,242.1 13.3,235.6 17.8,233.7 22.2,230.5 26.7,227.9 31.1,225.7 35.6,223.9 40.0,221.9 44.4,223.4 48.9,218.8 53.3,220.4 57.8,223.0 62.2,219.8 66.7,220.7 71.1,223.5 75.6,226.1 80.0,221.6 84.4,223.0 88.9,224.2 93.3,223.1 97.8,218.7 102.2,215.1 106.7,208.8 111.1,211.0 115.6,212.5 120.0,210.5 124.4,211.7 128.9,210.3 133.3,211.8 137.8,210.5 142.2,208.5 146.7,206.2 151.1,202.1 155.6,200.7 160.0,197.9 164.4,199.6 168.9,201.7 173.3,204.5 177.8,207.6 182.2,202.4 186.7,204.1 191.1,205.6 195.6,206.9 200.0,202.7 204.4,200.8 208.9,202.4 213.3,199.2 217.8,200.8 222.2,198.3 226.7,195.2 231.1,193.4 235.6,197.1 240.0,194.9 244.4,193.0 248.9,190.8 253.3,186.4 257.8,183.7 262.2,186.2 266.7,184.4 271.1,181.4 275.6,177.1 280.0,178.9 284.4,180.1 288.9,183.2 293.3,179.5 297.8,176.0 302.2,174.3 306.7,176.6 311.1,177.5 315.6,175.6 320.0,176.4 324.4,172.8 328.9,173.8 333.3,169.2 337.8,164.3 342.2,160.4 346.7,162.6 351.1,159.6 355.6,157.4 360.0,151.9 364.4,147.6 368.9,142.9 373.3,137.6 377.8,134.5 382.2,127.9 386.7,130.3 391.1,127.2 395.6,129.2 400.0,125.2 404.4,120.3 408.9,118.2 413.3,115.8 417.8,119.6 422.2,117.6 426.7,113.9 431.1,111.7 435.6,113.7 440.0,110.3 444.4,106.5 448.9,108.7 453.3,110.6 457.8,107.3 462.2,104.7 466.7,107.2 471.1,109.1 475.6,111.7 480.0,113.8 484.4,116.2 488.9,117.8 493.3,116.8 497.8,120.0 502.2,122.3 506.7,120.4 511.1,121.1 515.6,117.0 520.0,118.2 524.4,114.5 528.9,113.2 533.3,110.4 537.8,106.2 542.2,108.6 546.7,106.2 551.1,103.3 555.6,101.8 560.0,102.9 564.4,97.2 568.9,98.6 573.3,95.5 577.8,92.6 582.2,90.5 586.7,92.6 591.1,88.0 595.6,86.5 600.0,88.3 604.4,86.4 608.9,83.0 613.3,80.0 617.8,75.6 622.2,74.0 626.7,76.0 631.1,76.6 635.6,74.8 640.0,71.6 644.4,64.8 648.9,62.5 653.3,59.4 657.8,61.4 662.2,56.3 666.7,51.8 671.1,48.5 675.6,49.3 680.0,45.7 684.4,48.1 688.9,49.0 693.3,43.4 697.8,45.6 702.2,42.0 706.7,43.6 711.1,40.3 715.6,37.8 720.0,35.1 724.4,36.5 728.9,39.3 733.3,41.3 737.8,43.5 742.2,40.7 746.7,41.7 751.1,43.4 755.6,38.0 760.0,33.0 764.4,31.2 768.9,34.5 773.3,28.8 777.8,26.3 782.2,27.7 786.7,24.2 791.1,22.5 795.6,18.2 800.0,15.0 800,245.0" fill="#d4af37" opacity="0.15"/>
+            <polyline fill="none" stroke="#d4af37" stroke-width="2" points="0.0,242.4 4.4,245.0 8.9,242.1 13.3,235.6 17.8,233.7 22.2,230.5 26.7,227.9 31.1,225.7 35.6,223.9 40.0,221.9 44.4,223.4 48.9,218.8 53.3,220.4 57.8,223.0 62.2,219.8 66.7,220.7 71.1,223.5 75.6,226.1 80.0,221.6 84.4,223.0 88.9,224.2 93.3,223.1 97.8,218.7 102.2,215.1 106.7,208.8 111.1,211.0 115.6,212.5 120.0,210.5 124.4,211.7 128.9,210.3 133.3,211.8 137.8,210.5 142.2,208.5 146.7,206.2 151.1,202.1 155.6,200.7 160.0,197.9 164.4,199.6 168.9,201.7 173.3,204.5 177.8,207.6 182.2,202.4 186.7,204.1 191.1,205.6 195.6,206.9 200.0,202.7 204.4,200.8 208.9,202.4 213.3,199.2 217.8,200.8 222.2,198.3 226.7,195.2 231.1,193.4 235.6,197.1 240.0,194.9 244.4,193.0 248.9,190.8 253.3,186.4 257.8,183.7 262.2,186.2 266.7,184.4 271.1,181.4 275.6,177.1 280.0,178.9 284.4,180.1 288.9,183.2 293.3,179.5 297.8,176.0 302.2,174.3 306.7,176.6 311.1,177.5 315.6,175.6 320.0,176.4 324.4,172.8 328.9,173.8 333.3,169.2 337.8,164.3 342.2,160.4 346.7,162.6 351.1,159.6 355.6,157.4 360.0,151.9 364.4,147.6 368.9,142.9 373.3,137.6 377.8,134.5 382.2,127.9 386.7,130.3 391.1,127.2 395.6,129.2 400.0,125.2 404.4,120.3 408.9,118.2 413.3,115.8 417.8,119.6 422.2,117.6 426.7,113.9 431.1,111.7 435.6,113.7 440.0,110.3 444.4,106.5 448.9,108.7 453.3,110.6 457.8,107.3 462.2,104.7 466.7,107.2 471.1,109.1 475.6,111.7 480.0,113.8 484.4,116.2 488.9,117.8 493.3,116.8 497.8,120.0 502.2,122.3 506.7,120.4 511.1,121.1 515.6,117.0 520.0,118.2 524.4,114.5 528.9,113.2 533.3,110.4 537.8,106.2 542.2,108.6 546.7,106.2 551.1,103.3 555.6,101.8 560.0,102.9 564.4,97.2 568.9,98.6 573.3,95.5 577.8,92.6 582.2,90.5 586.7,92.6 591.1,88.0 595.6,86.5 600.0,88.3 604.4,86.4 608.9,83.0 613.3,80.0 617.8,75.6 622.2,74.0 626.7,76.0 631.1,76.6 635.6,74.8 640.0,71.6 644.4,64.8 648.9,62.5 653.3,59.4 657.8,61.4 662.2,56.3 666.7,51.8 671.1,48.5 675.6,49.3 680.0,45.7 684.4,48.1 688.9,49.0 693.3,43.4 697.8,45.6 702.2,42.0 706.7,43.6 711.1,40.3 715.6,37.8 720.0,35.1 724.4,36.5 728.9,39.3 733.3,41.3 737.8,43.5 742.2,40.7 746.7,41.7 751.1,43.4 755.6,38.0 760.0,33.0 764.4,31.2 768.9,34.5 773.3,28.8 777.8,26.3 782.2,27.7 786.7,24.2 791.1,22.5 795.6,18.2 800.0,15.0"/>
+        </svg>
+            </div>
+        </div>
+
+        <!-- Underwater Drawdown Section -->
+        <div class="spartan-card p-6 rounded-lg">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-lg font-bold text-white flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-[#ef4444]"></span>
+                    Underwater Drawdown Curve (Peak-to-Trough)
+                </h2>
+                <span class="text-xs font-mono text-[#ef4444] font-semibold">Max DD: 3.34%</span>
+            </div>
+            <div class="w-full overflow-hidden rounded bg-[#04060a] p-2 border border-[#221c10]">
+                <svg viewBox="0 0 800 180" class="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+            <line x1="0" y1="165.0" x2="800" y2="165.0" stroke="#221c10" stroke-width="1"/>
+            <polygon points="0,15.0 0.0,15.0 4.4,45.4 8.9,15.0 13.3,15.0 17.8,15.0 22.2,15.0 26.7,15.0 31.1,15.0 35.6,15.0 40.0,15.0 44.4,31.7 48.9,15.0 53.3,32.5 57.8,60.6 62.2,25.5 66.7,35.0 71.1,65.4 75.6,94.7 80.0,45.0 84.4,60.8 88.9,73.1 93.3,61.5 97.8,15.0 102.2,15.0 106.7,15.0 111.1,38.0 115.6,54.3 120.0,33.2 124.4,45.8 128.9,31.5 133.3,47.0 137.8,32.8 142.2,15.0 146.7,15.0 151.1,15.0 155.6,15.0 160.0,15.0 164.4,32.9 168.9,54.2 173.3,83.0 177.8,115.5 182.2,61.0 186.7,78.6 191.1,94.7 195.6,107.9 200.0,64.8 204.4,45.1 208.9,61.0 213.3,28.2 217.8,45.0 222.2,19.2 226.7,15.0 231.1,15.0 235.6,52.7 240.0,30.9 244.4,15.0 248.9,15.0 253.3,15.0 257.8,15.0 262.2,40.7 266.7,22.3 271.1,15.0 275.6,15.0 280.0,32.9 284.4,44.4 288.9,74.8 293.3,38.5 297.8,15.0 302.2,15.0 306.7,37.5 311.1,46.6 315.6,27.5 320.0,35.7 324.4,15.0 328.9,24.6 333.3,15.0 337.8,15.0 342.2,15.0 346.7,35.5 351.1,15.0 355.6,15.0 360.0,15.0 364.4,15.0 368.9,15.0 373.3,15.0 377.8,15.0 382.2,15.0 386.7,35.9 391.1,15.0 395.6,32.6 400.0,15.0 404.4,15.0 408.9,15.0 413.3,15.0 417.8,48.6 422.2,30.7 426.7,15.0 431.1,15.0 435.6,32.2 440.0,15.0 444.4,15.0 448.9,33.4 453.3,49.8 457.8,21.8 462.2,15.0 466.7,36.0 471.1,52.2 475.6,74.7 480.0,92.1 484.4,113.0 488.9,126.2 493.3,117.8 497.8,145.1 502.2,165.0 506.7,148.3 511.1,154.8 515.6,119.8 520.0,129.6 524.4,98.0 528.9,87.4 533.3,63.2 537.8,27.8 542.2,47.9 546.7,27.8 551.1,15.0 555.6,15.0 560.0,24.2 564.4,15.0 568.9,27.1 573.3,15.0 577.8,15.0 582.2,15.0 586.7,32.0 591.1,15.0 595.6,15.0 600.0,29.9 604.4,15.0 608.9,15.0 613.3,15.0 617.8,15.0 622.2,15.0 626.7,30.6 631.1,35.9 635.6,21.4 640.0,15.0 644.4,15.0 648.9,15.0 653.3,15.0 657.8,30.7 662.2,15.0 666.7,15.0 671.1,15.0 675.6,20.9 680.0,15.0 684.4,33.3 688.9,40.1 693.3,15.0 697.8,31.8 702.2,15.0 706.7,27.7 711.1,15.0 715.6,15.0 720.0,15.0 724.4,25.8 728.9,46.5 733.3,61.9 737.8,78.6 742.2,57.3 746.7,64.4 751.1,77.5 755.6,37.1 760.0,15.0 764.4,15.0 768.9,39.6 773.3,15.0 777.8,15.0 782.2,25.2 786.7,15.0 791.1,15.0 795.6,15.0 800.0,15.0 800,15.0" fill="#ef4444" opacity="0.15"/>
+            <polyline fill="none" stroke="#ef4444" stroke-width="2" points="0.0,15.0 4.4,45.4 8.9,15.0 13.3,15.0 17.8,15.0 22.2,15.0 26.7,15.0 31.1,15.0 35.6,15.0 40.0,15.0 44.4,31.7 48.9,15.0 53.3,32.5 57.8,60.6 62.2,25.5 66.7,35.0 71.1,65.4 75.6,94.7 80.0,45.0 84.4,60.8 88.9,73.1 93.3,61.5 97.8,15.0 102.2,15.0 106.7,15.0 111.1,38.0 115.6,54.3 120.0,33.2 124.4,45.8 128.9,31.5 133.3,47.0 137.8,32.8 142.2,15.0 146.7,15.0 151.1,15.0 155.6,15.0 160.0,15.0 164.4,32.9 168.9,54.2 173.3,83.0 177.8,115.5 182.2,61.0 186.7,78.6 191.1,94.7 195.6,107.9 200.0,64.8 204.4,45.1 208.9,61.0 213.3,28.2 217.8,45.0 222.2,19.2 226.7,15.0 231.1,15.0 235.6,52.7 240.0,30.9 244.4,15.0 248.9,15.0 253.3,15.0 257.8,15.0 262.2,40.7 266.7,22.3 271.1,15.0 275.6,15.0 280.0,32.9 284.4,44.4 288.9,74.8 293.3,38.5 297.8,15.0 302.2,15.0 306.7,37.5 311.1,46.6 315.6,27.5 320.0,35.7 324.4,15.0 328.9,24.6 333.3,15.0 337.8,15.0 342.2,15.0 346.7,35.5 351.1,15.0 355.6,15.0 360.0,15.0 364.4,15.0 368.9,15.0 373.3,15.0 377.8,15.0 382.2,15.0 386.7,35.9 391.1,15.0 395.6,32.6 400.0,15.0 404.4,15.0 408.9,15.0 413.3,15.0 417.8,48.6 422.2,30.7 426.7,15.0 431.1,15.0 435.6,32.2 440.0,15.0 444.4,15.0 448.9,33.4 453.3,49.8 457.8,21.8 462.2,15.0 466.7,36.0 471.1,52.2 475.6,74.7 480.0,92.1 484.4,113.0 488.9,126.2 493.3,117.8 497.8,145.1 502.2,165.0 506.7,148.3 511.1,154.8 515.6,119.8 520.0,129.6 524.4,98.0 528.9,87.4 533.3,63.2 537.8,27.8 542.2,47.9 546.7,27.8 551.1,15.0 555.6,15.0 560.0,24.2 564.4,15.0 568.9,27.1 573.3,15.0 577.8,15.0 582.2,15.0 586.7,32.0 591.1,15.0 595.6,15.0 600.0,29.9 604.4,15.0 608.9,15.0 613.3,15.0 617.8,15.0 622.2,15.0 626.7,30.6 631.1,35.9 635.6,21.4 640.0,15.0 644.4,15.0 648.9,15.0 653.3,15.0 657.8,30.7 662.2,15.0 666.7,15.0 671.1,15.0 675.6,20.9 680.0,15.0 684.4,33.3 688.9,40.1 693.3,15.0 697.8,31.8 702.2,15.0 706.7,27.7 711.1,15.0 715.6,15.0 720.0,15.0 724.4,25.8 728.9,46.5 733.3,61.9 737.8,78.6 742.2,57.3 746.7,64.4 751.1,77.5 755.6,37.1 760.0,15.0 764.4,15.0 768.9,39.6 773.3,15.0 777.8,15.0 782.2,25.2 786.7,15.0 791.1,15.0 795.6,15.0 800.0,15.0"/>
+        </svg>
+            </div>
+        </div>
+
+        <!-- Validation & Robustness Deep-Dive (WFO, Monte Carlo, Stress Test) -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <!-- Walk-Forward Optimization -->
+            <div class="spartan-card p-6 rounded-lg space-y-4">
+                <h3 class="text-base font-bold text-white flex items-center gap-2">
+                    <span class="text-[#d4af37] font-mono">WFO</span>
+                    Walk-Forward Optimization
+                </h3>
+                <div class="p-4 bg-[#04060a] rounded border border-[#221c10]">
+                    <span class="text-xs font-mono text-[#9ca3af]">Walk-Forward Efficiency (WFE)</span>
+                    <div class="text-2xl font-mono font-bold text-[#d4af37] mt-1">73.4%</div>
+                    <span class="text-xs font-mono text-[#10b981] mt-1 block">&check; Exceeds 60.0% Standard</span>
+                </div>
+                <p class="text-xs text-[#9ca3af] leading-relaxed">
+                    Rolling 6-month IS / 2-month OOS windows (1-month step size). Evaluates parameter surface stability across market transitions.
+                </p>
+            </div>
+
+            <!-- Monte Carlo Simulation -->
+            <div class="spartan-card p-6 rounded-lg space-y-4">
+                <h3 class="text-base font-bold text-white flex items-center gap-2">
+                    <span class="text-[#d4af37] font-mono">MC</span>
+                    Monte Carlo Bootstrapping
+                </h3>
+                <div class="p-4 bg-[#04060a] rounded border border-[#221c10]">
+                    <span class="text-xs font-mono text-[#9ca3af]">P(Drawdown &gt; 10.0%)</span>
+                    <div class="text-2xl font-mono font-bold text-[#10b981] mt-1">
+                        0.00%
+                    </div>
+                    <span class="text-xs font-mono text-[#9ca3af] mt-1 block">95th Percentile DD: 3.79%</span>
+                </div>
+                <p class="text-xs text-[#9ca3af] leading-relaxed">
+                    1,000+ trade resamplings with replacement and slippage jitter perturbations. Probability of ruin: 0.00%.
+                </p>
+            </div>
+
+            <!-- Macro Event Stress Testing -->
+            <div class="spartan-card p-6 rounded-lg space-y-4">
+                <h3 class="text-base font-bold text-white flex items-center gap-2">
+                    <span class="text-[#d4af37] font-mono">STRESS</span>
+                    CPI / NFP / FOMC Shocks
+                </h3>
+                <div class="p-4 bg-[#04060a] rounded border border-[#221c10]">
+                    <span class="text-xs font-mono text-[#9ca3af]">Stressed Max Drawdown</span>
+                    <div class="text-2xl font-mono font-bold text-[#10b981] mt-1">
+                        3.36%
+                    </div>
+                    <span class="text-xs font-mono text-[#10b981] mt-1 block">&check; Bounded strictly &le; 5.0%</span>
+                </div>
+                <p class="text-xs text-[#9ca3af] leading-relaxed">
+                    10x spread spikes and 30-pip adverse slippage injected during historical CPI, NFP, and FOMC announcements.
+                </p>
+            </div>
+        </div>
+
+        <!-- Institutional Compliance Matrix -->
+        <div class="spartan-card p-6 rounded-lg overflow-hidden">
+            <h2 class="text-lg font-bold text-white mb-4">Institutional Acceptance Matrix</h2>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="border-b border-[#2a2215] text-[#9ca3af] text-xs uppercase font-mono">
+                            <th class="py-3 px-4">Performance Metric</th>
+                            <th class="py-3 px-4">Institutional Target</th>
+                            <th class="py-3 px-4">Realized Result</th>
+                            <th class="py-3 px-4 text-center">Compliance Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        
+            <tr class="border-b border-[#221c10] hover:bg-[#080b12]">
+                <td class="py-3 px-4 text-sm text-[#f3f4f6] font-medium">Profit Factor >= 2.0</td>
+                <td class="py-3 px-4 text-sm font-mono text-[#9ca3af]">>= 2.0</td>
+                <td class="py-3 px-4 text-sm font-mono font-semibold text-[#d4af37]">2.72</td>
+                <td class="py-3 px-4 text-sm text-center"><span class="px-2 py-0.5 text-xs font-mono font-bold bg-[#10b98122] text-[#10b981] border border-[#10b98144] rounded">PASS</span></td>
+            </tr>
+            
+            <tr class="border-b border-[#221c10] hover:bg-[#080b12]">
+                <td class="py-3 px-4 text-sm text-[#f3f4f6] font-medium">Win Rate >= 60.0%</td>
+                <td class="py-3 px-4 text-sm font-mono text-[#9ca3af]">>= 60.0</td>
+                <td class="py-3 px-4 text-sm font-mono font-semibold text-[#d4af37]">61.67%</td>
+                <td class="py-3 px-4 text-sm text-center"><span class="px-2 py-0.5 text-xs font-mono font-bold bg-[#10b98122] text-[#10b981] border border-[#10b98144] rounded">PASS</span></td>
+            </tr>
+            
+            <tr class="border-b border-[#221c10] hover:bg-[#080b12]">
+                <td class="py-3 px-4 text-sm text-[#f3f4f6] font-medium">Risk:Reward >= 1:1.5</td>
+                <td class="py-3 px-4 text-sm font-mono text-[#9ca3af]">>= 1.5</td>
+                <td class="py-3 px-4 text-sm font-mono font-semibold text-[#d4af37]">1.69</td>
+                <td class="py-3 px-4 text-sm text-center"><span class="px-2 py-0.5 text-xs font-mono font-bold bg-[#10b98122] text-[#10b981] border border-[#10b98144] rounded">PASS</span></td>
+            </tr>
+            
+            <tr class="border-b border-[#221c10] hover:bg-[#080b12]">
+                <td class="py-3 px-4 text-sm text-[#f3f4f6] font-medium">Max Drawdown <= 5.0%</td>
+                <td class="py-3 px-4 text-sm font-mono text-[#9ca3af]"><= 5.0</td>
+                <td class="py-3 px-4 text-sm font-mono font-semibold text-[#d4af37]">3.34%</td>
+                <td class="py-3 px-4 text-sm text-center"><span class="px-2 py-0.5 text-xs font-mono font-bold bg-[#10b98122] text-[#10b981] border border-[#10b98144] rounded">PASS</span></td>
+            </tr>
+            
+            <tr class="border-b border-[#221c10] hover:bg-[#080b12]">
+                <td class="py-3 px-4 text-sm text-[#f3f4f6] font-medium">Sharpe Ratio >= 2.5</td>
+                <td class="py-3 px-4 text-sm font-mono text-[#9ca3af]">>= 2.5</td>
+                <td class="py-3 px-4 text-sm font-mono font-semibold text-[#d4af37]">7.15</td>
+                <td class="py-3 px-4 text-sm text-center"><span class="px-2 py-0.5 text-xs font-mono font-bold bg-[#10b98122] text-[#10b981] border border-[#10b98144] rounded">PASS</span></td>
+            </tr>
+            
+            <tr class="border-b border-[#221c10] hover:bg-[#080b12]">
+                <td class="py-3 px-4 text-sm text-[#f3f4f6] font-medium">Sortino Ratio >= 3.5</td>
+                <td class="py-3 px-4 text-sm font-mono text-[#9ca3af]">>= 3.5</td>
+                <td class="py-3 px-4 text-sm font-mono font-semibold text-[#d4af37]">25.38</td>
+                <td class="py-3 px-4 text-sm text-center"><span class="px-2 py-0.5 text-xs font-mono font-bold bg-[#10b98122] text-[#10b981] border border-[#10b98144] rounded">PASS</span></td>
+            </tr>
+            
+            <tr class="border-b border-[#221c10] hover:bg-[#080b12]">
+                <td class="py-3 px-4 text-sm text-[#f3f4f6] font-medium">Calmar Ratio >= 3.0</td>
+                <td class="py-3 px-4 text-sm font-mono text-[#9ca3af]">>= 3.0</td>
+                <td class="py-3 px-4 text-sm font-mono font-semibold text-[#d4af37]">17.46</td>
+                <td class="py-3 px-4 text-sm text-center"><span class="px-2 py-0.5 text-xs font-mono font-bold bg-[#10b98122] text-[#10b981] border border-[#10b98144] rounded">PASS</span></td>
+            </tr>
+            
+            <tr class="border-b border-[#221c10] hover:bg-[#080b12]">
+                <td class="py-3 px-4 text-sm text-[#f3f4f6] font-medium">Recovery Factor >= 4.0</td>
+                <td class="py-3 px-4 text-sm font-mono text-[#9ca3af]">>= 4.0</td>
+                <td class="py-3 px-4 text-sm font-mono font-semibold text-[#d4af37]">12.90</td>
+                <td class="py-3 px-4 text-sm text-center"><span class="px-2 py-0.5 text-xs font-mono font-bold bg-[#10b98122] text-[#10b981] border border-[#10b98144] rounded">PASS</span></td>
+            </tr>
+            
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Governance Footer -->
+        <footer class="pt-6 border-t border-[#221c10] text-center text-xs font-mono text-[#9ca3af] space-y-1">
+            <p class="text-white font-semibold">Spartan Autonomous AI Executive Holding Operating System</p>
+            <p>Institutional Verification Protocol | Zero-Tolerance Gambler's Ruin Standard</p>
+            <p class="text-[#d4af37]">Approved by Chairman @tddv2017</p>
+        </footer>
+    </div>
+</body>
+</html>

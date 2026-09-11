@@ -24,7 +24,7 @@ export interface ResellerTierInfo {
 export const RESELLER_TIERS_MATRIX: ResellerTierInfo[] = [
   { 
     tier: 10, 
-    rankName: 'PARTNER TIER 10 (TOP MASTER)', 
+    rankName: 'SOVEREIGN SPARTAN (TIER 10)', 
     depositRebatePct: 50.0, 
     hwmRebatePct: 35.0, 
     p2pRebatePct: 35.0,
@@ -32,13 +32,13 @@ export const RESELLER_TIERS_MATRIX: ResellerTierInfo[] = [
     shareDescription: '50% PHÍ KHỞI TẠO (50/50) + 35% HIỆU QUẢ HWM', 
     depositPer1k: '+$45.00 USDT / $1,000U',
     hwmDescription: '35% Hiệu Quả HWM',
-    requirementText: 'Đối tác Cấp Cao (50+ Thành viên / $100kU Khối lượng)', 
+    requirementText: 'Đối tác Tối Cao (50+ Thành viên / $100kU+ Khối lượng)', 
     estimatedMonthlyIncome: '~$5,500 - $12,000+ USDT/tháng',
     badgeStyle: 'bg-[#ff5500]/20 text-[#ff5500] border-[#ff5500]/40 shadow-[0_0_15px_rgba(255,85,0,0.4)]' 
   },
   { 
     tier: 9,  
-    rankName: 'PARTNER TIER 9', 
+    rankName: 'CROWN SPARTAN (TIER 9)', 
     depositRebatePct: 48.0, 
     hwmRebatePct: 30.0, 
     p2pRebatePct: 35.0,
@@ -52,7 +52,7 @@ export const RESELLER_TIERS_MATRIX: ResellerTierInfo[] = [
   },
   { 
     tier: 8,  
-    rankName: 'PARTNER TIER 8', 
+    rankName: 'DIAMOND SPARTAN (TIER 8)', 
     depositRebatePct: 45.0, 
     hwmRebatePct: 28.0, 
     p2pRebatePct: 35.0,
@@ -66,7 +66,7 @@ export const RESELLER_TIERS_MATRIX: ResellerTierInfo[] = [
   },
   { 
     tier: 7,  
-    rankName: 'PARTNER TIER 7', 
+    rankName: 'RUBY SPARTAN (TIER 7)', 
     depositRebatePct: 42.0, 
     hwmRebatePct: 25.0, 
     p2pRebatePct: 35.0,
@@ -76,11 +76,11 @@ export const RESELLER_TIERS_MATRIX: ResellerTierInfo[] = [
     hwmDescription: '25% Hiệu Quả HWM',
     requirementText: '35 Thành viên / $35,000U Khối lượng', 
     estimatedMonthlyIncome: '~$2,200 - $3,000 USDT/tháng',
-    badgeStyle: 'bg-blue-500/20 text-blue-300 border-blue-500/40' 
+    badgeStyle: 'bg-rose-500/20 text-rose-300 border-rose-500/40' 
   },
   { 
     tier: 6,  
-    rankName: 'PARTNER TIER 6', 
+    rankName: 'EMERALD SPARTAN (TIER 6)', 
     depositRebatePct: 40.0, 
     hwmRebatePct: 22.0, 
     p2pRebatePct: 35.0,
@@ -94,7 +94,7 @@ export const RESELLER_TIERS_MATRIX: ResellerTierInfo[] = [
   },
   { 
     tier: 5,  
-    rankName: 'PARTNER TIER 5', 
+    rankName: 'SAPPHIRE SPARTAN (TIER 5)', 
     depositRebatePct: 35.0, 
     hwmRebatePct: 20.0, 
     p2pRebatePct: 35.0,
@@ -108,7 +108,7 @@ export const RESELLER_TIERS_MATRIX: ResellerTierInfo[] = [
   },
   { 
     tier: 4,  
-    rankName: 'PARTNER TIER 4', 
+    rankName: 'PLATINUM SPARTAN (TIER 4)', 
     depositRebatePct: 30.0, 
     hwmRebatePct: 18.0, 
     p2pRebatePct: 35.0,
@@ -122,7 +122,7 @@ export const RESELLER_TIERS_MATRIX: ResellerTierInfo[] = [
   },
   { 
     tier: 3,  
-    rankName: 'PARTNER TIER 3', 
+    rankName: 'GOLD SPARTAN (TIER 3)', 
     depositRebatePct: 25.0, 
     hwmRebatePct: 15.0, 
     p2pRebatePct: 35.0,
@@ -136,7 +136,7 @@ export const RESELLER_TIERS_MATRIX: ResellerTierInfo[] = [
   },
   { 
     tier: 2,  
-    rankName: 'PARTNER TIER 2', 
+    rankName: 'SILVER SPARTAN (TIER 2)', 
     depositRebatePct: 20.0, 
     hwmRebatePct: 12.0, 
     p2pRebatePct: 35.0,
@@ -146,11 +146,11 @@ export const RESELLER_TIERS_MATRIX: ResellerTierInfo[] = [
     hwmDescription: '12% Hiệu Quả HWM',
     requirementText: '5 Thành viên Hoạt Động', 
     estimatedMonthlyIncome: '~$150 - $300 USDT/tháng',
-    badgeStyle: 'bg-rose-500/20 text-rose-300 border-rose-500/40' 
+    badgeStyle: 'bg-slate-400/20 text-slate-300 border-slate-400/40' 
   },
   { 
     tier: 1,  
-    rankName: 'PARTNER TIER 1 (STARTING)', 
+    rankName: 'BRONZE SPARTAN (TIER 1)', 
     depositRebatePct: 15.0, 
     hwmRebatePct: 10.0, 
     p2pRebatePct: 35.0,
@@ -160,7 +160,7 @@ export const RESELLER_TIERS_MATRIX: ResellerTierInfo[] = [
     hwmDescription: '10% Hiệu Quả HWM',
     requirementText: 'Khởi đầu (1 - 4 Thành viên)', 
     estimatedMonthlyIncome: '~$50 - $150 USDT/tháng',
-    badgeStyle: 'bg-gray-800 text-gray-300 border-gray-700' 
+    badgeStyle: 'bg-amber-700/20 text-amber-500 border-amber-700/40' 
   },
 ];
 

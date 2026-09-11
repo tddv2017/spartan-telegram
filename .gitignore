@@ -4,3 +4,8 @@ node_modules
 .env
 .env.local
 .DS_Store
+.vercel
+__pycache__/
+*.pyc
+*.dat
+
